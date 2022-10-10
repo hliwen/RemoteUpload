@@ -835,7 +835,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
         void downloadNum(int num, String speed);
     }
-
-//sssssssssssssssssssssssssssssssssssss
+    //rrrrrrrrrrrrrrrrrrrrrrrrrrr
 }
 
