@@ -42,7 +42,6 @@ import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
 import com.example.nextclouddemo.utils.Utils;
-import com.github.mjdev.libaums.fs.UsbFile;
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
 import com.owncloud.android.lib.common.OwnCloudCredentialsFactory;
@@ -51,11 +50,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Vector;
 
 
 public class MainActivity extends Activity {
@@ -78,7 +73,7 @@ public class MainActivity extends Activity {
 
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 10 * 60 * 1000;
-    private static final boolean phoneDebug = true;
+    private static final boolean phoneDebug = false;
 
 
     private static String TAG = "MainActivitylog";
@@ -141,10 +136,8 @@ public class MainActivity extends Activity {
             requestPermissions(value, 111);
         }
 
-        File fileFolder = new File(VariableInstance.getInstance().TFCardPictureDir);
-        if (!fileFolder.exists()) {
-            fileFolder.mkdir();
-        }
+        Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
+        Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
 
         openDeviceProt(false);
@@ -680,33 +673,10 @@ public class MainActivity extends Activity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File tfcardpicturedir = new File(VariableInstance.getInstance().TFCardPictureDir);
-                if (tfcardpicturedir != null && tfcardpicturedir.exists()) {
-                    Utils.deleteAllFiles(tfcardpicturedir);
-                    File fileFolder = new File(VariableInstance.getInstance().TFCardPictureDir);
-                    if (!fileFolder.exists()) {
-                        fileFolder.mkdir();
-                    }
-                }
-
-                File tfcardvideodir = new File(VariableInstance.getInstance().TFCardVideoDir);
-                if (tfcardvideodir != null && tfcardvideodir.exists()) {
-                    Utils.deleteAllFiles(tfcardvideodir);
-                    File fileFolder = new File(VariableInstance.getInstance().TFCardVideoDir);
-                    if (!fileFolder.exists()) {
-                        fileFolder.mkdir();
-                    }
-                }
-
-                File logcatdir = new File(VariableInstance.getInstance().LogcatDir);
-                if (logcatdir != null && logcatdir.exists()) {
-                    Utils.deleteAllFiles(logcatdir);
-                    File fileFolder = new File(VariableInstance.getInstance().LogcatDir);
-                    if (!fileFolder.exists()) {
-                        fileFolder.mkdir();
-                    }
-                }
-
+                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().TFCardVideoDir);
+                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
             }
         }).start();
     }

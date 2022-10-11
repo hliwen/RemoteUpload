@@ -15,10 +15,12 @@ public class VariableInstance {
     public String sdCardDirRoot;
 
     public String PictureDirName;
+    public String PictureUploadDirName;
     public String VideoDirName;
     public String LogcatDirName;
 
     public String TFCardPictureDir;
+    public String TFCardUploadPictureDir;
     public String TFCardVideoDir;
     public String LogcatDir;
     public boolean formarCamera;
@@ -27,11 +29,13 @@ public class VariableInstance {
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();
         PictureDirName = "CameraPath";
+        PictureUploadDirName = "CameraUploadPath";
         VideoDirName = "VideoPath";
         LogcatDirName = "MLogcat";
 
         sdCardDirRoot = "/mnt/sdcard" + File.separator;
         TFCardPictureDir = sdCardDirRoot + PictureDirName;
+        TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
         TFCardVideoDir = sdCardDirRoot + VideoDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
     }

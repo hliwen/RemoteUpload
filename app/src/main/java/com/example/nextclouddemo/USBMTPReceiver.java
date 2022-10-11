@@ -47,6 +47,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
     private UsbManager usbManager;
     private String tfcardpicturedir;
+    private String tfcarduploadpicturedir;
 
     public int deviceID = -1;
     public FileSystem uploadFs;
@@ -67,6 +68,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
     public USBMTPReceiver(Context context, DownloadFlieListener downloadFlieListener) {
         this.tfcardpicturedir = VariableInstance.getInstance().TFCardPictureDir;
+        this.tfcarduploadpicturedir = VariableInstance.getInstance().TFCardUploadPictureDir;
         this.downloadFlieListener = downloadFlieListener;
         todayMonthDirString = Utils.getyyyyMMString();
         YYMMDDString = Utils.getyyMMddtring();
@@ -80,11 +82,9 @@ public class USBMTPReceiver extends BroadcastReceiver {
         usbFileNameList = new Vector<>();
 
 
-        File file = new File(tfcardpicturedir);
-        //文件夹不存在就创建
-        if (!file.exists()) {
-            file.mkdir();
-        }
+        Utils.makeDir(tfcardpicturedir);
+        Utils.makeDir(tfcarduploadpicturedir);
+
 
         initUploadUSBDevice();
     }
@@ -659,23 +659,40 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
         //写入文件
         FileOutputStream os = null;
+        FileOutputStream uploados = null;
         InputStream is = null;
         String pictureSaveLocalPath = null;
+        String pictureSaveUploadLocalPath = null;
         File pictureSaveLocalFile = null;
+        File pictureSaveUploadLocalFile = null;
         try {
             pictureSaveLocalPath = tfcardpicturedir + File.separator + pictureInfo.pictureName;
+            pictureSaveUploadLocalPath = tfcarduploadpicturedir + File.separator + pictureInfo.pictureName;
             pictureSaveLocalFile = new File(pictureSaveLocalPath);
+
             if (pictureSaveLocalFile.exists())
                 pictureSaveLocalFile.delete();
 
+
             Log.d(TAG, "saveUSBFileToPhoneDevice: savePicturePath =" + pictureSaveLocalPath);
             os = new FileOutputStream(pictureSaveLocalPath);
+
+            if (needUpload) {
+                pictureSaveUploadLocalFile = new File(pictureSaveUploadLocalPath);
+                if (pictureSaveUploadLocalFile.exists())
+                    pictureSaveUploadLocalFile.delete();
+                uploados = new FileOutputStream(pictureSaveUploadLocalPath);
+            }
+
+
             is = new UsbFileInputStream(pictureInfo.usbFile);
 
             int bytesRead = 0;
             byte[] buffer = new byte[pictureInfo.usbFileSystem.getChunkSize()];//作者的推荐写法是currentFs.getChunkSize()为buffer长度
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
+                if (needUpload)
+                    uploados.write(buffer, 0, bytesRead);
             }
         } catch (FileNotFoundException e) {
             Log.e(TAG, "saveUSBFileToPhoneDevice: FileNotFoundException =" + e);
@@ -686,6 +703,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 if (os != null) {
                     os.flush();
                     os.close();
+                }
+                if (uploados != null) {
+                    uploados.flush();
+                    uploados.close();
                 }
                 if (is != null) {
                     is.close();
@@ -699,7 +720,8 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 boolean uploadSucceed = uploadToUSB(pictureSaveLocalFile);
                 if (uploadSucceed) {
                     if (needUpload) {
-                        downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveLocalPath));
+                        if (pictureSaveUploadLocalFile != null && pictureSaveUploadLocalFile.exists())
+                            downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
                     } else {
                         pictureSaveLocalFile.delete();
                     }
@@ -916,18 +938,29 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 return;
 
             String pictureSaveLocalPath = tfcardpicturedir + File.separator + pictureInfo.pictureName;
+            String pictureSaveUploadLocalPath = tfcarduploadpicturedir + File.separator + pictureInfo.pictureName;
+
             File pictureTpmSaveFile = new File(pictureSaveLocalPath);
             if (pictureTpmSaveFile != null && pictureTpmSaveFile.exists())
                 pictureTpmSaveFile.delete();
 
             mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
-            if (pictureTpmSaveFile != null && pictureTpmSaveFile.exists()) {
+            File pictureTpmUploadSaveFile = null;
+            if (needUpload) {
+                pictureTpmUploadSaveFile = new File(pictureSaveUploadLocalPath);
+                if (pictureTpmUploadSaveFile != null && pictureTpmUploadSaveFile.exists())
+                    pictureTpmUploadSaveFile.delete();
 
+                mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveUploadLocalPath);
+            }
+
+            if (pictureTpmSaveFile != null && pictureTpmSaveFile.exists()) {
                 boolean uploadSucceed = uploadToUSB(pictureTpmSaveFile);
                 if (uploadSucceed) {
                     if (needUpload) {
-                        downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveLocalPath));
+                        if (pictureTpmUploadSaveFile != null && pictureTpmUploadSaveFile.exists())
+                            downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
                     } else {
                         pictureTpmSaveFile.delete();
                     }

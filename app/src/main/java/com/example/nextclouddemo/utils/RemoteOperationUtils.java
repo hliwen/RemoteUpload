@@ -375,7 +375,7 @@ public class RemoteOperationUtils {
                     }
 
                     if (fileModel == null) {
-                        File localTpmFlie = new File(VariableInstance.getInstance().TFCardPictureDir);
+                        File localTpmFlie = new File(VariableInstance.getInstance().TFCardUploadPictureDir);
                         if (localTpmFlie != null && localTpmFlie.exists()) {
                             File[] files = localTpmFlie.listFiles();
                             if (files != null) {

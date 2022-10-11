@@ -8,6 +8,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.StatFs;
 
+import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.utils.Log;
 
 import androidx.core.content.PermissionChecker;
@@ -45,6 +46,24 @@ public class Utils {
         return availableMemory;
     }
 
+    public static void resetDir(String dir) {
+        File dirFlie = new File(dir);
+        if (dirFlie != null && dirFlie.exists()) {
+            Utils.deleteAllFiles(dirFlie);
+            dirFlie = new File(dir);
+            if (!dirFlie.exists()) {
+                dirFlie.mkdir();
+            }
+        }
+    }
+
+    public static File makeDir(String dir){
+        File fileFolder = new File(dir);
+        if (!fileFolder.exists()) {
+            fileFolder.mkdir();
+        }
+        return fileFolder;
+    }
 
     @SuppressLint("SimpleDateFormat")
     private static DateFormat getDateFormat(String pattern) {
