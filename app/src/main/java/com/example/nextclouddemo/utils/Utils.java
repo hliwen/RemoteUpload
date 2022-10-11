@@ -75,6 +75,16 @@ public class Utils {
         return System.currentTimeMillis() + "";
     }
 
+    public static String getTimeString(long date) {
+        try {
+            return getDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(date));
+        } catch (Exception e) {
+
+        }
+        return System.currentTimeMillis() + "";
+    }
+
+
     public static String getyyyyMMString(long time) {
         try {
             return getDateFormat("yyyyMM").format(new Date(time));
@@ -123,7 +133,9 @@ public class Utils {
 
 
     public static void closeAndroid() {
-
+//
+//        if(true)
+//            return;//TODO hu
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});  //关机
             proc.waitFor();

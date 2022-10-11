@@ -33,7 +33,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.TimeZone;
+import java.util.Objects;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,13 +43,14 @@ public class USBMTPReceiver extends BroadcastReceiver {
     public static final String CHECK_PERMISSION = "CHECK_PERMISSION";
     public static final String CHECK_UPLOAD_PERMISSION = "CHECK_UPLOAD_PERMISSION";
     private ExecutorService scanerThreadExecutor;
-    private ExecutorService uploadThreadExecutor;
+    private ExecutorService initUploadUSBThreadExecutor;
 
     private UsbManager usbManager;
     private String tfcardpicturedir;
 
     public int deviceID = -1;
     public FileSystem uploadFs;
+    public UsbFile logcatFileDirUsbFile;
     public UsbFile uploadFileDirUsbFile;
     public UsbFile todayMonthUsbFile;
     private String YYMMDDString;
@@ -60,6 +62,8 @@ public class USBMTPReceiver extends BroadcastReceiver {
     private UsbDevice mUSBDevice;
 
     private ArrayList<PictureInfo> pictureInfos;
+    private ArrayList<PictureInfo> rowPictureInfos;
+    private ArrayList<PictureInfo> jpgPictureInfos;
 
     public USBMTPReceiver(Context context, DownloadFlieListener downloadFlieListener) {
         this.tfcardpicturedir = VariableInstance.getInstance().TFCardPictureDir;
@@ -71,6 +75,9 @@ public class USBMTPReceiver extends BroadcastReceiver {
         Log.e(TAG, "USBMTPReceiver: YYMMDDString =" + YYMMDDString + ",YYMMDDInteger =" + YYMMDDInteger);
         usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         pictureInfos = new ArrayList<>();
+        rowPictureInfos = new ArrayList<>();
+        jpgPictureInfos = new ArrayList<>();
+        usbFileNameList = new Vector<>();
 
 
         File file = new File(tfcardpicturedir);
@@ -83,12 +90,75 @@ public class USBMTPReceiver extends BroadcastReceiver {
     }
 
 
-    public void shutdownThread() {
-        if (uploadThreadExecutor != null)
-            uploadThreadExecutor.shutdown();
-        if (uploadThreadExecutor != null)
-            uploadThreadExecutor.shutdown();
-        deviceID = 0;
+    public void uploadLogcatToUSB() {
+        Log.e(TAG, "uploadLogcatToUSB:asdfadsfad logcatFileDirUsbFile =" + logcatFileDirUsbFile + ",logcatFilePath =" + LogcatHelper.getInstance().logcatFilePath);
+        if (logcatFileDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null)
+            return;
+        UsbFileOutputStream os = null;
+        InputStream is = null;
+        try {
+            File localFile = new File(LogcatHelper.getInstance().logcatFilePath);
+            UsbFile create = logcatFileDirUsbFile.createFile(localFile.getName());
+            os = new UsbFileOutputStream(create);
+            is = new FileInputStream(localFile);
+
+            int bytesRead;
+            byte[] buffer = new byte[uploadFs.getChunkSize()];
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "asdfadsfad uploadLogcatToUSB: Exception =" + e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.flush();
+                    os.close();
+                }
+                if (is != null) {
+                    is.close();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "uploadLogcatToUSB: asdfadsfad Exception =" + e);
+            }
+        }
+
+
+    }
+
+    public void release() {
+        Log.e(TAG, "release: ");
+        stopInitUploadUSBThreadExecutor();
+        stopScanerThread();
+    }
+
+    public void stopInitUploadUSBThreadExecutor() {
+        Log.e(TAG, "stopInitUploadUSBThreadExecutor: ");
+        try {
+            if (initUploadUSBThreadExecutor != null)
+                initUploadUSBThreadExecutor.shutdown();
+        } catch (Exception e) {
+        }
+        initUploadUSBThreadExecutor = null;
+        uploadFileDirUsbFile = null;
+        logcatFileDirUsbFile = null;
+        todayMonthUsbFile = null;
+        uploadFs = null;
+        deviceID = -1;
+    }
+
+    private boolean isStopScanerThread;
+
+    private void stopScanerThread() {
+        Log.d(TAG, "stopScanerThread: ");
+        isStopScanerThread = true;
+        try {
+            if (scanerThreadExecutor != null)
+                scanerThreadExecutor.shutdown();
+        } catch (Exception e) {
+
+        }
+        scanerThreadExecutor = null;
     }
 
     public int getCapacity() {
@@ -105,11 +175,29 @@ public class USBMTPReceiver extends BroadcastReceiver {
         return freeSpace;
     }
 
+    public void formatUSB() {
+        stopScanerThread();
+        Log.e(TAG, "delectUploadUSBFile: uploadFileDirUsbFile =" + uploadFileDirUsbFile);
+        if (uploadFileDirUsbFile == null)
+            return;
+        Log.e(TAG, "delectUploadUSBFile: " + uploadFileDirUsbFile.getName());
+        try {
+            UsbFile[] usbFileList = uploadFileDirUsbFile.listFiles();
+            for (UsbFile file : usbFileList) {
+                file.delete();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "delectUploadUSBFile: Exception =" + e);
+        }
+        Log.d(TAG, "delectUploadUSBFile: 删除文件完成");
+    }
+
     public void formatCamera() {
         try {
-            if (scanerThreadExecutor != null)
-                scanerThreadExecutor.shutdown();
+            stopScanerThread();
             pictureInfos.clear();
+            rowPictureInfos.clear();
+            jpgPictureInfos.clear();
             downloadFlieListener.downloadComplete();
         } catch (Exception e) {
 
@@ -122,6 +210,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED: {
                 mUSBDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED ");
                 if (mUSBDevice == null) {
                     return;
                 }
@@ -129,7 +218,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
                     if (usbManager.hasPermission(mUSBDevice)) {
                         Log.e(TAG, "onReceive: hasPermission");
-                        checkConnectedDevice(mUSBDevice);
+                        checkConnectedDevice();
                     } else {
                         @SuppressLint("UnspecifiedImmutableFlag")
                         PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
@@ -144,8 +233,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
             case UsbManager.ACTION_USB_DEVICE_DETACHED: {
                 Log.e(TAG, "onReceive: 断开USB设备");
                 mUSBDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (mUSBDevice == null)
+                if (mUSBDevice == null) {
+                    Log.e(TAG, "onReceive: mUSBDevice == null");
                     return;
+                }
                 try {
                     UsbMassStorageDevice usbMassStorageDevice = getUsbMass(mUSBDevice);
                     if (usbMassStorageDevice != null) {
@@ -154,15 +245,23 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 } catch (Exception e) {
                     Log.e(TAG, "onReceive: 设备断开异常 e =" + e);
                 }
-                if (mUSBDevice.getDeviceId() != deviceID)
-                    mUSBDevice = null;
+                Log.e(TAG, "onReceive:断开USB设备 mUSBDevice id = " + mUSBDevice.getDeviceId() + ",deviceID =" + deviceID);
+                if (mUSBDevice.getDeviceId() == deviceID) {
+                    release();
+                } else {
+                    getUSBPictureCount();
+                    downloadFlieListener.usbFileScanrFinishi(usbFileNameList.size());
+                }
+                mUSBDevice = null;
             }
             break;
             case CHECK_PERMISSION:
-                Log.e(TAG, "onReceive: CHECK_PERMISSION");
-                if (mUSBDevice != null && mUSBDevice.getDeviceId() == deviceID)
+                Log.e(TAG, "onReceive: CHECK_PERMISSION deviceID =" + deviceID);
+                if (mUSBDevice != null && mUSBDevice.getDeviceId() == deviceID) {
+                    Log.e(TAG, "onReceive: CHECK_PERMISSION mUSBDevice != null && mUSBDevice.getDeviceId() == deviceID");
                     return;
-                checkConnectedDevice(mUSBDevice);
+                }
+                checkConnectedDevice();
                 break;
             case CHECK_UPLOAD_PERMISSION:
                 Log.d(TAG, "onReceive: CHECK_UPLOAD_PERMISSION");
@@ -176,8 +275,8 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
     public void initUploadUSBDevice() {
         Log.e(TAG, "initUploadUSBDevice: ");
-        if (uploadThreadExecutor == null)
-            uploadThreadExecutor = Executors.newSingleThreadExecutor();
+        stopInitUploadUSBThreadExecutor();
+        initUploadUSBThreadExecutor = Executors.newSingleThreadExecutor();
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -194,15 +293,13 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     return;
                 }
 
-                uploadFileDirUsbFile = null;
-                todayMonthUsbFile = null;
-                uploadFs = null;
-                deviceID = -1;
 
                 Log.d(TAG, "initUploadUSBDevice: " + "当前连接设备个数:" + allConnectedUSBDeviceList.size());
                 for (UsbDevice usbDevice : allConnectedUSBDeviceList.values()) {
-                    if (usbDevice == null)
+                    if (usbDevice == null) {
+                        Log.e(TAG, "run: allConnectedUSBDeviceList usbDevice = null ");
                         continue;
+                    }
                     //遍历连接的设备接口
                     for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
                         UsbInterface usbInterface = usbDevice.getInterface(i);
@@ -231,6 +328,22 @@ public class USBMTPReceiver extends BroadcastReceiver {
                                     Partition partition = device.getPartitions().get(0);
                                     FileSystem currentFs = partition.getFileSystem();
                                     UsbFile mRootFolder = currentFs.getRootDirectory();
+
+
+                                    try {
+                                        UsbFile[] usbFileList = mRootFolder.listFiles();
+                                        for (UsbFile usbFileItem : usbFileList) {
+                                            if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
+                                                logcatFileDirUsbFile = usbFileItem;
+                                                break;
+                                            }
+                                        }
+
+                                        if (logcatFileDirUsbFile == null)
+                                            logcatFileDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+                                    } catch (Exception e) {
+                                    }
+
 
                                     try {
                                         UsbFile[] usbFileList = mRootFolder.listFiles();
@@ -266,9 +379,9 @@ public class USBMTPReceiver extends BroadcastReceiver {
                                         downloadFlieListener.usbIntError("deviceID == -1");
                                         continue;
                                     } else {
-                                        uploadDeviceUSBPictureCount = 0;
+                                        usbFileNameList.clear();
                                         getUploadDeviceUSBPictureCount(uploadFileDirUsbFile);
-                                        downloadFlieListener.initUploadUSBComplete(uploadDeviceUSBPictureCount);
+                                        downloadFlieListener.initUploadUSBComplete(usbFileNameList.size());
                                     }
                                 } else {
                                     Log.e(TAG, "usbDeviceScaner: hasPermission =false");
@@ -284,30 +397,29 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 }
             }
         };
-        uploadThreadExecutor.execute(runnable);
+        initUploadUSBThreadExecutor.execute(runnable);
     }
 
 
     public int getUSBPictureCount() {
         if (uploadFileDirUsbFile == null)
             return -1;
-        uploadDeviceUSBPictureCount = 0;
+        usbFileNameList.clear();
         getUploadDeviceUSBPictureCount(uploadFileDirUsbFile);
-
-        return uploadDeviceUSBPictureCount;
+        return usbFileNameList.size();
     }
 
-    private void checkConnectedDevice(UsbDevice usbDevice) {
-        if (usbDevice == null)
+    private void checkConnectedDevice() {
+        Log.e(TAG, "checkConnectedDevice:  ");
+        if (mUSBDevice == null)
             return;
-
-        if (scanerThreadExecutor == null)
-            scanerThreadExecutor = Executors.newSingleThreadExecutor();
-
+        stopScanerThread();
+        scanerThreadExecutor = Executors.newSingleThreadExecutor();
+        isStopScanerThread = false;
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                while (deviceID == -1) {
+                while (deviceID == -1 && !isStopScanerThread) {
                     Log.d(TAG, "checkConnectedDevice: 初始化上传的usb未完成，deviceID =" + deviceID);
                     try {
                         Thread.sleep(3000);
@@ -315,6 +427,9 @@ public class USBMTPReceiver extends BroadcastReceiver {
                         e.printStackTrace();
                     }
                 }
+
+                if (isStopScanerThread)
+                    return;
                 Log.d(TAG, "checkConnectedDevice: 开始检查USB连接设备");
 
                 if (usbManager == null)
@@ -323,26 +438,34 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     Log.e(TAG, "run: usbManager==null");
                     return;
                 }
+                if (mUSBDevice == null)
+                    return;
 
-                for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
-                    UsbInterface usbInterface = usbDevice.getInterface(i);
-                    if (usbInterface == null)
-                        return;
-                    switch (usbInterface.getInterfaceClass()) {
-                        case UsbConstants.USB_CLASS_STILL_IMAGE:
-                            downloadFlieListener.startDownload();
-                            mtpDeviceScaner(usbDevice);
-                            downloadFlieListener.downloadComplete();
-                            break;
-                        case UsbConstants.USB_CLASS_MASS_STORAGE:
-                            downloadFlieListener.startDownload();
-                            usbDeviceScaner(usbDevice);
-                            downloadFlieListener.downloadComplete();
-                            break;
-                        default:
-                            break;
+
+                try {
+                    for (int i = 0; i < mUSBDevice.getInterfaceCount(); i++) {
+                        if (mUSBDevice == null)
+                            return;
+                        UsbInterface usbInterface = mUSBDevice.getInterface(i);
+                        if (usbInterface == null)
+                            return;
+                        switch (usbInterface.getInterfaceClass()) {
+                            case UsbConstants.USB_CLASS_STILL_IMAGE:
+                                downloadFlieListener.startDownload();
+                                mtpDeviceScaner(mUSBDevice);
+                                downloadFlieListener.downloadComplete();
+                                break;
+                            case UsbConstants.USB_CLASS_MASS_STORAGE:
+                                downloadFlieListener.startDownload();
+                                usbDeviceScaner(mUSBDevice);
+                                downloadFlieListener.downloadComplete();
+                                break;
+                            default:
+                                break;
+                        }
+
                     }
-
+                } catch (Exception e) {
                 }
 
             }
@@ -371,39 +494,54 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
 
         pictureInfos.clear();
+        rowPictureInfos.clear();
+        jpgPictureInfos.clear();
         for (int storageId : storageIds) {
             int[] pictureHandlesItem = mtpDevice.getObjectHandles(storageId, 0, 0);
             if (pictureHandlesItem != null)
                 for (int i : pictureHandlesItem) {
                     MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
 
-
                     if (mtpObjectInfo == null) {
                         continue;
                     }
-                    String pictureName = mtpObjectInfo.getName();
+                    String pictureName = Utils.getyyMMddtring() + "-" + mtpObjectInfo.getName();
                     String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
-
-                    if (isNeedDownloadFile(FileEnd)) {
-                        if (VariableInstance.getInstance().formarCamera) {
-                            mtpDevice.deleteObject(i);
-                            continue;
-                        }
-
-
-                        long createDate = mtpObjectInfo.getDateCreated();
-
-                        if (isOnTheSameDay(createDate))
-                            pictureInfos.add(new PictureInfo(true, pictureName, createDate, i, null, null));
+                    if (VariableInstance.getInstance().formarCamera) {
+                        mtpDevice.deleteObject(i);
+                        continue;
                     }
+
+
+                    long createDate = mtpObjectInfo.getDateCreated();
+
+                    if (!usbFileNameList.contains(pictureName)) {
+                        if (rowFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
+                            rowPictureInfos.add(pictureInfo);
+                        } else if (jPGFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
+                            jpgPictureInfos.add(pictureInfo);
+                        }
+                    }
+//                    if (isOnTheSameDay(createDate)) {
+//
+//
+//                    }
                 }
         }
+
+        Collections.sort(rowPictureInfos, new order());
+        Collections.sort(jpgPictureInfos, new order());
+
+        pictureInfos.addAll(rowPictureInfos);
+        pictureInfos.addAll(jpgPictureInfos);
+
+
         Log.d(TAG, "readAllFileFromMTPDevice: 扫描到图片size =" + pictureInfos.size());
-
-        Collections.sort(pictureInfos, new order());
-
         downloadFlieListener.scanerSize(pictureInfos.size());
+
         saveMTPPictureToUploadUSB(mtpDevice);
         usbDeviceConnection.close();
         mtpDevice.close();
@@ -440,8 +578,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
         UsbFile mRootFolder = currentFs.getRootDirectory();
 
         pictureInfos.clear();
+        rowPictureInfos.clear();
+        jpgPictureInfos.clear();
         readAllPicFileFromUSBDevice(currentFs, mRootFolder);
-        Log.d(TAG, "usbDeviceScaner: " + "扫描到图片size =" + pictureInfos.size());
+        Log.d(TAG, "usbDeviceScaner: 扫描到图片size =" + pictureInfos.size());
         Collections.sort(pictureInfos, new order());
         downloadFlieListener.scanerSize(pictureInfos.size());
         saveUSBFileToPhoneDevice();
@@ -455,63 +595,75 @@ public class USBMTPReceiver extends BroadcastReceiver {
             return;
         }
 
-
-        if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
-            if (VariableInstance.getInstance().uploadSelectIndexList != null) {
-                for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
-                    try {
-                        PictureInfo uploadSelectIndex = pictureInfos.remove(integer - 1);
-                        if (uploadSelectIndex != null) {
-                            saveMTPPictureToUploadUSB(mtpDevice, uploadSelectIndex, true);
-                        }
-                    } catch (Exception e) {
-
-                    }
-                }
+        try {
+            for (PictureInfo pictureItem : pictureInfos) {
+                saveMTPPictureToUploadUSB(mtpDevice, pictureItem);
             }
+        } catch (Exception e) {
         }
-
-
-        for (PictureInfo pictureItem : pictureInfos) {
-            saveMTPPictureToUploadUSB(mtpDevice, pictureItem, false);
-        }
-
     }
 
 
     private void saveUSBFileToPhoneDevice() {
-
-        if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
-            if (VariableInstance.getInstance().uploadSelectIndexList != null) {
-                for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
-                    try {
-                        PictureInfo uploadSelectIndex = pictureInfos.remove(integer - 1);
-                        if (uploadSelectIndex != null) {
-                            saveUSBFileToPhoneDevice(uploadSelectIndex, true);
-                        }
-                    } catch (Exception e) {
-
-                    }
-                }
-            }
-        }
         for (PictureInfo pictureInfo : pictureInfos) {
-            saveUSBFileToPhoneDevice(pictureInfo, false);
+            saveUSBFileToPhoneDevice(pictureInfo);
         }
-
     }
 
-    private void saveUSBFileToPhoneDevice(PictureInfo pictureInfo, boolean isSelcet) {
+    private void saveUSBFileToPhoneDevice(PictureInfo pictureInfo) {
+        boolean needDownload = false;
+        boolean needUpload = false;
+        if (VariableInstance.getInstance().UploadMode == 1) {
+            needDownload = true;
+            if (pictureInfo.isJpg)
+                needUpload = false;
+            else
+                needUpload = true;
+        } else if (VariableInstance.getInstance().UploadMode == 2) {
+            needDownload = true;
+            if (pictureInfo.isJpg)
+                needUpload = true;
+            else
+                needUpload = false;
+        } else if (VariableInstance.getInstance().UploadMode == 3) {
+            needDownload = true;
+            try {
+                int index = rowPictureInfos.indexOf(pictureInfo);
+                if (index > -1) {
+                    Integer integer = index + 1;
+                    index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1) {
+                        needUpload = true;
+                    }
+                }
+            } catch (Exception e) {
+            }
+        } else if (VariableInstance.getInstance().UploadMode == 4) {
+            try {
+                int index = rowPictureInfos.indexOf(pictureInfo);
+                if (index > -1) {
+                    Integer integer = index + 1;
+                    index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1) {
+                        needDownload = true;
+                        needUpload = true;
+                    }
+                }
+
+            } catch (Exception e) {
+            }
+        }
+        Log.e(TAG, "saveMTPPictureToUploadUSB: needDownload =" + needDownload + ",needUpload =" + needUpload + ",pictureInfo=" + pictureInfo);
+        if (!needDownload)
+            return;
+
         //写入文件
         FileOutputStream os = null;
         InputStream is = null;
         String pictureSaveLocalPath = null;
         File pictureSaveLocalFile = null;
-        String pictureName = null;
         try {
-
-            pictureName = pictureInfo.pictureName;
-            pictureSaveLocalPath = tfcardpicturedir + File.separator + Utils.getyyMMddtring() + "-" + pictureName;
+            pictureSaveLocalPath = tfcardpicturedir + File.separator + pictureInfo.pictureName;
             pictureSaveLocalFile = new File(pictureSaveLocalPath);
             if (pictureSaveLocalFile.exists())
                 pictureSaveLocalFile.delete();
@@ -546,32 +698,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
             if (pictureSaveLocalFile != null && pictureSaveLocalFile.exists()) {
                 boolean uploadSucceed = uploadToUSB(pictureSaveLocalFile);
                 if (uploadSucceed) {
-//                    pictureInfo.usbFile.delete();
-                    boolean upload = false;
-                    int UploadMode = VariableInstance.getInstance().UploadMode;
-                    if (UploadMode == 1 || UploadMode == 2) {
-                        String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-                        if (UploadMode == 2) {
-                            if (isJPGFormatFile(FileEnd))
-                                pictureSaveLocalFile.delete();
-                            else {
-                                upload = true;
-                            }
-                        } else {
-                            if (isRowFormatFile(FileEnd))
-                                pictureSaveLocalFile.delete();
-                            else {
-                                upload = true;
-                            }
-                        }
-                    } else {
-                        if (isSelcet) {
-                            upload = true;
-                        } else
-                            pictureSaveLocalFile.delete();
-                    }
-                    if (upload) {
+                    if (needUpload) {
                         downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveLocalPath));
+                    } else {
+                        pictureSaveLocalFile.delete();
                     }
                 }
             }
@@ -608,8 +738,16 @@ public class USBMTPReceiver extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
             }
+            VariableInstance.getInstance().downdNum++;
+            String speed = fileSize / ((System.currentTimeMillis() - time) / 1000) / 1024 + "";
+            Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
+            downloadFlieListener.downloadNum(VariableInstance.getInstance().downdNum, speed);
         } catch (Exception e) {
-            Log.e(TAG, "uploadToUSB: Exception =" + e);
+            if (e.toString().contains("Item already exists")) {
+                Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
+            } else
+                Log.e(TAG, "uploadToUSB: Exception =" + e);
+
         } finally {
             try {
                 if (os != null) {
@@ -622,12 +760,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
             } catch (Exception e) {
             }
         }
-        VariableInstance.getInstance().downdNum++;
 
-
-        String speed = fileSize / ((System.currentTimeMillis() - time) / 1000) / 1024 + "";
-        Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
-        downloadFlieListener.downloadNum(VariableInstance.getInstance().downdNum, speed);
         return true;
     }
 
@@ -640,19 +773,29 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     readAllPicFileFromUSBDevice(fileSystem, usbFileItem);
                 } else {
                     //获取文件后缀
-                    String fileName = usbFileItem.getName();
+                    String fileName = Utils.getyyMMddtring() + "-" + usbFileItem.getName();
                     String FileEnd = fileName.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
 
-                    //检查文件后缀是不是图片格式
-                    if (isNeedDownloadFile(FileEnd)) {
-                        if (VariableInstance.getInstance().formarCamera) {
+                    if (VariableInstance.getInstance().formarCamera) {
+                        if (pictureFormatFile(FileEnd))
                             usbFile.delete();
-                            continue;
-                        }
-                        long createDate = usbFileItem.createdAt();
-                        if (isOnTheSameDay(createDate))
-                            pictureInfos.add(new PictureInfo(false, fileName, createDate, 0, fileSystem, usbFileItem));
+                        continue;
                     }
+
+
+                    long createDate = usbFileItem.createdAt();
+                    if (!usbFileNameList.contains(fileName)) {
+                        if (rowFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(false, fileName, createDate, 0, fileSystem, usbFileItem, false);
+                            rowPictureInfos.add(pictureInfo);
+                        } else if (jPGFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(false, fileName, createDate, 0, fileSystem, usbFileItem, true);
+                            jpgPictureInfos.add(pictureInfo);
+                        }
+                    }
+//                    if (isOnTheSameDay(createDate)) {
+//
+//                    }
                 }
             }
         } catch (IOException e) {
@@ -664,15 +807,16 @@ public class USBMTPReceiver extends BroadcastReceiver {
     private long currentDataMillis;
 
     private boolean isOnTheSameDay(long createDate) {
-        long interval = currentDataMillis - createDate;
-        return interval < MILLIS_IN_DAY && interval > -1L * MILLIS_IN_DAY && toDay(createDate) == toDay(currentDataMillis);
+        createDate = createDate - 1000L * 60 * 60 * 8;
+        return toDay(createDate) == toDay(currentDataMillis);
     }
 
     private long toDay(long millis) {
-        return (millis + TimeZone.getDefault().getOffset(millis)) / MILLIS_IN_DAY;
+        return (millis / MILLIS_IN_DAY);
     }
 
-    private int uploadDeviceUSBPictureCount;
+
+    private Vector<String> usbFileNameList;
 
     private void getUploadDeviceUSBPictureCount(UsbFile usbFile) {
         try {
@@ -681,9 +825,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 if (usbFileItem.isDirectory()) {
                     getUploadDeviceUSBPictureCount(usbFileItem);
                 } else {
-                    String FileEnd = usbFileItem.getName().substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
-                    if (isNeedDownloadFile(FileEnd)) {
-                        uploadDeviceUSBPictureCount++;
+                    String name = usbFileItem.getName();
+                    String FileEnd = name.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
+                    if (pictureFormatFile(FileEnd)) {
+                        usbFileNameList.add(name);
                     }
                 }
             }
@@ -693,16 +838,15 @@ public class USBMTPReceiver extends BroadcastReceiver {
     }
 
 
-    private boolean isNeedDownloadFile(String FileEnd) {
-        if (FileEnd.equals("jpg") || FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
+    private boolean pictureFormatFile(String FileEnd) {
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
                 || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
-                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2"))
+                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg")))
             return true;
         return false;
     }
 
-
-    private boolean isRowFormatFile(String FileEnd) {
+    private boolean rowFormatFile(String FileEnd) {
         if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
                 || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
                 || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")))
@@ -710,57 +854,82 @@ public class USBMTPReceiver extends BroadcastReceiver {
         return false;
     }
 
-    private boolean isJPGFormatFile(String FileEnd) {
+    private boolean jPGFormatFile(String FileEnd) {
         if ((FileEnd.equals("jpg")))
             return true;
         return false;
     }
 
 
-    private void saveMTPPictureToUploadUSB(MtpDevice mtpDevice, PictureInfo pictureInfo, boolean isSelect) {
+    private void saveMTPPictureToUploadUSB(MtpDevice mtpDevice, PictureInfo pictureInfo) {
         //每一个mtpObjectInfo 是一个图片对象 检索MtpObjectInfo对象
         try {
-            String scanFileName = pictureInfo.pictureName;
 
-            String pictureSaveLocalPath = tfcardpicturedir + File.separator + Utils.getyyMMddtring() + "-" + scanFileName;
 
+            boolean needDownload = false;
+            boolean needUpload = false;
+            if (VariableInstance.getInstance().UploadMode == 1) {
+                needDownload = true;
+                if (pictureInfo.isJpg)
+                    needUpload = false;
+                else
+                    needUpload = true;
+            } else if (VariableInstance.getInstance().UploadMode == 2) {
+                needDownload = true;
+                if (pictureInfo.isJpg)
+                    needUpload = true;
+                else
+                    needUpload = false;
+            } else if (VariableInstance.getInstance().UploadMode == 3) {
+                needDownload = true;
+
+                try {
+                    int index = rowPictureInfos.indexOf(pictureInfo);
+                    if (index > -1) {
+                        Integer integer = index + 1;
+                        index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                        if (index > -1) {
+                            needUpload = true;
+                        }
+                    }
+
+                } catch (Exception e) {
+                }
+            } else if (VariableInstance.getInstance().UploadMode == 4) {
+                try {
+                    int index = rowPictureInfos.indexOf(pictureInfo);
+                    if (index > -1) {
+                        Integer integer = index + 1;
+                        index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                        if (index > -1) {
+                            needDownload = true;
+                            needUpload = true;
+                        }
+                    }
+
+                } catch (Exception e) {
+                }
+            }
+
+            Log.e(TAG, "saveMTPPictureToUploadUSB: needDownload =" + needDownload + ",needUpload =" + needUpload + ",pictureInfo =" + pictureInfo);
+            if (!needDownload)
+                return;
+
+            String pictureSaveLocalPath = tfcardpicturedir + File.separator + pictureInfo.pictureName;
             File pictureTpmSaveFile = new File(pictureSaveLocalPath);
             if (pictureTpmSaveFile != null && pictureTpmSaveFile.exists())
                 pictureTpmSaveFile.delete();
+
             mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
             if (pictureTpmSaveFile != null && pictureTpmSaveFile.exists()) {
 
                 boolean uploadSucceed = uploadToUSB(pictureTpmSaveFile);
-
                 if (uploadSucceed) {
-//                    mtpDevice.deleteObject(pictureInfo.mtpPictureID);
-                    boolean upload = false;
-                    int UploadMode = VariableInstance.getInstance().UploadMode;
-                    if (UploadMode == 1 || UploadMode == 2) {
-                        String FileEnd = scanFileName.substring(scanFileName.lastIndexOf(".") + 1).toLowerCase();
-                        if (UploadMode == 1) {
-                            if (isJPGFormatFile(FileEnd))
-                                pictureTpmSaveFile.delete();
-                            else {
-                                upload = true;
-                            }
-                        } else {
-                            if (isRowFormatFile(FileEnd))
-                                pictureTpmSaveFile.delete();
-                            else {
-                                upload = true;
-                            }
-                        }
-                    } else {
-                        if (isSelect) {
-                            upload = true;
-                        } else {
-                            pictureTpmSaveFile.delete();
-                        }
-                    }
-                    if (upload) {
+                    if (needUpload) {
                         downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveLocalPath));
+                    } else {
+                        pictureTpmSaveFile.delete();
                     }
                 }
             }
@@ -794,16 +963,33 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
         public UsbFile usbFile;
         public FileSystem usbFileSystem;
+        public boolean isJpg;
 
 
-        public PictureInfo(boolean mtpModel, String pictureName, long pictureCreateData, int mtpPictureID, FileSystem usbFileSystem, UsbFile usbFile) {
+        public PictureInfo(boolean mtpModel, String pictureName, long pictureCreateData, int mtpPictureID, FileSystem usbFileSystem, UsbFile usbFile, boolean isJpg) {
             this.mtpModel = mtpModel;
             this.pictureName = pictureName;
             this.pictureCreateData = pictureCreateData;
             this.mtpPictureID = mtpPictureID;
             this.usbFile = usbFile;
             this.usbFileSystem = usbFileSystem;
+            this.isJpg = isJpg;
         }
+
+        @Override
+        public String toString() {
+            return pictureName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof PictureInfo)) return false;
+            PictureInfo that = (PictureInfo) o;
+            return isJpg == that.isJpg && Objects.equals(pictureName, that.pictureName);
+        }
+
+
     }
 
 
@@ -812,10 +998,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
         @Override
         public int compare(PictureInfo lhs, PictureInfo rhs) {
             if (rhs.pictureCreateData > lhs.pictureCreateData)
-                return 1;
+                return -1;
             else if (rhs.pictureCreateData == lhs.pictureCreateData)
                 return 0;
-            return -1;
+            return 1;
         }
 
     }
@@ -834,7 +1020,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
         void scanerSize(int size);
 
         void downloadNum(int num, String speed);
+
+        void usbFileScanrFinishi(int num);
     }
-    //ttttttttttttttttttttttttttttt
+
+
 }
 

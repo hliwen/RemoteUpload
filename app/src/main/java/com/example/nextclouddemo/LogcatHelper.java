@@ -19,6 +19,8 @@ public class LogcatHelper {
     private LogDumper mLogDumper = null;
     private int mPId;
 
+    public String logcatFilePath;
+
     /**
      * 初始化目录
      */
@@ -66,7 +68,9 @@ public class LogcatHelper {
         public LogDumper(String pid, String dir) {
             mPID = pid;
             try {
-                out = new FileOutputStream(new File(dir, "logcat" + getFileName() + ".txt"));
+                File file = new File(dir, "logcat" + getFileName() + ".txt");
+                logcatFilePath = file.getAbsolutePath();
+                out = new FileOutputStream(file);
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -135,7 +139,7 @@ public class LogcatHelper {
     }
 
     public String getFileName() {
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
         String date = format.format(new Date(System.currentTimeMillis()));
         return date;
     }

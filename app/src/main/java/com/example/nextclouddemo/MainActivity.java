@@ -27,7 +27,6 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -55,6 +54,8 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Objects;
+import java.util.Vector;
 
 
 public class MainActivity extends Activity {
@@ -67,7 +68,7 @@ public class MainActivity extends Activity {
     private static final String Upload = "Start,Upload;";
     private static final String UploadMode1 = "Set,UploadMode,1;";
     private static final String UploadMode2 = "Set,UploadMode,2;";
-    private static final String UploadMode3 = "Set,UploadMode,3";
+    private static final String UploadMode3 = "Set,UploadMode,3,";
     private static final String UploadMode4 = "Set,UploadMode,4,";
     private static final String GetInfo = "Get,Info;";
     private static final String return2GImei = "return2GImei";
@@ -93,7 +94,7 @@ public class MainActivity extends Activity {
     private Communication communication;
     private boolean doingInit;
     private RemoteOperationUtils operationUtils;
-    private boolean initRemoteSucceed;
+
 
     private TextView messageText;
     private String messageTextString;
@@ -106,6 +107,7 @@ public class MainActivity extends Activity {
     private boolean remoteUploading;
     private boolean localDownling;
     private boolean openDeviceProtFlag;
+
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -126,6 +128,7 @@ public class MainActivity extends Activity {
         TextView 相机状态 = findViewById(R.id.相机状态);
         相机状态.setText("相机状态:" + openDeviceProtFlag);
 
+        Log.d(TAG, " send msg_close_device 222222222222");
         mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
         EventBus.getDefault().register(this);
 
@@ -147,20 +150,23 @@ public class MainActivity extends Activity {
         openDeviceProt(false);
         openNetworkLed(true);
 
+        TextView 是否连网 = findViewById(R.id.是否连网);
+        是否连网.setText("是否连网:false");
+
+        TextView mqtt状态 = findViewById(R.id.mqtt状态);
+        mqtt状态.setText("mqtt状态:false");
         initNetWork();
 
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 registerUSBReceiver();
-                openCamera();//TODO hu
+                openCamera();
             }
         }, 3000);
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-
-
     }
 
     private int signalStrengthValue;
@@ -190,7 +196,16 @@ public class MainActivity extends Activity {
         NetworkRequest build = request.build();
         connectivityManager.requestNetwork(build, new ConnectivityManager.NetworkCallback() {
             public void onAvailable(Network network) {
+                networkAvailable = true;
                 Log.e(TAG, "Network onAvailable: doingInit =" + doingInit);
+                runOnUiThread(new Runnable() {
+                    @SuppressLint("SetTextI18n")
+                    @Override
+                    public void run() {
+                        TextView 是否连网 = findViewById(R.id.是否连网);
+                        是否连网.setText("是否连网:true");
+                    }
+                });
                 if (doingInit)
                     return;
                 doingInit = true;
@@ -201,17 +216,34 @@ public class MainActivity extends Activity {
             public void onLost(Network network) {
                 super.onLost(network);
                 Log.e(TAG, "Network  onLost: ");
+                networkAvailable = false;
+                runOnUiThread(new Runnable() {
+                    @SuppressLint("SetTextI18n")
+                    @Override
+                    public void run() {
+                        TextView 是否连网 = findViewById(R.id.是否连网);
+                        是否连网.setText("是否连网:false");
+                        TextView mqtt状态 = findViewById(R.id.mqtt状态);
+                        mqtt状态.setText("mqtt状态:false");
+                    }
+                });
                 doingInit = false;
                 operationUtils.stopUploadThread();
                 MqttManager.getInstance().release();
                 openNetworkLed(false);
                 openNetworkLed(true);
+
             }
         });
     }
 
 
+    private boolean networkAvailable;
+
     private void initAddress() {
+        if (!networkAvailable)
+            return;
+
         getInfo();
         runOnUiThread(new Runnable() {
             @SuppressLint("SetTextI18n")
@@ -254,13 +286,10 @@ public class MainActivity extends Activity {
                     mClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
                     operationUtils.mClient = mClient;
 
-
-                    boolean initRemoteSucceed1 = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
-
-
-                    initRemoteSucceed = initRemoteSucceed1;
-                    updateServerStateUI(initRemoteSucceed);
-                    if (initRemoteSucceed) {
+                    operationUtils.connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
+                    updateServerStateUI(operationUtils.connectRemote);
+                    if (operationUtils.connectRemote) {
+                        Log.d(TAG, " send msg_close_device 3333333333");
                         mHandler.removeMessages(msg_close_device);
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startUploadThread();
@@ -307,6 +336,7 @@ public class MainActivity extends Activity {
             localDownling = true;
             if (!remoteUploading)
                 startDownLed(true);
+            Log.d(TAG, " remove msg_close_device 444444444444444");
             mHandler.removeMessages(msg_close_device);
         }
 
@@ -317,6 +347,7 @@ public class MainActivity extends Activity {
             if (!remoteUploading)
                 startDownLed(false);
             openDeviceProt(false);
+            Log.d(TAG, " send msg_close_device 55555555555555555");
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             getInfo();
@@ -324,7 +355,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void initUploadUSBComplete(int pictureCount) {
-            Log.d(TAG, "initUploadUSBComplete: ");
+            Log.d(TAG, "initUploadUSBComplete: pictureCount =" + pictureCount);
             PhotoSum = pictureCount;
             openDeviceProt(true);
             getInfo();
@@ -375,6 +406,21 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        @Override
+        public void usbFileScanrFinishi(int num) {
+            runOnUiThread(new Runnable() {
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void run() {
+
+                    if (num != 0) {
+                        TextView U盘图片数量 = findViewById(R.id.U盘图片数量);
+                        U盘图片数量.setText("U盘图片数量:" + num);
+                    }
+                }
+            });
+        }
     };
 
     RemoteOperationUtils.RemoteOperationListener remoteOperationListener = new RemoteOperationUtils.RemoteOperationListener() {
@@ -396,6 +442,7 @@ public class MainActivity extends Activity {
                 }
             });
             getInfo();
+            Log.d(TAG, " send msg_close_device 6666666666666666");
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
         }
@@ -404,6 +451,7 @@ public class MainActivity extends Activity {
         public void pictureUploadStart() {
             Log.d(TAG, "fileUploadStart: ");
             remoteUploading = true;
+            Log.d(TAG, " remove msg_close_device 7777777777777777777");
             mHandler.removeMessages(msg_close_device);
             startDownLed(false);
         }
@@ -434,6 +482,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void videoUploadStart() {
+            Log.d(TAG, "  remove msg_close_device 88888888888888888");
             mHandler.removeMessages(msg_close_device);
             startDownLed(false);
         }
@@ -441,6 +490,7 @@ public class MainActivity extends Activity {
         @Override
         public void uploadVideoComplete(boolean succeed) {
             Log.e(TAG, "uploadVideoComplete: 上传视频结果 " + succeed);
+            Log.d(TAG, "  send msg_close_device 9999999999999999");
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             if (!localDownling && !remoteUploading) {
@@ -465,6 +515,12 @@ public class MainActivity extends Activity {
                 return true;
             return false;
         }
+
+        @Override
+        public void startUploadLogcatToUsb() {
+            if (usbmtpReceiver != null)
+                usbmtpReceiver.uploadLogcatToUSB();
+        }
     };
 
 
@@ -483,7 +539,7 @@ public class MainActivity extends Activity {
     public void onDestroy() {
         super.onDestroy();
         if (usbmtpReceiver != null) {
-            usbmtpReceiver.shutdownThread();
+            usbmtpReceiver.release();
             unregisterReceiver(usbmtpReceiver);
         }
         mHandler.removeCallbacksAndMessages(null);
@@ -505,12 +561,14 @@ public class MainActivity extends Activity {
         messageText.setText(messageTextString);
     }
 
+    @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void receiveMqttMessage(String message) {
         Log.e(TAG, "receiveMqttMessage: message =" + message);
         if (message == null)
             return;
-
+        TextView mqtt状态 = findViewById(R.id.mqtt状态);
+        mqtt状态.setText("mqtt状态:true");
         if (message.contains(UploadMode3)) {
             UploadMode3(message);
             getInfo();
@@ -558,8 +616,16 @@ public class MainActivity extends Activity {
             case AppShutdownAck:
                 AppShutdownAck();
                 break;
-            case UploadMode4:
-                break;
+
+            case "connectionLost": {
+
+                mqtt状态.setText("mqtt状态:false");
+            }
+            break;
+            case "deliveryComplete": {
+                mqtt状态.setText("mqtt状态:true");
+            }
+            break;
         }
     }
 
@@ -583,69 +649,68 @@ public class MainActivity extends Activity {
 
     private void formatUSB() {
         Log.e(TAG, "formatUSB: ");
-        if (usbmtpReceiver != null)
-            delectUploadUSBFile(usbmtpReceiver.uploadFileDirUsbFile);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (usbmtpReceiver != null)
+                    usbmtpReceiver.formatUSB();
+            }
+        }).start();
     }
 
     private void formatCamera() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                VariableInstance.getInstance().formarCamera = true;
 
-        VariableInstance.getInstance().formarCamera = true;
-
-        if (usbmtpReceiver != null) {
-            usbmtpReceiver.formatCamera();
-        }
-        openDeviceProt(false);
-        openDeviceProt(true);
+                if (usbmtpReceiver != null) {
+                    usbmtpReceiver.formatCamera();
+                }
+                openDeviceProt(false);
+                openDeviceProt(true);
+            }
+        }).start();
     }
 
     private void formatTF() {
         Log.e(TAG, "formatTF: ");
 
-        File tfcardpicturedir = new File(VariableInstance.getInstance().TFCardPictureDir);
-        if (tfcardpicturedir != null && tfcardpicturedir.exists()) {
-            Utils.deleteAllFiles(tfcardpicturedir);
-            File fileFolder = new File(VariableInstance.getInstance().TFCardPictureDir);
-            if (!fileFolder.exists()) {
-                fileFolder.mkdir();
-            }
-        }
 
-        File tfcardvideodir = new File(VariableInstance.getInstance().TFCardVideoDir);
-        if (tfcardvideodir != null && tfcardvideodir.exists()) {
-            Utils.deleteAllFiles(tfcardvideodir);
-            File fileFolder = new File(VariableInstance.getInstance().TFCardVideoDir);
-            if (!fileFolder.exists()) {
-                fileFolder.mkdir();
-            }
-        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File tfcardpicturedir = new File(VariableInstance.getInstance().TFCardPictureDir);
+                if (tfcardpicturedir != null && tfcardpicturedir.exists()) {
+                    Utils.deleteAllFiles(tfcardpicturedir);
+                    File fileFolder = new File(VariableInstance.getInstance().TFCardPictureDir);
+                    if (!fileFolder.exists()) {
+                        fileFolder.mkdir();
+                    }
+                }
 
-        File logcatdir = new File(VariableInstance.getInstance().LogcatDir);
-        if (logcatdir != null && logcatdir.exists()) {
-            Utils.deleteAllFiles(logcatdir);
-            File fileFolder = new File(VariableInstance.getInstance().LogcatDir);
-            if (!fileFolder.exists()) {
-                fileFolder.mkdir();
-            }
-        }
+                File tfcardvideodir = new File(VariableInstance.getInstance().TFCardVideoDir);
+                if (tfcardvideodir != null && tfcardvideodir.exists()) {
+                    Utils.deleteAllFiles(tfcardvideodir);
+                    File fileFolder = new File(VariableInstance.getInstance().TFCardVideoDir);
+                    if (!fileFolder.exists()) {
+                        fileFolder.mkdir();
+                    }
+                }
 
+                File logcatdir = new File(VariableInstance.getInstance().LogcatDir);
+                if (logcatdir != null && logcatdir.exists()) {
+                    Utils.deleteAllFiles(logcatdir);
+                    File fileFolder = new File(VariableInstance.getInstance().LogcatDir);
+                    if (!fileFolder.exists()) {
+                        fileFolder.mkdir();
+                    }
+                }
+
+            }
+        }).start();
     }
 
-
-    private void delectUploadUSBFile(UsbFile usbFile) {
-        Log.e(TAG, "delectUploadUSBFile: usbFile =" + usbFile);
-        if (usbFile == null)
-            return;
-        Log.e(TAG, "delectUploadUSBFile: " + usbFile.getName());
-        try {
-            UsbFile[] usbFileList = usbFile.listFiles();
-            for (UsbFile file : usbFileList) {
-                file.delete();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "delectUploadUSBFile: Exception =" + e);
-        }
-        Log.d(TAG, "delectUploadUSBFile: 删除文件完成");
-    }
 
     private void getInfo() {
         sendMessageToMqtt(serverGetInfo());
@@ -657,39 +722,33 @@ public class MainActivity extends Activity {
         MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
+    @SuppressLint("SetTextI18n")
     private void UploadMode1() {
         VariableInstance.getInstance().UploadMode = 1;
-        VariableInstance.getInstance().uploadSelectIndexList = null;
+
         saveUploadModel(null);
+
+        TextView 上传的模式 = findViewById(R.id.上传的模式);
+        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
+    @SuppressLint("SetTextI18n")
     private void UploadMode2() {
         VariableInstance.getInstance().UploadMode = 2;
-        VariableInstance.getInstance().uploadSelectIndexList = null;
+
         saveUploadModel(null);
+
+
+        TextView 上传的模式 = findViewById(R.id.上传的模式);
+        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
+    @SuppressLint("SetTextI18n")
     private void UploadMode3(String message) {
-        String num = message.substring(message.lastIndexOf(",") + 1, message.length() - 1).trim();
-        try {
-            int number = Integer.parseInt(num);
-            Log.d(TAG, "UploadMode3: number =" + number);
-            VariableInstance.getInstance().UploadMode = 3;
-            VariableInstance.getInstance().uploadSelectIndexList = new ArrayList<>();
-            VariableInstance.getInstance().uploadSelectIndexList.clear();
-            VariableInstance.getInstance().uploadSelectIndexList.add(number);
-            saveUploadModel(number + "");
-        } catch (Exception e) {
-
-        }
-    }
-
-
-    private void UploadMode4(String message) {
-        message = message.substring(UploadMode4.length(), message.length() - 1);
+        message = message.substring(UploadMode3.length(), message.length() - 1);
         String[] data = message.split(",");
-        VariableInstance.getInstance().UploadMode = 4;
-        VariableInstance.getInstance().uploadSelectIndexList = new ArrayList<>();
+        VariableInstance.getInstance().UploadMode = 3;
+
         VariableInstance.getInstance().uploadSelectIndexList.clear();
         if (data != null && data.length > 0) {
             for (String datum : data) {
@@ -701,6 +760,34 @@ public class MainActivity extends Activity {
             }
         }
         saveUploadModel(message);
+
+
+        TextView 上传的模式 = findViewById(R.id.上传的模式);
+        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+    }
+
+
+    @SuppressLint("SetTextI18n")
+    private void UploadMode4(String message) {
+        message = message.substring(UploadMode4.length(), message.length() - 1);
+        String[] data = message.split(",");
+        VariableInstance.getInstance().UploadMode = 4;
+
+        VariableInstance.getInstance().uploadSelectIndexList.clear();
+        if (data != null && data.length > 0) {
+            for (String datum : data) {
+                try {
+                    VariableInstance.getInstance().uploadSelectIndexList.add(Integer.parseInt(datum));
+                } catch (Exception e) {
+
+                }
+            }
+        }
+        saveUploadModel(message);
+
+
+        TextView 上传的模式 = findViewById(R.id.上传的模式);
+        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
     @Override
@@ -789,9 +876,6 @@ public class MainActivity extends Activity {
         } else if (button.getId() == R.id.clearView) {
             messageTextString = "";
             messageText.setText(messageTextString);
-        } else if (button.getId() == R.id.服务器状态) {
-            TextView 服务器状态 = findViewById(R.id.服务器状态);
-            服务器状态.setText("服务器状态：" + initRemoteSucceed);
         } else if (button.getId() == R.id.入网号) {
             TextView 入网号 = findViewById(R.id.入网号);
             入网号.setText("入网号:" + getPhoneImei());
@@ -809,6 +893,12 @@ public class MainActivity extends Activity {
             int capacity = usbmtpReceiver.getCapacity();
             int freeSpace = usbmtpReceiver.getFreeSpace();
             U盘空间.setText("U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
+        } else if (button.getId() == R.id.FormatUSB) {
+            formatUSB();
+        } else if (button.getId() == R.id.FormatTF) {
+            formatTF();
+        } else if (button.getId() == R.id.FormatCamera) {
+            formatCamera();
         }
     }
 
@@ -861,12 +951,17 @@ public class MainActivity extends Activity {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList == null || VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
                 uploadModelString = "3,0";
-            else
-                uploadModelString = "3," + VariableInstance.getInstance().uploadSelectIndexList.get(0);
+            else {
+                uploadModelString = "3";
+                for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
+                    uploadModelString = uploadModelString + "," + integer;
+                }
+            }
+
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList == null || VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
                 uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
@@ -912,7 +1007,7 @@ public class MainActivity extends Activity {
             if (number == null) {
                 number = "0";
             }
-            return number.substring(3);
+            return number;
         } catch (Exception | Error e) {
             Log.e(TAG, "getPhoneNumber: Exception =" + e);
             return "0";
@@ -938,7 +1033,6 @@ public class MainActivity extends Activity {
 
 
     private void openDeviceProt(boolean open) {
-
         Log.d(TAG, "openDeviceProt: 设备通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭"));
         if (openDeviceProtFlag == true && open)
             return;
@@ -1000,13 +1094,17 @@ public class MainActivity extends Activity {
         editor.apply();
     }
 
+    @SuppressLint("SetTextI18n")
     private void getUploadModel() {
         SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        VariableInstance.getInstance().UploadMode = sharedPreferences.getInt("UploadMode", 0);
+        VariableInstance.getInstance().UploadMode = sharedPreferences.getInt("UploadMode", 1);
         String mssage = sharedPreferences.getString("UploadModeMessage", "1");
 
+        TextView 上传的模式 = findViewById(R.id.上传的模式);
+        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+
         if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
-            VariableInstance.getInstance().uploadSelectIndexList = new ArrayList<>();
+
             VariableInstance.getInstance().uploadSelectIndexList.clear();
             String[] data = mssage.split(",");
             if (data != null && data.length > 0) {
@@ -1018,8 +1116,6 @@ public class MainActivity extends Activity {
                     }
                 }
             }
-
-
         }
     }
 
@@ -1036,9 +1132,13 @@ public class MainActivity extends Activity {
     }
 
     private boolean canCloseDevice() {
+        boolean canCloseDevice;
         if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
-            return false;
-        return true;
+            canCloseDevice = false;
+        else
+            canCloseDevice = true;
+        Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
+        return canCloseDevice;
     }
 
 
@@ -1068,6 +1168,7 @@ public class MainActivity extends Activity {
                     if (activity.canCloseDevice()) {
                         activity.operationUtils.startUploadLocatThread();
                     } else {
+                        Log.d(TAG, "  send msg_close_device 11111111");
                         activity.mHandler.removeMessages(msg_close_device);
                         activity.mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
                     }

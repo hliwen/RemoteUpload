@@ -18,13 +18,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class RemoteOperationUtils {
-    private static final String TAG = "MainActivitylog";
+    private static final String TAG = "MainActivitylog3";
 
     private static int requestFailure = -1;
     private static int fileExist = 1;
     private static int noExist = 0;
 
     public OwnCloudClient mClient;
+    public boolean connectRemote;
     private Thread pictureWorkThread;
     private Thread videoWorkThread;
     public boolean pictureIsThreadStop;
@@ -211,7 +212,7 @@ public class RemoteOperationUtils {
         if (file == null || !file.exists())
             return false;
 
-        if (mClient == null) {
+        if (mClient == null || !connectRemote) {
             if (!pictureFileListCache.contains(fileModel))
                 pictureFileListCache.add(fileModel);
             return false;
@@ -271,7 +272,7 @@ public class RemoteOperationUtils {
             return;
         }
         Log.d(TAG, "uploadVideo: file.lenght =" + file.length());
-        if (mClient == null)
+        if (mClient == null || !connectRemote)
             return;
         remoteOperationListener.videoUploadStart();
         String remotePath = remoteVideoTodayDir + file.getName();
@@ -294,7 +295,7 @@ public class RemoteOperationUtils {
         if (!pictureFileListCache.contains(uploadFileModel))
             pictureFileListCache.add(uploadFileModel);
 
-        if (mClient != null)
+        if (mClient != null && connectRemote)
             startUploadThread();
     }
 
@@ -305,7 +306,7 @@ public class RemoteOperationUtils {
             return;
         if (!videoFileListCache.contains(path))
             videoFileListCache.add(path);
-        if (mClient == null) {
+        if (mClient == null || !connectRemote) {
             return;
         }
         startVideoWorkThread();
@@ -445,6 +446,7 @@ public class RemoteOperationUtils {
 
     public void startUploadLocatThread() {
 
+        Log.e(TAG, "asdfadsfad startUploadLocatThread: ");
 
         new Thread(new Runnable() {
             @Override
@@ -452,6 +454,9 @@ public class RemoteOperationUtils {
                 try {
                     LogcatHelper.getInstance().stop();
                     Thread.sleep(1000);
+
+                    remoteOperationListener.startUploadLogcatToUsb();
+
                     File logcatDir = new File(VariableInstance.getInstance().LogcatDir);
                     if (logcatDir != null && logcatDir.exists()) {
                         File[] files = logcatDir.listFiles();
@@ -471,7 +476,7 @@ public class RemoteOperationUtils {
                 } catch (Exception e) {
 
                 }
-                Log.e(TAG, "run: uploadLogcatComplete");
+                Log.e(TAG, "run: asdfadsfad uploadLogcatComplete");
                 remoteOperationListener.uploadLogcatComplete();
             }
         }).start();
@@ -496,5 +501,7 @@ public class RemoteOperationUtils {
         boolean isDownling();
 
         boolean isVideoPreviewing();
+
+        void startUploadLogcatToUsb();
     }
 }

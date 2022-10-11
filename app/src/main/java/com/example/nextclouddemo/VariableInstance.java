@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 public class VariableInstance {
     private static VariableInstance instance = null;
-    public int UploadMode = 2;//1 row,2 row+jpg,3 单张 ，4列表
+    public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
     public ArrayList<Integer> uploadSelectIndexList;
 
 
@@ -25,6 +25,7 @@ public class VariableInstance {
 
 
     private VariableInstance() {
+        uploadSelectIndexList = new ArrayList<>();
         PictureDirName = "CameraPath";
         VideoDirName = "VideoPath";
         LogcatDirName = "MLogcat";

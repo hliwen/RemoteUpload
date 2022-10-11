@@ -10,51 +10,76 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <LinearLayout
-        android:id="@+id/line1"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+    <ScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
 
-        <Button
-            android:id="@+id/guanji"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="关机" />
+        <LinearLayout
+            android:id="@+id/line1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-        <Button
-            android:id="@+id/downloadphoto"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="重新扫描" />
+            <Button
+                android:id="@+id/guanji"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="关机" />
 
-        <Button
-            android:id="@+id/aaa"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="打开端口控制界面" />
+            <Button
+                android:id="@+id/downloadphoto"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="重新扫描" />
+
+            <Button
+                android:id="@+id/aaa"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="打开端口控制界面" />
 
 
-        <Button
-            android:id="@+id/openPreview"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="打开预览界面" />
+            <Button
+                android:id="@+id/openPreview"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="打开预览界面" />
 
-        <Button
-            android:id="@+id/closePreview"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="关闭预览界面" />
+            <Button
+                android:id="@+id/closePreview"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="关闭预览界面" />
 
-        <Button
-            android:id="@+id/clearView"
-            style="@style/ButtonStyle"
-            android:onClick="onClickHandler"
-            android:text="清屏" />
+            <Button
+                android:id="@+id/clearView"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="清屏" />
 
-    </LinearLayout>
+            <Button
+                android:id="@+id/FormatUSB"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="FormatUSB" />
 
+            <Button
+                android:id="@+id/FormatTF"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="FormatTF" />
+
+            <Button
+                android:id="@+id/FormatCamera"
+                style="@style/ButtonStyle"
+                android:onClick="onClickHandler"
+                android:text="FormatCamera" />
+
+
+
+        </LinearLayout>
+
+    </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -63,12 +88,42 @@
         android:orientation="vertical">
 
         <TextView
+            android:id="@+id/是否连网"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="是否连网"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
             android:id="@+id/服务器状态"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="服务器状态"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/mqtt状态"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="mqtt状态"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/上传的模式"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="上传的模式"
             android:textColor="#000000"
             android:textSize="11sp" />
 

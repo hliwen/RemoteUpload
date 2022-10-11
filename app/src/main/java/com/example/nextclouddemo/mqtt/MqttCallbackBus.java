@@ -23,7 +23,7 @@ public class MqttCallbackBus implements MqttCallback {
     public void connectionLost(Throwable cause) {
         Log.e("MqttManager", "connectionLost cause : " + cause.toString());
         // 可在此方法内写重连的逻辑
-
+        EventBus.getDefault().post("connectionLost");
         int number=99;
         for (int i = 0; i < number; i++) {
             try {
@@ -32,7 +32,7 @@ public class MqttCallbackBus implements MqttCallback {
             } catch (Exception e) {
                 e.printStackTrace();
                 //Thread.sleep(5000);
-                System.err.println("连接失败,正在第"+i+"次尝试");
+                Log.e("MqttManager", "连接失败,正在第"+i+"次尝试");
                 continue;
             }
             return;
@@ -57,5 +57,6 @@ public class MqttCallbackBus implements MqttCallback {
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
         Log.e("MqttManager", "deliveryComplete token : " + token.toString());
+        EventBus.getDefault().post("deliveryComplete");
     }
 }
