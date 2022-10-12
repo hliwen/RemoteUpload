@@ -1057,6 +1057,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
         void usbFileScanrFinishi(int num);
     }
 
-
+//GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 }
 
