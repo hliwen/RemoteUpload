@@ -73,7 +73,7 @@ public class MainActivity extends Activity {
 
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 10 * 60 * 1000;
-    private static final boolean phoneDebug = false;
+    private static final boolean phoneDebug = true;
 
 
     private static String TAG = "MainActivitylog";
@@ -150,16 +150,12 @@ public class MainActivity extends Activity {
         mqtt状态.setText("mqtt状态:false");
         initNetWork();
 
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                registerUSBReceiver();
-                openCamera();
-            }
-        }, 3000);
-
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+
+
+        mHandler.sendEmptyMessageDelayed(msg_send_first_registerUSBReceiver, 5000);
+
     }
 
     private int signalStrengthValue;
@@ -1115,6 +1111,8 @@ public class MainActivity extends Activity {
     private static final int msg_reload_device_info = 2;
     private static final int msg_close_device = 3;
     private static final int msg_send_ShutDown = 4;
+    private static final int msg_send_first_registerUSBReceiver = 5;
+    private static final int msg_send_second_registerUSBReceiver = 6;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -1146,6 +1144,19 @@ public class MainActivity extends Activity {
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
                     Utils.closeAndroid();
+                    break;
+                case msg_send_first_registerUSBReceiver:
+                    if (false) {
+                        activity.registerUSBReceiver();
+                        activity.openCamera();
+                    } else {
+                        activity.mHandler.sendEmptyMessageDelayed(msg_send_second_registerUSBReceiver, 30000);
+                    }
+
+                    break;
+                case msg_send_second_registerUSBReceiver:
+                    activity.registerUSBReceiver();
+                    activity.openCamera();
                     break;
             }
         }
