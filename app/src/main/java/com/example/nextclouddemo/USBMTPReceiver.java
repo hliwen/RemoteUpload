@@ -54,8 +54,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
     public UsbFile logcatFileDirUsbFile;
     public UsbFile uploadFileDirUsbFile;
     public UsbFile todayMonthUsbFile;
-    private String YYMMDDString;
-    private int YYMMDDInteger;
+
 
 
     public String todayMonthDirString;
@@ -71,10 +70,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
         this.tfcarduploadpicturedir = VariableInstance.getInstance().TFCardUploadPictureDir;
         this.downloadFlieListener = downloadFlieListener;
         todayMonthDirString = Utils.getyyyyMMString();
-        YYMMDDString = Utils.getyyMMddtring();
-        YYMMDDInteger = Integer.parseInt(YYMMDDString);
+
+
         currentDataMillis = System.currentTimeMillis();
-        Log.e(TAG, "USBMTPReceiver: YYMMDDString =" + YYMMDDString + ",YYMMDDInteger =" + YYMMDDInteger);
+
         usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         pictureInfos = new ArrayList<>();
         rowPictureInfos = new ArrayList<>();

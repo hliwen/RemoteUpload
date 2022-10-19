@@ -29,6 +29,28 @@
     <string name="get_phone_imei">获取手机imei</string>
     <string name="stop">stop</string>
     <string name="start">start</string>
+    <string name="closeDevice">关机</string>
+    <string name="rescaner">重新扫描</string>
+    <string name="opengpioview">打开端口控制界面</string>
+    <string name="openpreview_view">打开预览界面</string>
+    <string name="closepreview_view">关闭预览界面</string>
+    <string name="clear_screen">清屏</string>
+    <string name="formatusb">FormatUSB</string>
+    <string name="formattf">FormatTF</string>
+    <string name="formatcamera">FormatCamera</string>
+    <string name="uploadusetimetext">本次上传耗时</string>
+    <string name="uploadnumbertext">本次上传数量</string>
+    <string name="camerastatetext">相机状态</string>
+    <string name="isconnectnetworktext">是否连网</string>
+    <string name="serverstatetext">服务器状态</string>
+    <string name="mqttstatetext">mqtt状态</string>
+    <string name="uploadmodeltext">上传的模式</string>
+    <string name="accessnumbertext">入网号</string>
+    <string name="remotenametext">云端名称</string>
+    <string name="upanspacetext">U盘空间</string>
+    <string name="upanpicturecounttext">U盘图片数量</string>
+    <string name="hasuploadpicturenumbertext">已上传张数</string>
+    <string name="hasdownloadpicturenumbertext">已下载张数</string>
 
 
 </resources>

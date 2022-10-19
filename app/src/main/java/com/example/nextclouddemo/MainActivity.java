@@ -91,12 +91,10 @@ public class MainActivity extends Activity {
     private RemoteOperationUtils operationUtils;
 
 
-    private TextView messageText;
     private String messageTextString;
 
     private CameraHelper mCameraHelper;
     private long lastOpenCameraTime;
-    private RelativeLayout surfaceViewParent;
 
 
     private boolean remoteUploading;
@@ -112,22 +110,24 @@ public class MainActivity extends Activity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
 
-
         mHandler = new MyHandler(MainActivity.this);
+        communication = new Communication();
 
-        surfaceViewParent = findViewById(R.id.surfaceViewParent);
-        messageText = findViewById(R.id.messageText);
-        updateServerStateUI(false);
-        TextView 入网号 = findViewById(R.id.入网号);
-        入网号.setText("入网号:" + getPhoneImei());
-        TextView 相机状态 = findViewById(R.id.相机状态);
-        相机状态.setText("相机状态:" + openDeviceProtFlag);
+        initView();
+
+
+        serverStateText.setText("服务器状态：false");
+        remoteNameText.setText("云端名称：");
+        accessNumberText.setText("入网号：");
+
+        accessNumberText.setText("入网号:" + getPhoneImei());
+        cameraStateText.setText("相机状态:" + openDeviceProtFlag);
 
         Log.d(TAG, " send msg_close_device 222222222222");
         mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
         EventBus.getDefault().register(this);
 
-        communication = new Communication();
+
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
 
         getUploadModel();
@@ -143,11 +143,9 @@ public class MainActivity extends Activity {
         openDeviceProt(false);
         openNetworkLed(true);
 
-        TextView 是否连网 = findViewById(R.id.是否连网);
-        是否连网.setText("是否连网:false");
 
-        TextView mqtt状态 = findViewById(R.id.mqtt状态);
-        mqtt状态.setText("mqtt状态:false");
+        isConnectNetworkText.setText("是否连网:false");
+        mqttStateText.setText("mqtt状态:false");
         initNetWork();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -155,6 +153,42 @@ public class MainActivity extends Activity {
 
 
         mHandler.sendEmptyMessageDelayed(msg_send_first_registerUSBReceiver, 5000);
+
+    }
+
+    private RelativeLayout surfaceViewParent;
+    private TextView messageText;
+    private TextView UpanSpaceText;
+    private TextView accessNumberText;
+    private TextView cameraStateText;
+    private TextView isConnectNetworkText;
+    private TextView mqttStateText;
+    private TextView UpanPictureCountText;
+    private TextView uploadNumberText;
+    private TextView uploadUseTimeText;
+    private TextView hasUploadpictureNumberText;
+    private TextView uploadModelText;
+    private TextView remoteNameText;
+    private TextView hasDownloadPictureNumberText;
+    private TextView serverStateText;
+
+
+    private void initView() {
+        surfaceViewParent = findViewById(R.id.surfaceViewParent);
+        messageText = findViewById(R.id.messageText);
+        accessNumberText = findViewById(R.id.accessNumberText);
+        cameraStateText = findViewById(R.id.cameraStateText);
+        isConnectNetworkText = findViewById(R.id.isConnectNetworkText);
+        UpanSpaceText = findViewById(R.id.UpanSpaceText);
+        UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
+        uploadNumberText = findViewById(R.id.uploadNumberText);
+        uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
+        hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
+        mqttStateText = findViewById(R.id.mqttStateText);
+        uploadModelText = findViewById(R.id.uploadModelText);
+        remoteNameText = findViewById(R.id.remoteNameText);
+        hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
+        serverStateText = findViewById(R.id.serverStateText);
 
     }
 
@@ -187,14 +221,7 @@ public class MainActivity extends Activity {
             public void onAvailable(Network network) {
                 networkAvailable = true;
                 Log.e(TAG, "Network onAvailable: doingInit =" + doingInit);
-                runOnUiThread(new Runnable() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        TextView 是否连网 = findViewById(R.id.是否连网);
-                        是否连网.setText("是否连网:true");
-                    }
-                });
+                runOnUiThreadText(isConnectNetworkText, "是否连网:true");
                 if (doingInit)
                     return;
                 doingInit = true;
@@ -206,16 +233,9 @@ public class MainActivity extends Activity {
                 super.onLost(network);
                 Log.e(TAG, "Network  onLost: ");
                 networkAvailable = false;
-                runOnUiThread(new Runnable() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        TextView 是否连网 = findViewById(R.id.是否连网);
-                        是否连网.setText("是否连网:false");
-                        TextView mqtt状态 = findViewById(R.id.mqtt状态);
-                        mqtt状态.setText("mqtt状态:false");
-                    }
-                });
+
+                runOnUiThreadText(isConnectNetworkText, "是否连网:false");
+                runOnUiThreadText(mqttStateText, "mqtt状态:false");
                 doingInit = false;
                 operationUtils.stopUploadThread();
                 MqttManager.getInstance().release();
@@ -227,6 +247,17 @@ public class MainActivity extends Activity {
     }
 
 
+    private void runOnUiThreadText(TextView textView, String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (textView == null || text == null)
+                    return;
+                textView.setText(text);
+            }
+        });
+    }
+
     private boolean networkAvailable;
 
     private void initAddress() {
@@ -234,14 +265,7 @@ public class MainActivity extends Activity {
             return;
 
         getInfo();
-        runOnUiThread(new Runnable() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void run() {
-                TextView 入网号 = findViewById(R.id.入网号);
-                入网号.setText("入网号:" + getPhoneImei());
-            }
-        });
+        runOnUiThreadText(accessNumberText, "入网号:" + getPhoneImei());
 
         Thread workThread = new Thread(new Runnable() {
             @Override
@@ -348,23 +372,16 @@ public class MainActivity extends Activity {
             PhotoSum = pictureCount;
             openDeviceProt(true);
             getInfo();
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-                    TextView U盘空间 = findViewById(R.id.U盘空间);
-                    int capacity = 0;
-                    int freeSpace = 0;
-                    if (usbmtpReceiver != null) {
-                        capacity = usbmtpReceiver.getCapacity();
-                        freeSpace = usbmtpReceiver.getFreeSpace();
-                    }
-                    U盘空间.setText("U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 
-                    TextView U盘图片数量 = findViewById(R.id.U盘图片数量);
-                    U盘图片数量.setText("U盘图片数量:" + pictureCount);
-                }
-            });
+            int capacity = 0;
+            int freeSpace = 0;
+            if (usbmtpReceiver != null) {
+                capacity = usbmtpReceiver.getCapacity();
+                freeSpace = usbmtpReceiver.getFreeSpace();
+            }
+            runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
+            runOnUiThreadText(UpanPictureCountText, "U盘图片数量:" + pictureCount);
+
         }
 
         @Override
@@ -374,41 +391,19 @@ public class MainActivity extends Activity {
 
         @Override
         public void scanerSize(int size) {
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-                    TextView 本次上传数量 = findViewById(R.id.本次上传数量);
-                    本次上传数量.setText("本次上传数量:" + size);
-                }
-            });
+            runOnUiThreadText(uploadNumberText, "本次上传数量:" + size);
         }
 
         @Override
         public void downloadNum(int num, String speed) {
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-                    TextView 已下载张数 = findViewById(R.id.已下载张数);
-                    已下载张数.setText("已下载张数:" + VariableInstance.getInstance().downdNum + "\n上传USB速度:" + speed);
-                }
-            });
+            runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdNum + "\n上传USB速度:" + speed);
+
         }
 
         @Override
         public void usbFileScanrFinishi(int num) {
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-
-                    if (num != 0) {
-                        TextView U盘图片数量 = findViewById(R.id.U盘图片数量);
-                        U盘图片数量.setText("U盘图片数量:" + num);
-                    }
-                }
-            });
+            if (num != 0)
+                runOnUiThreadText(UpanPictureCountText, "U盘图片数量:" + num);
         }
     };
 
@@ -422,14 +417,8 @@ public class MainActivity extends Activity {
             }
             if (totalTime != 0)
                 UploadUseTime = totalTime / 1000;
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-                    TextView 本次上传耗时 = findViewById(R.id.本次上传耗时);
-                    本次上传耗时.setText("本次上传耗时:" + totalTime / 1000 + "s");
-                }
-            });
+            runOnUiThreadText(uploadUseTimeText, "本次上传耗时:" + totalTime / 1000 + "s");
+
             getInfo();
             Log.d(TAG, " send msg_close_device 6666666666666666");
             mHandler.removeMessages(msg_close_device);
@@ -456,15 +445,7 @@ public class MainActivity extends Activity {
         public void updateUploadSpeed(String speed) {
             Log.d(TAG, "updateUploadSpeed: speed =" + speed);
             saveUploadUploadSpeed(speed);
-
-            runOnUiThread(new Runnable() {
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void run() {
-                    TextView 已上传张数 = findViewById(R.id.已上传张数);
-                    已上传张数.setText("已上传张数:" + VariableInstance.getInstance().uploadNum + "\n上传服务器速度：" + speed);
-                }
-            });
+            runOnUiThreadText(hasUploadpictureNumberText, "已上传张数:" + VariableInstance.getInstance().uploadNum + "\n上传服务器速度：" + speed);
             getInfo();
         }
 
@@ -556,8 +537,8 @@ public class MainActivity extends Activity {
         Log.e(TAG, "receiveMqttMessage: message =" + message);
         if (message == null)
             return;
-        TextView mqtt状态 = findViewById(R.id.mqtt状态);
-        mqtt状态.setText("mqtt状态:true");
+
+        mqttStateText.setText("mqtt状态:true");
         if (message.contains(UploadMode3)) {
             UploadMode3(message);
             getInfo();
@@ -606,15 +587,12 @@ public class MainActivity extends Activity {
                 AppShutdownAck();
                 break;
 
-            case "connectionLost": {
-
-                mqtt状态.setText("mqtt状态:false");
-            }
-            break;
-            case "deliveryComplete": {
-                mqtt状态.setText("mqtt状态:true");
-            }
-            break;
+            case "connectionLost":
+                mqttStateText.setText("mqtt状态:false");
+                break;
+            case "deliveryComplete":
+                mqttStateText.setText("mqtt状态:true");
+                break;
         }
     }
 
@@ -691,22 +669,15 @@ public class MainActivity extends Activity {
     @SuppressLint("SetTextI18n")
     private void UploadMode1() {
         VariableInstance.getInstance().UploadMode = 1;
-
         saveUploadModel(null);
-
-        TextView 上传的模式 = findViewById(R.id.上传的模式);
-        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
     @SuppressLint("SetTextI18n")
     private void UploadMode2() {
         VariableInstance.getInstance().UploadMode = 2;
-
         saveUploadModel(null);
-
-
-        TextView 上传的模式 = findViewById(R.id.上传的模式);
-        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
     @SuppressLint("SetTextI18n")
@@ -726,10 +697,7 @@ public class MainActivity extends Activity {
             }
         }
         saveUploadModel(message);
-
-
-        TextView 上传的模式 = findViewById(R.id.上传的模式);
-        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
 
@@ -750,10 +718,7 @@ public class MainActivity extends Activity {
             }
         }
         saveUploadModel(message);
-
-
-        TextView 上传的模式 = findViewById(R.id.上传的模式);
-        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
     @Override
@@ -842,23 +807,19 @@ public class MainActivity extends Activity {
         } else if (button.getId() == R.id.clearView) {
             messageTextString = "";
             messageText.setText(messageTextString);
-        } else if (button.getId() == R.id.入网号) {
-            TextView 入网号 = findViewById(R.id.入网号);
-            入网号.setText("入网号:" + getPhoneImei());
-        } else if (button.getId() == R.id.云端名称) {
-            TextView 云端名称 = findViewById(R.id.云端名称);
-            云端名称.setText("云端名称:" + deveceName);
-        } else if (button.getId() == R.id.本次上传数量) {
-            TextView 本次上传数量 = findViewById(R.id.本次上传数量);
-            本次上传数量.setText("本次上传数量:");
-        } else if (button.getId() == R.id.相机状态) {
-            TextView 相机状态 = findViewById(R.id.相机状态);
-            相机状态.setText("相机状态:" + openDeviceProtFlag);
-        } else if (button.getId() == R.id.U盘空间) {
-            TextView U盘空间 = findViewById(R.id.U盘空间);
+        } else if (button.getId() == R.id.accessNumberText) {
+            accessNumberText.setText("入网号:" + getPhoneImei());
+        } else if (button.getId() == R.id.remoteNameText) {
+
+            remoteNameText.setText("云端名称:" + deveceName);
+        } else if (button.getId() == R.id.uploadNumberText) {
+            uploadNumberText.setText("本次上传数量:");
+        } else if (button.getId() == R.id.cameraStateText) {
+            cameraStateText.setText("相机状态:" + openDeviceProtFlag);
+        } else if (button.getId() == R.id.UpanSpaceText) {
             int capacity = usbmtpReceiver.getCapacity();
             int freeSpace = usbmtpReceiver.getFreeSpace();
-            U盘空间.setText("U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
+            UpanSpaceText.setText("U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
         } else if (button.getId() == R.id.FormatUSB) {
             formatUSB();
         } else if (button.getId() == R.id.FormatTF) {
@@ -869,21 +830,11 @@ public class MainActivity extends Activity {
     }
 
     private void updateServerStateUI(boolean succeed) {
-        runOnUiThread(new Runnable() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void run() {
-                TextView 服务器状态 = findViewById(R.id.服务器状态);
-                服务器状态.setText("服务器状态：" + succeed);
-                if (succeed) {
-                    TextView 云端名称 = findViewById(R.id.云端名称);
-                    云端名称.setText("云端名称:" + deveceName);
-
-                    TextView 入网号 = findViewById(R.id.入网号);
-                    入网号.setText("入网号:" + getPhoneImei());
-                }
-            }
-        });
+        runOnUiThreadText(serverStateText, "服务器状态：" + succeed);
+        if (succeed) {
+            runOnUiThreadText(remoteNameText, "云端名称:" + deveceName);
+            runOnUiThreadText(accessNumberText, "入网号:" + getPhoneImei());
+        }
     }
 
     private int capacity = 0;
@@ -1003,14 +954,7 @@ public class MainActivity extends Activity {
         if (openDeviceProtFlag == true && open)
             return;
         openDeviceProtFlag = open;
-        runOnUiThread(new Runnable() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void run() {
-                TextView 相机状态 = findViewById(R.id.相机状态);
-                相机状态.setText("相机状态:" + openDeviceProtFlag);
-            }
-        });
+        runOnUiThreadText(cameraStateText, "相机状态:" + openDeviceProtFlag);
 
         if (phoneDebug)
             return;
@@ -1063,11 +1007,10 @@ public class MainActivity extends Activity {
     @SuppressLint("SetTextI18n")
     private void getUploadModel() {
         SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        VariableInstance.getInstance().UploadMode = sharedPreferences.getInt("UploadMode", 1);
+        VariableInstance.getInstance().UploadMode = sharedPreferences.getInt("UploadMode", 3);
         String mssage = sharedPreferences.getString("UploadModeMessage", "1");
 
-        TextView 上传的模式 = findViewById(R.id.上传的模式);
-        上传的模式.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
 
         if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
 

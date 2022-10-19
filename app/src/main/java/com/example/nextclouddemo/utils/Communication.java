@@ -18,6 +18,10 @@ public class Communication {
 
     private static final String TAG = "MainActivitylog";
 
+    public Communication(){
+
+    }
+
     public ServerUrlModel getServerUrl() {
         ServerUrlModel serverUrlModel = new ServerUrlModel();
 
