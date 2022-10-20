@@ -12,10 +12,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -128,7 +131,7 @@ public class UpdateUtils {
                     curentLength += lenght;
 
                     if (updateListener != null)
-                        updateListener.downloadProgress((int) (curentLength/1024));
+                        updateListener.downloadProgress((int) (curentLength / 1024));
 
                 }
                 downloadFileOutputStream.flush();
@@ -150,10 +153,32 @@ public class UpdateUtils {
 
     private void downloadSucceed(Context context, String filaPath) {
         try {
+            if (updateListener != null)
+                updateListener.startUpdate();
+            execLinuxCommand();
             boolean installSuccess = SilentInstallUtils.install(context, filaPath);
+            if (updateListener != null)
+                updateListener.updateResult(installSuccess);
             Log.e(TAG, "downloadSucceed: installSuccess =" + installSuccess);
         } catch (Exception e) {
             Log.e(TAG, "downloadSucceed: Exception =" + e);
+        }
+    }
+
+
+    public void execLinuxCommand() {
+        String cmd = "sleep 180; am start -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
+        //Runtime对象
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process localProcess = runtime.exec("su");
+            OutputStream localOutputStream = localProcess.getOutputStream();
+            DataOutputStream localDataOutputStream = new DataOutputStream(localOutputStream);
+            localDataOutputStream.writeBytes(cmd);
+            localDataOutputStream.flush();
+        } catch (IOException e) {
+
+
         }
     }
 
@@ -166,5 +191,9 @@ public class UpdateUtils {
         void serverVersion(int version);
 
         void downloadProgress(int progress);
+
+        void startUpdate();
+
+        void updateResult(boolean succeed);
     }
 }

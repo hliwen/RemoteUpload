@@ -121,6 +121,7 @@ public class MainActivity extends Activity {
     private TextView currentVersionText;
     private TextView serverVersionText;
     private TextView downloadAppProgressText;
+    private TextView updateResultText;
 
     private UpdateUtils updateUtils;
 
@@ -147,6 +148,21 @@ public class MainActivity extends Activity {
             @Override
             public void downloadProgress(int progress) {
                 runOnUiThreadText(downloadAppProgressText, "app下载：" + progress + "kb");
+            }
+
+            @Override
+            public void startUpdate() {
+                runOnUiThreadText(updateResultText, "开始升级");
+                mHandler.removeMessages(msg_close_device);
+                mHandler.removeMessages(msg_send_restart_app);
+                mHandler.sendEmptyMessageDelayed(msg_send_restart_app, 3000);
+            }
+
+            @Override
+            public void updateResult(boolean succeed) {
+                mHandler.removeMessages(msg_send_restart_app);
+                runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
+                mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             }
         });
 
@@ -211,6 +227,7 @@ public class MainActivity extends Activity {
         currentVersionText = findViewById(R.id.currentVersionText);
         serverVersionText = findViewById(R.id.serverVersionText);
         downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
+        updateResultText = findViewById(R.id.updateResultText);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
 
@@ -1084,6 +1101,7 @@ public class MainActivity extends Activity {
     private static final int msg_send_ShutDown = 4;
     private static final int msg_send_first_registerUSBReceiver = 5;
     private static final int msg_send_second_registerUSBReceiver = 6;
+    private static final int msg_send_restart_app = 7;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -1128,6 +1146,9 @@ public class MainActivity extends Activity {
                 case msg_send_second_registerUSBReceiver:
                     activity.registerUSBReceiver();
                     activity.openCamera();
+                    break;
+                case msg_send_restart_app:
+                    activity.updateUtils.execLinuxCommand();
                     break;
             }
         }
