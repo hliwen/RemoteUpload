@@ -41,6 +41,7 @@ import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
+import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
@@ -73,7 +74,7 @@ public class MainActivity extends Activity {
 
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 10 * 60 * 1000;
-    private static final boolean phoneDebug = true;
+    private static final boolean phoneDebug = false;
 
 
     private static String TAG = "MainActivitylog";
@@ -101,7 +102,23 @@ public class MainActivity extends Activity {
     private boolean localDownling;
     private boolean openDeviceProtFlag;
 
+    private RelativeLayout surfaceViewParent;
+    private TextView messageText;
+    private TextView UpanSpaceText;
+    private TextView accessNumberText;
+    private TextView cameraStateText;
+    private TextView isConnectNetworkText;
+    private TextView mqttStateText;
+    private TextView UpanPictureCountText;
+    private TextView uploadNumberText;
+    private TextView uploadUseTimeText;
+    private TextView hasUploadpictureNumberText;
+    private TextView uploadModelText;
+    private TextView remoteNameText;
+    private TextView hasDownloadPictureNumberText;
+    private TextView serverStateText;
 
+    private UpdateUtils updateUtils;
     @SuppressLint("SetTextI18n")
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -111,6 +128,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
 
         mHandler = new MyHandler(MainActivity.this);
+        updateUtils = new UpdateUtils();
         communication = new Communication();
 
         initView();
@@ -156,21 +174,7 @@ public class MainActivity extends Activity {
 
     }
 
-    private RelativeLayout surfaceViewParent;
-    private TextView messageText;
-    private TextView UpanSpaceText;
-    private TextView accessNumberText;
-    private TextView cameraStateText;
-    private TextView isConnectNetworkText;
-    private TextView mqttStateText;
-    private TextView UpanPictureCountText;
-    private TextView uploadNumberText;
-    private TextView uploadUseTimeText;
-    private TextView hasUploadpictureNumberText;
-    private TextView uploadModelText;
-    private TextView remoteNameText;
-    private TextView hasDownloadPictureNumberText;
-    private TextView serverStateText;
+
 
 
     private void initView() {
@@ -225,7 +229,9 @@ public class MainActivity extends Activity {
                 if (doingInit)
                     return;
                 doingInit = true;
+                updateUtils.networkAvailable(MainActivity.this);
                 initAddress();
+
             }
 
             @Override
@@ -241,7 +247,7 @@ public class MainActivity extends Activity {
                 MqttManager.getInstance().release();
                 openNetworkLed(false);
                 openNetworkLed(true);
-
+                updateUtils.networkLost();
             }
         });
     }

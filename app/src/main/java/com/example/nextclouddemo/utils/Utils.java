@@ -57,7 +57,7 @@ public class Utils {
         }
     }
 
-    public static File makeDir(String dir){
+    public static File makeDir(String dir) {
         File fileFolder = new File(dir);
         if (!fileFolder.exists()) {
             fileFolder.mkdir();
@@ -148,6 +148,25 @@ public class Utils {
 
         }
         return System.currentTimeMillis() + "";
+    }
+
+    public static int getyyMMddtringInt(long time) {
+        try {
+            String s = getDateFormat("yyMMdd").format(new Date(time));
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+
+        }
+        return 100000;
+    }
+
+    public static String getyyyyMMtring(long time) {
+        try {
+            return getDateFormat("yyyyMM").format(new Date(time));
+        } catch (Exception e) {
+
+        }
+        return "100000";
     }
 
 
