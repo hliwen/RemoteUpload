@@ -31,6 +31,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
 import com.example.gpiotest.LedControl;
 import com.example.nextclouddemo.model.DeviceInfoModel;
@@ -117,8 +118,12 @@ public class MainActivity extends Activity {
     private TextView remoteNameText;
     private TextView hasDownloadPictureNumberText;
     private TextView serverStateText;
+    private TextView currentVersionText;
+    private TextView serverVersionText;
+    private TextView downloadAppProgressText;
 
     private UpdateUtils updateUtils;
+
     @SuppressLint("SetTextI18n")
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -128,11 +133,22 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
 
         mHandler = new MyHandler(MainActivity.this);
-        updateUtils = new UpdateUtils();
+
         communication = new Communication();
 
         initView();
 
+        updateUtils = new UpdateUtils(new UpdateUtils.UpdateListener() {
+            @Override
+            public void serverVersion(int version) {
+                runOnUiThreadText(serverVersionText, "最新版本：" + version);
+            }
+
+            @Override
+            public void downloadProgress(int progress) {
+                runOnUiThreadText(downloadAppProgressText, "app下载：" + progress + "kb");
+            }
+        });
 
         serverStateText.setText("服务器状态：false");
         remoteNameText.setText("云端名称：");
@@ -175,8 +191,7 @@ public class MainActivity extends Activity {
     }
 
 
-
-
+    @SuppressLint("SetTextI18n")
     private void initView() {
         surfaceViewParent = findViewById(R.id.surfaceViewParent);
         messageText = findViewById(R.id.messageText);
@@ -193,7 +208,14 @@ public class MainActivity extends Activity {
         remoteNameText = findViewById(R.id.remoteNameText);
         hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
         serverStateText = findViewById(R.id.serverStateText);
+        currentVersionText = findViewById(R.id.currentVersionText);
+        serverVersionText = findViewById(R.id.serverVersionText);
+        downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
 
+        AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
+
+        int appVerison = appInfo.getVersionCode();
+        currentVersionText.setText("当前版本：" + appVerison);
     }
 
     private int signalStrengthValue;

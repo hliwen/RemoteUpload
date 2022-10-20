@@ -51,6 +51,8 @@
     <string name="upanpicturecounttext">U盘图片数量</string>
     <string name="hasuploadpicturenumbertext">已上传张数</string>
     <string name="hasdownloadpicturenumbertext">已下载张数</string>
+    <string name="currentVersion">当前版本：</string>
+    <string name="serverversionT">最新版本：</string>
 
 
 </resources>

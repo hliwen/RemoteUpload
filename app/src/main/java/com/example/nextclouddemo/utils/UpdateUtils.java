@@ -23,6 +23,11 @@ public class UpdateUtils {
 
     private static final String TAG = "UpdateUtils";
     private String downloadPath;
+    private UpdateListener updateListener;
+
+    public UpdateUtils(UpdateListener updateListener) {
+        this.updateListener = updateListener;
+    }
 
     public void networkAvailable(Context context) {
 
@@ -33,6 +38,10 @@ public class UpdateUtils {
 
                 int appVerison = appInfo.getVersionCode();
                 int servierVersion = getServiceVersion();
+
+                if (updateListener != null)
+                    updateListener.serverVersion(servierVersion);
+
                 Log.e(TAG, "run: appVerison =" + appVerison + ",servierVersion =" + servierVersion);
                 if (servierVersion > appVerison) {
                     boolean downloadSucced = startDownloadApp(UrlUtils.appDowloadURL + servierVersion);
@@ -112,8 +121,15 @@ public class UpdateUtils {
                 byte[] buffer = new byte[2048 * 8];
                 int lenght;
 
+                long curentLength = 0;
+
                 while ((lenght = downloadInputStream.read(buffer)) != -1) {
                     downloadFileOutputStream.write(buffer, 0, lenght);
+                    curentLength += lenght;
+
+                    if (updateListener != null)
+                        updateListener.downloadProgress((int) (curentLength/1024));
+
                 }
                 downloadFileOutputStream.flush();
                 downloadInputStream.close();
@@ -143,5 +159,12 @@ public class UpdateUtils {
 
     private void downloadFaild() {
 
+    }
+
+
+    public interface UpdateListener {
+        void serverVersion(int version);
+
+        void downloadProgress(int progress);
     }
 }
