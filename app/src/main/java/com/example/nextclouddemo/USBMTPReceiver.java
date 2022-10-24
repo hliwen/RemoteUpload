@@ -876,7 +876,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
         UsbFileOutputStream os = null;
         InputStream is = null;
         try {
-            VariableInstance.getInstance().downdNum++;
+
             UsbFile yearMonthUsbFile = null;
             UsbFile[] usbFileList = uploadFileDirUsbFile.listFiles();
 
@@ -903,7 +903,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
             }
-
+            VariableInstance.getInstance().downdNum++;
             long time11 = ((System.currentTimeMillis() - time) / 1000);
             if (time11 == 0)
                 time11 = 1;
