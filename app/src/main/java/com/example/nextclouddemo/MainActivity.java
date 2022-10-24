@@ -1135,7 +1135,7 @@ public class MainActivity extends Activity {
                     Utils.closeAndroid();
                     break;
                 case msg_send_first_registerUSBReceiver:
-                    if (false) {
+                    if (activity.networkAvailable) {
                         activity.registerUSBReceiver();
                         activity.openCamera();
                     } else {

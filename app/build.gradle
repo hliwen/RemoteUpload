@@ -10,9 +10,9 @@ android {
         applicationId "com.example.nextclouddemo"
         minSdkVersion 21
         targetSdkVersion 23
-        versionCode 20221020
+        versionCode 20221024
 
-        versionName "v1.0.2"
+        versionName "v1.0.3"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
