@@ -904,7 +904,11 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 os.write(buffer, 0, bytesRead);
             }
 
-            String speed = fileSize / ((System.currentTimeMillis() - time) / 1000) / 1024 + "";
+            long time11 = ((System.currentTimeMillis() - time) / 1000);
+            if (time11 == 0)
+                time11 = 1;
+
+            String speed = fileSize / time11 / 1024 + "";
             Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
             downloadFlieListener.downloadNum(VariableInstance.getInstance().downdNum, speed);
         } catch (Exception e) {
