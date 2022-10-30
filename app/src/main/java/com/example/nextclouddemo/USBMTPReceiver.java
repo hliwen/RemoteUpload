@@ -58,7 +58,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
     private UsbFile uploadFileDirUsbFile;
 
 
-    private String yearMonthDirString;
     private DownloadFlieListener downloadFlieListener;
     private UsbDevice mUSBDevice;
 
@@ -159,12 +158,11 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
         this.tfcardpicturedir = VariableInstance.getInstance().TFCardPictureDir;
         this.tfcarduploadpicturedir = VariableInstance.getInstance().TFCardUploadPictureDir;
-        yearMonthDirString = Utils.getyyyyMMString();
+
 
         Log.d(TAG, "USBMTPReceiver:" +
                 " \n tfcardpicturedir =" + tfcardpicturedir +
-                " \n tfcarduploadpicturedir =" + tfcarduploadpicturedir +
-                " \n yearMonthDirString =" + yearMonthDirString
+                " \n tfcarduploadpicturedir =" + tfcarduploadpicturedir
         );
 
 
@@ -580,17 +578,16 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     if (mtpObjectInfo == null) {
                         continue;
                     }
-                    String pictureName = Utils.getyyMMddtring() + "-" + mtpObjectInfo.getName();
+
+                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
+                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
+                    String pictureName = yearMonthDay + "-" + mtpObjectInfo.getName();
                     String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
                     if (VariableInstance.getInstance().formarCamera) {
                         mtpDevice.deleteObject(i);
                         continue;
                     }
-
-
-                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
-                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
 
 
                     SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yearMonthDay);
@@ -942,7 +939,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     readAllPicFileFromUSBDevice(fileSystem, usbFileItem);
                 } else {
                     //获取文件后缀
-                    String fileName = Utils.getyyMMddtring() + "-" + usbFileItem.getName();
+                    long createDate = usbFileItem.createdAt() - 1000L * 60 * 60 * 8;
+                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
+
+                    String fileName = yearMonthDay + "-" + usbFileItem.getName();
                     String FileEnd = fileName.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
 
                     if (VariableInstance.getInstance().formarCamera) {
@@ -951,9 +951,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
                         continue;
                     }
 
-
-                    long createDate = usbFileItem.createdAt() - 1000L * 60 * 60 * 8;
-                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
 
                     SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yearMonthDay);
                     int index = pictureInfoList.indexOf(sameDayPicutreInfo);
