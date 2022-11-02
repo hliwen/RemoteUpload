@@ -41,28 +41,21 @@ import java.util.concurrent.Executors;
 public class USBMTPReceiver extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";
     public static final String CHECK_PERMISSION = "CHECK_PERMISSION";
-    public static final String CHECK_UPLOAD_PERMISSION = "CHECK_UPLOAD_PERMISSION";
-    public static long MILLIS_IN_DAY = 1000L * 60 * 60 * 24;
-    private ExecutorService scanerThreadExecutor;
-    private ExecutorService initUploadUSBThreadExecutor;
 
+    private ExecutorService scanerThreadExecutor;
     private boolean isStopScanerThread;
 
     private UsbManager usbManager;
     private String tfcardpicturedir;
     private String tfcarduploadpicturedir;
 
-    private int deviceID = -1;
     private FileSystem uploadFs;
-    private UsbFile logcatFileDirUsbFile;
-    private UsbFile uploadFileDirUsbFile;
 
 
     private DownloadFlieListener downloadFlieListener;
     private UsbDevice mUSBDevice;
 
     private ArrayList<SameDayPicutreInfo> pictureInfoList;
-    private Vector<String> usbFileNameList;
 
 
     class SameDayPicutreInfo {
@@ -155,84 +148,26 @@ public class USBMTPReceiver extends BroadcastReceiver {
 
     public USBMTPReceiver(Context context, DownloadFlieListener downloadFlieListener) {
         this.downloadFlieListener = downloadFlieListener;
-
         this.tfcardpicturedir = VariableInstance.getInstance().TFCardPictureDir;
         this.tfcarduploadpicturedir = VariableInstance.getInstance().TFCardUploadPictureDir;
-
 
         Log.d(TAG, "USBMTPReceiver:" +
                 " \n tfcardpicturedir =" + tfcardpicturedir +
                 " \n tfcarduploadpicturedir =" + tfcarduploadpicturedir
         );
 
-
         usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-
         pictureInfoList = new ArrayList<>();
-        usbFileNameList = new Vector<>();
-
-
         Utils.makeDir(tfcardpicturedir);
         Utils.makeDir(tfcarduploadpicturedir);
 
-        initUploadUSBDevice();
     }
 
-
-    public void uploadLogcatToUSB() {
-        Log.e(TAG, "uploadLogcatToUSB:asdfadsfad logcatFileDirUsbFile =" + logcatFileDirUsbFile + ",logcatFilePath =" + LogcatHelper.getInstance().logcatFilePath);
-        if (logcatFileDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null)
-            return;
-        UsbFileOutputStream os = null;
-        InputStream is = null;
-        try {
-            File localFile = new File(LogcatHelper.getInstance().logcatFilePath);
-            UsbFile create = logcatFileDirUsbFile.createFile(localFile.getName());
-            os = new UsbFileOutputStream(create);
-            is = new FileInputStream(localFile);
-
-            int bytesRead;
-            byte[] buffer = new byte[uploadFs.getChunkSize()];
-            while ((bytesRead = is.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "asdfadsfad uploadLogcatToUSB: Exception =" + e);
-        } finally {
-            try {
-                if (os != null) {
-                    os.flush();
-                    os.close();
-                }
-                if (is != null) {
-                    is.close();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "uploadLogcatToUSB: asdfadsfad Exception =" + e);
-            }
-        }
-
-
-    }
 
     public void release() {
         Log.e(TAG, "release: ");
-        stopInitUploadUSBThreadExecutor();
-        stopScanerThread();
-    }
 
-    public void stopInitUploadUSBThreadExecutor() {
-        Log.e(TAG, "stopInitUploadUSBThreadExecutor: ");
-        try {
-            if (initUploadUSBThreadExecutor != null)
-                initUploadUSBThreadExecutor.shutdown();
-        } catch (Exception e) {
-        }
-        initUploadUSBThreadExecutor = null;
-        uploadFileDirUsbFile = null;
-        logcatFileDirUsbFile = null;
-        uploadFs = null;
-        deviceID = -1;
+        stopScanerThread();
     }
 
 
@@ -248,36 +183,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
         scanerThreadExecutor = null;
     }
 
-    public int getCapacity() {
-        if (uploadFs == null)
-            return 0;
-        int capacity = (int) (uploadFs.getCapacity() / (1024 * 1024));
-        return capacity;
-    }
-
-    public int getFreeSpace() {
-        if (uploadFs == null)
-            return 0;
-        int freeSpace = (int) (uploadFs.getFreeSpace() / (1024 * 1024));
-        return freeSpace;
-    }
-
-    public void formatUSB() {
-        stopScanerThread();
-        Log.e(TAG, "delectUploadUSBFile: uploadFileDirUsbFile =" + uploadFileDirUsbFile);
-        if (uploadFileDirUsbFile == null)
-            return;
-        Log.e(TAG, "delectUploadUSBFile: " + uploadFileDirUsbFile.getName());
-        try {
-            UsbFile[] usbFileList = uploadFileDirUsbFile.listFiles();
-            for (UsbFile file : usbFileList) {
-                file.delete();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "delectUploadUSBFile: Exception =" + e);
-        }
-        Log.d(TAG, "delectUploadUSBFile: 删除文件完成");
-    }
 
     public void formatCamera() {
         try {
@@ -414,26 +319,14 @@ public class USBMTPReceiver extends BroadcastReceiver {
                                     FileSystem currentFs = partition.getFileSystem();
                                     UsbFile mRootFolder = currentFs.getRootDirectory();
 
-
                                     try {
                                         UsbFile[] usbFileList = mRootFolder.listFiles();
                                         for (UsbFile usbFileItem : usbFileList) {
                                             if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
                                                 logcatFileDirUsbFile = usbFileItem;
-                                                break;
-                                            }
-                                        }
-
-                                        if (logcatFileDirUsbFile == null)
-                                            logcatFileDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
-                                    } catch (Exception e) {
-                                    }
-
-
-                                    try {
-                                        UsbFile[] usbFileList = mRootFolder.listFiles();
-                                        for (UsbFile usbFileItem : usbFileList) {
-                                            if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
+                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().wifiConfigurationFileName)) {
+                                                wifiConfigurationFile = usbFileItem;
+                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
                                                 uploadFs = currentFs;
                                                 uploadFileDirUsbFile = usbFileItem;
                                                 deviceID = usbDevice.getDeviceId();
@@ -446,9 +339,15 @@ public class USBMTPReceiver extends BroadcastReceiver {
                                             deviceID = usbDevice.getDeviceId();
                                         }
 
+                                        if (logcatFileDirUsbFile == null)
+                                            logcatFileDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+
+                                        downloadFlieListener.initWifiConfigurationFile(wifiConfigurationFile);
+
                                     } catch (Exception e) {
-                                        Log.e(TAG, "readUSBDevice: Exception =" + e);
                                     }
+
+
                                     Log.d(TAG, "usbDeviceScaner: deviceID =" + deviceID);
                                     if (deviceID == -1) {
                                         downloadFlieListener.usbIntError("deviceID == -1");
@@ -475,14 +374,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
         initUploadUSBThreadExecutor.execute(runnable);
     }
 
-
-    public int getUSBPictureCount() {
-        if (uploadFileDirUsbFile == null)
-            return -1;
-        usbFileNameList.clear();
-        getUploadDeviceUSBPictureCount(uploadFileDirUsbFile);
-        return usbFileNameList.size();
-    }
 
     private void checkConnectedDevice() {
         Log.e(TAG, "checkConnectedDevice:  ");
@@ -580,8 +471,8 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     }
 
                     long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
-                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
-                    String pictureName = yearMonthDay + "-" + mtpObjectInfo.getName();
+                    int yymmdd = Utils.getyyMMddtringInt(createDate);
+                    String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
                     String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
                     if (VariableInstance.getInstance().formarCamera) {
@@ -590,7 +481,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     }
 
 
-                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yearMonthDay);
+                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
                     int index = pictureInfoList.indexOf(sameDayPicutreInfo);
                     if (index > -1) {
                         sameDayPicutreInfo = pictureInfoList.get(index);
@@ -856,81 +747,6 @@ public class USBMTPReceiver extends BroadcastReceiver {
     }
 
 
-    private boolean uploadToUSB(File localFile, String yearMonth) {
-        if (localFile == null || !localFile.exists()) {
-            Log.e(TAG, "uploadToUSB: \ntodayDir =" + "\n localFile =" + localFile);
-            return false;
-        }
-
-        if (uploadFileDirUsbFile == null) {
-            Log.e(TAG, "uploadToUSB: uploadFileDirUsbFile == null");
-            return false;
-        }
-
-        long time = System.currentTimeMillis();
-        long fileSize = 0;
-        Log.d(TAG, "uploadToUSB: localFile =" + localFile);
-        UsbFileOutputStream os = null;
-        InputStream is = null;
-        try {
-
-            UsbFile yearMonthUsbFile = null;
-            UsbFile[] usbFileList = uploadFileDirUsbFile.listFiles();
-
-            if (usbFileList != null) {
-                for (UsbFile usbFile : usbFileList) {
-                    if (usbFile.getName().contains(yearMonth)) {
-                        yearMonthUsbFile = usbFile;
-                        break;
-                    }
-                }
-            }
-
-
-            if (yearMonthUsbFile == null) {
-                yearMonthUsbFile = uploadFileDirUsbFile.createDirectory(yearMonth);
-            }
-
-            UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
-            os = new UsbFileOutputStream(create);
-            is = new FileInputStream(localFile);
-            fileSize = is.available();
-            int bytesRead;
-            byte[] buffer = new byte[uploadFs.getChunkSize()];
-            while ((bytesRead = is.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
-            }
-            VariableInstance.getInstance().downdNum++;
-            long time11 = ((System.currentTimeMillis() - time) / 1000);
-            if (time11 == 0)
-                time11 = 1;
-
-            String speed = fileSize / time11 / 1024 + "";
-            Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
-            downloadFlieListener.downloadNum(VariableInstance.getInstance().downdNum, speed);
-        } catch (Exception e) {
-            if (e.toString().contains("Item already exists")) {
-                Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
-            } else
-                Log.e(TAG, "uploadToUSB: 111111111 Exception =" + e);
-        } finally {
-            try {
-                if (os != null) {
-                    os.flush();
-                    os.close();
-                }
-                if (is != null) {
-                    is.close();
-                }
-            } catch (Exception e) {
-            }
-        }
-
-        Log.d(TAG, "uploadToUSB:完成 ");
-        return true;
-    }
-
-
     private void readAllPicFileFromUSBDevice(FileSystem fileSystem, UsbFile usbFile) {
         try {
             UsbFile[] usbFileList = usbFile.listFiles();
@@ -940,9 +756,9 @@ public class USBMTPReceiver extends BroadcastReceiver {
                 } else {
                     //获取文件后缀
                     long createDate = usbFileItem.createdAt() - 1000L * 60 * 60 * 8;
-                    int yearMonthDay = Utils.getyyMMddtringInt(createDate);
+                    int yymmdd = Utils.getyyMMddtringInt(createDate);
 
-                    String fileName = yearMonthDay + "-" + usbFileItem.getName();
+                    String fileName = yymmdd + "-" + usbFileItem.getName();
                     String FileEnd = fileName.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
 
                     if (VariableInstance.getInstance().formarCamera) {
@@ -952,7 +768,7 @@ public class USBMTPReceiver extends BroadcastReceiver {
                     }
 
 
-                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yearMonthDay);
+                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
                     int index = pictureInfoList.indexOf(sameDayPicutreInfo);
                     if (index > -1) {
                         sameDayPicutreInfo = pictureInfoList.get(index);
@@ -1099,6 +915,10 @@ public class USBMTPReceiver extends BroadcastReceiver {
         void downloadNum(int num, String speed);
 
         void usbFileScanrFinishi(int num);
+
+        void initWifiConfigurationFile(UsbFile wifiConfigurationFile);
+
+        void uploadToUSB(File localFile, String yearMonth);
     }
 
 

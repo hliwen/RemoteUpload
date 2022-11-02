@@ -1,0 +1,443 @@
+package com.example.nextclouddemo;
+
+import android.annotation.SuppressLint;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.hardware.usb.UsbConstants;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbInterface;
+import android.hardware.usb.UsbManager;
+
+import com.example.nextclouddemo.utils.Log;
+import com.github.mjdev.libaums.UsbMassStorageDevice;
+import com.github.mjdev.libaums.fs.FileSystem;
+import com.github.mjdev.libaums.fs.UsbFile;
+import com.github.mjdev.libaums.fs.UsbFileOutputStream;
+import com.github.mjdev.libaums.partition.Partition;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class StoreUSBReceiver extends BroadcastReceiver {
+    private static final String TAG = "MainActivitylog2";
+
+    public static final String INIT_STORE_USB_PERMISSION = "INIT_STORE_USB_PERMISSION";
+    private StoreUSBListener storeUSBListener;
+
+    private ExecutorService initStoreUSBThreadExecutor;
+    private UsbManager usbManager;
+    private int storeUSBDeviceID = -1;
+    private FileSystem storeUSBFs;
+    private UsbFile storeUSBLogcatDirUsbFile;
+    private UsbFile storeUSBPictureDirUsbFile;
+    private UsbFile storeUSBWifiConfigurationFile;
+
+    private Vector<String> usbFileNameList;
+
+    public StoreUSBReceiver(Context context, StoreUSBListener storeUSBListener) {
+        this.storeUSBListener = storeUSBListener;
+        usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        usbFileNameList = new Vector<>();
+        initStoreUSBDevice();
+    }
+
+
+    public void stopStoreUSBInitThreadExecutor() {
+        Log.e(TAG, "stopStoreUSBInitThreadExecutor: ");
+        try {
+            if (initStoreUSBThreadExecutor != null)
+                initStoreUSBThreadExecutor.shutdown();
+        } catch (Exception e) {
+        }
+        storeUSBDeviceID = -1;
+        storeUSBFs = null;
+        storeUSBLogcatDirUsbFile = null;
+        storeUSBPictureDirUsbFile = null;
+        storeUSBWifiConfigurationFile = null;
+        initStoreUSBThreadExecutor = null;
+    }
+
+    public int getStoreUSBCapacity() {
+        if (storeUSBFs == null)
+            return 0;
+        int capacity = (int) (storeUSBFs.getCapacity() / (1024 * 1024));
+        return capacity;
+    }
+
+    public int getStoreUSBFreeSpace() {
+        if (storeUSBFs == null)
+            return 0;
+        int freeSpace = (int) (storeUSBFs.getFreeSpace() / (1024 * 1024));
+        return freeSpace;
+    }
+
+    public void formatStoreUSB() {
+        if (storeUSBPictureDirUsbFile != null) {
+            try {
+                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
+                for (UsbFile file : usbLogcatDirFileList) {
+                    file.delete();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "formatUSB: Exception =" + e);
+            }
+        }
+        if (storeUSBPictureDirUsbFile != null) {
+            try {
+                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
+                for (UsbFile file : usbLogcatDirFileList) {
+                    file.delete();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "formatUSB: Exception =" + e);
+            }
+        }
+    }
+
+
+    public void uploadLogcatToUSB() {
+        Log.e(TAG, "uploadLogcatToUSB:asdfadsfad logcatFileDirUsbFile =" + storeUSBLogcatDirUsbFile + ",logcatFilePath =" + LogcatHelper.getInstance().logcatFilePath);
+        if (storeUSBLogcatDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null || storeUSBFs == null)
+            return;
+        UsbFileOutputStream os = null;
+        InputStream is = null;
+        try {
+            File localFile = new File(LogcatHelper.getInstance().logcatFilePath);
+            UsbFile create = storeUSBLogcatDirUsbFile.createFile(localFile.getName());
+            os = new UsbFileOutputStream(create);
+            is = new FileInputStream(localFile);
+
+            int bytesRead;
+            byte[] buffer = new byte[storeUSBFs.getChunkSize()];
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "asdfadsfad uploadLogcatToUSB: Exception =" + e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.flush();
+                    os.close();
+                }
+                if (is != null) {
+                    is.close();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "uploadLogcatToUSB: asdfadsfad Exception =" + e);
+            }
+        }
+    }
+
+
+    private boolean uploadToUSB(File localFile, String yearMonth) {
+        if (localFile == null || !localFile.exists()) {
+            Log.e(TAG, "uploadToUSB: \ntodayDir =" + "\n localFile =" + localFile);
+            storeUSBListener.storeUSBSaveOnePictureResult(false);
+            return false;
+        }
+
+        if (storeUSBPictureDirUsbFile == null || storeUSBFs == null) {
+            Log.e(TAG, "uploadToUSB: uploadFileDirUsbFile == null");
+            storeUSBListener.storeUSBSaveOnePictureResult(false);
+            return false;
+        }
+
+        long time = System.currentTimeMillis();
+        long fileSize = 0;
+        Log.d(TAG, "uploadToUSB: localFile =" + localFile);
+        UsbFileOutputStream os = null;
+        InputStream is = null;
+        try {
+
+            UsbFile yearMonthUsbFile = null;
+            UsbFile[] usbFileList = storeUSBPictureDirUsbFile.listFiles();
+
+            if (usbFileList != null) {
+                for (UsbFile usbFile : usbFileList) {
+                    if (usbFile.getName().contains(yearMonth)) {
+                        yearMonthUsbFile = usbFile;
+                        break;
+                    }
+                }
+            }
+
+
+            if (yearMonthUsbFile == null) {
+                yearMonthUsbFile = storeUSBPictureDirUsbFile.createDirectory(yearMonth);
+            }
+
+            UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
+            os = new UsbFileOutputStream(create);
+            is = new FileInputStream(localFile);
+            fileSize = is.available();
+            int bytesRead;
+            byte[] buffer = new byte[storeUSBFs.getChunkSize()];
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            VariableInstance.getInstance().downdNum++;
+            long time11 = ((System.currentTimeMillis() - time) / 1000);
+            if (time11 == 0)
+                time11 = 1;
+
+            String speed = fileSize / time11 / 1024 + "";
+            Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
+            storeUSBListener.storeUSBSaveOnePictureComplete(speed);
+        } catch (Exception e) {
+            if (e.toString().contains("Item already exists")) {
+                Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
+            } else
+                Log.e(TAG, "uploadToUSB: 111111111 Exception =" + e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.flush();
+                    os.close();
+                }
+                if (is != null) {
+                    is.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+        storeUSBListener.storeUSBSaveOnePictureResult(true);
+        Log.d(TAG, "uploadToUSB:完成 ");
+        return true;
+    }
+
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        switch (action) {
+            case UsbManager.ACTION_USB_DEVICE_ATTACHED: {
+                UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED ");
+                if (usbDevice == null) {
+                    return;
+                }
+
+                if (storeUSBDeviceID == -1) {
+                    initStoreUSBDevice();
+                }
+            }
+            break;
+            case UsbManager.ACTION_USB_DEVICE_DETACHED: {
+                Log.e(TAG, "onReceive: 断开USB设备");
+                UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (usbDevice == null) {
+                    Log.e(TAG, "onReceive: mUSBDevice == null");
+                    return;
+                }
+                try {
+                    UsbMassStorageDevice usbMassStorageDevice = getUsbMass(usbDevice);
+                    if (usbMassStorageDevice != null) {
+                        usbMassStorageDevice.close();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "onReceive: 设备断开异常 e =" + e);
+                }
+                Log.e(TAG, "onReceive:断开USB设备 mUSBDevice id = " + usbDevice.getDeviceId() + ",deviceID =" + storeUSBDeviceID);
+                if (usbDevice.getDeviceId() == storeUSBDeviceID) {
+                    stopStoreUSBInitThreadExecutor();
+                    storeUSBListener.storeUSBDeviceDetached();
+                } else {
+                    getUSBPictureCount();
+                }
+            }
+            break;
+
+            case INIT_STORE_USB_PERMISSION:
+                Log.d(TAG, "onReceive: CHECK_UPLOAD_PERMISSION");
+                initStoreUSBDevice();
+                break;
+            default:
+                break;
+        }
+    }
+
+
+    public void initStoreUSBDevice() {
+        Log.e(TAG, "initUploadUSBDevice: ");
+        stopStoreUSBInitThreadExecutor();
+        initStoreUSBThreadExecutor = Executors.newSingleThreadExecutor();
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (usbManager == null)
+                    usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager == null) {
+                    Log.e(TAG, "initUploadUSBDevice: usbManager==null");
+                    return;
+                }
+                //获取所有已连接上的USB列表
+                HashMap<String, UsbDevice> allConnectedUSBDeviceList = usbManager.getDeviceList();
+                if (allConnectedUSBDeviceList == null || allConnectedUSBDeviceList.size() <= 0) {
+                    return;
+                }
+
+                Log.d(TAG, "initUploadUSBDevice: " + "当前连接设备个数:" + allConnectedUSBDeviceList.size());
+                for (UsbDevice usbDevice : allConnectedUSBDeviceList.values()) {
+                    if (usbDevice == null) {
+                        Log.e(TAG, "run: allConnectedUSBDeviceList usbDevice = null ");
+                        continue;
+                    }
+                    //遍历连接的设备接口
+                    for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
+                        UsbInterface usbInterface = usbDevice.getInterface(i);
+                        if (usbInterface == null)
+                            continue;
+                        switch (usbInterface.getInterfaceClass()) {
+                            case UsbConstants.USB_CLASS_MASS_STORAGE: {
+                                Log.d(TAG, "initUploadUSBDevice: deviceID =" + storeUSBDeviceID);
+                                if (usbManager.hasPermission(usbDevice)) {
+                                    UsbMassStorageDevice device = getUsbMass(usbDevice);
+                                    if (device == null) {
+                                        Log.e(TAG, "usbDeviceScaner: device == null");
+                                        continue;
+                                    }
+                                    try {
+                                        device.init();
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "readUSBDevice:device.init() error:" + e);
+                                        continue;
+                                    }
+
+                                    if (device.getPartitions().size() <= 0) {
+                                        Log.e(TAG, "readUSBDevice: " + "device.getPartitions().size() error");
+                                        continue;
+                                    }
+                                    Partition partition = device.getPartitions().get(0);
+                                    FileSystem currentFs = partition.getFileSystem();
+                                    UsbFile mRootFolder = currentFs.getRootDirectory();
+
+                                    try {
+                                        UsbFile[] usbFileList = mRootFolder.listFiles();
+                                        for (UsbFile usbFileItem : usbFileList) {
+                                            if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
+                                                storeUSBLogcatDirUsbFile = usbFileItem;
+                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().wifiConfigurationFileName)) {
+                                                storeUSBWifiConfigurationFile = usbFileItem;
+                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
+                                                storeUSBFs = currentFs;
+                                                storeUSBPictureDirUsbFile = usbFileItem;
+                                                storeUSBDeviceID = usbDevice.getDeviceId();
+                                            }
+                                        }
+
+                                        if (storeUSBPictureDirUsbFile == null) {
+                                            storeUSBFs = currentFs;
+                                            storeUSBPictureDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().PictureDirName);
+                                            storeUSBDeviceID = usbDevice.getDeviceId();
+                                        }
+
+                                        if (storeUSBLogcatDirUsbFile == null)
+                                            storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+
+
+                                    } catch (Exception e) {
+                                    }
+
+
+                                    Log.d(TAG, "usbDeviceScaner: deviceID =" + storeUSBDeviceID);
+                                    if (storeUSBDeviceID == -1) {
+                                        continue;
+                                    } else {
+                                        getUSBPictureCount();
+                                        storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
+                                    }
+                                } else {
+                                    Log.e(TAG, "usbDeviceScaner: hasPermission =false");
+                                    @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
+                                    usbManager.requestPermission(usbDevice, pendingIntent);
+                                }
+                            }
+                            break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+        };
+        initStoreUSBThreadExecutor.execute(runnable);
+    }
+
+
+    public int getUSBPictureCount() {
+        if (storeUSBPictureDirUsbFile == null)
+            return -1;
+        usbFileNameList.clear();
+        getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
+        storeUSBListener.storeUSBPictureCount(usbFileNameList.size());
+        return usbFileNameList.size();
+    }
+
+
+    private void getStoreUSBPictureCount(UsbFile usbFile) {
+        try {
+            UsbFile[] usbFileList = usbFile.listFiles();
+            for (UsbFile usbFileItem : usbFileList) {
+                if (usbFileItem.isDirectory()) {
+                    getStoreUSBPictureCount(usbFileItem);
+                } else {
+                    String name = usbFileItem.getName();
+                    String FileEnd = name.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
+                    if (pictureFormatFile(FileEnd)) {
+                        usbFileNameList.add(name);
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
+    }
+
+
+    private boolean pictureFormatFile(String FileEnd) {
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
+                || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
+                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg")))
+            return true;
+        return false;
+    }
+
+
+    /**
+     * USBDevice 转换成UsbMassStorageDevice 对象
+     */
+    private UsbMassStorageDevice getUsbMass(UsbDevice usbDevice) {
+        UsbMassStorageDevice[] storageDevices = UsbMassStorageDevice.getMassStorageDevices(MyApplication.getContext());
+
+        for (UsbMassStorageDevice device : storageDevices) {
+            if (usbDevice.equals(device.getUsbDevice())) {
+                return device;
+            }
+        }
+        return null;
+    }
+
+
+    public interface StoreUSBListener {
+
+        void storeUSBPictureCount(int count);
+
+        void initStoreUSBComplete(UsbFile wifiConfigurationFile);
+
+        void storeUSBDeviceDetached();
+
+        void storeUSBSaveOnePictureComplete(String speed);
+
+        void storeUSBSaveOnePictureResult(boolean succeed);
+    }
+
+}
+
