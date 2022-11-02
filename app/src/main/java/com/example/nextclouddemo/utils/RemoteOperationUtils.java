@@ -31,8 +31,6 @@ public class RemoteOperationUtils {
     public boolean pictureIsThreadStop;
     public boolean videoIsThreadStop;
 
-    private String todayMonthFileDir;
-    private String todayVideoFileDir;
 
     private RemoteOperationListener remoteOperationListener;
 
@@ -41,14 +39,9 @@ public class RemoteOperationUtils {
     public volatile BlockingQueue<String> videoFileListCache = new LinkedBlockingQueue<>(5000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
-
-        this.todayMonthFileDir = Utils.getyyyyMMString();
-        this.todayVideoFileDir = Utils.getMMddString();
-
         this.remoteOperationListener = remoteOperationListener;
         this.pictureIsThreadStop = true;
         VariableInstance.getInstance().uploadNum = 0;
-
     }
 
     private static final String cameraDir = "CameraPicture";
@@ -60,23 +53,37 @@ public class RemoteOperationUtils {
     private String remoteLogcatDir;
 
     private String remoteCameraDir;
-    private String remoteCameraTodayMonthDir;
+    private String remoteCameraMonthDayDir;
 
     private String remoteVideoDir;
-    private String remoteVideoTodayMonthDir;
+    private String remoteVideoMonthDayDir;
     private String remoteVideoTodayDir;
 
     public boolean initRemoteDir(String userName) {
+
+        String yearMonthFileDir = Utils.getyyyyMMString();
+        String monthDayVideoFileDir = Utils.getMMddString();
+
+
         userNameDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR;
         remoteLogcatDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR + logcatDir + FileUtils.PATH_SEPARATOR;
 
         remoteCameraDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR + cameraDir + FileUtils.PATH_SEPARATOR;
-        remoteCameraTodayMonthDir = remoteCameraDir + todayMonthFileDir + FileUtils.PATH_SEPARATOR;
+        remoteCameraMonthDayDir = remoteCameraDir + yearMonthFileDir + FileUtils.PATH_SEPARATOR;
 
         remoteVideoDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR + videoDir + FileUtils.PATH_SEPARATOR;
-        remoteVideoTodayMonthDir = remoteVideoDir + todayMonthFileDir + FileUtils.PATH_SEPARATOR;
-        remoteVideoTodayDir = remoteVideoTodayMonthDir + todayVideoFileDir + FileUtils.PATH_SEPARATOR;
+        remoteVideoMonthDayDir = remoteVideoDir + yearMonthFileDir + FileUtils.PATH_SEPARATOR;
+        remoteVideoTodayDir = remoteVideoMonthDayDir + monthDayVideoFileDir + FileUtils.PATH_SEPARATOR;
 
+        Log.d(TAG, "initRemoteDir: " +
+                "\n userNameDir =" + userNameDir +
+                "\n remoteLogcatDir =" + remoteLogcatDir +
+                "\n remoteCameraDir =" + remoteCameraDir +
+                "\n remoteCameraMonthDayDir =" + remoteCameraMonthDayDir +
+                "\n remoteVideoDir =" + remoteVideoDir +
+                "\n remoteVideoMonthDayDir =" + remoteVideoMonthDayDir +
+                "\n remoteVideoTodayDir =" + remoteVideoTodayDir
+        );
 
         int result = checkFileExit(FileUtils.PATH_SEPARATOR, userNameDir);
         if (result == requestFailure) {
@@ -104,11 +111,11 @@ public class RemoteOperationUtils {
                 }
             }
 
-            boolean checkCameraPath = checkResult(exictP, remoteCameraDir, remoteCameraTodayMonthDir);
+            boolean checkCameraPath = checkResult(exictP, remoteCameraDir, remoteCameraMonthDayDir);
             if (!checkCameraPath)
                 return false;
 
-            boolean checkVideoPath = checkResult(exictV, remoteVideoDir, remoteVideoTodayMonthDir);
+            boolean checkVideoPath = checkResult(exictV, remoteVideoDir, remoteVideoMonthDayDir);
 
             createFilefolder(remoteVideoTodayDir);
 
@@ -124,13 +131,13 @@ public class RemoteOperationUtils {
             createResult = createFilefolder(remoteCameraDir);
             if (!createResult)
                 return false;
-            createResult = createFilefolder(remoteCameraTodayMonthDir);
+            createResult = createFilefolder(remoteCameraMonthDayDir);
             if (!createResult)
                 return false;
             createResult = createFilefolder(remoteVideoDir);
             if (!createResult)
                 return false;
-            createResult = createFilefolder(remoteVideoTodayMonthDir);
+            createResult = createFilefolder(remoteVideoMonthDayDir);
             if (!createResult)
                 return false;
             createResult = createFilefolder(remoteVideoTodayDir);
@@ -230,7 +237,7 @@ public class RemoteOperationUtils {
         }
 
 
-        String remotePath = remoteCameraTodayMonthDir + file.getName();
+        String remotePath = remoteCameraMonthDayDir + file.getName();
         Long timeStampLong = file.lastModified() / 1000;
         String timeStamp = timeStampLong.toString();
 

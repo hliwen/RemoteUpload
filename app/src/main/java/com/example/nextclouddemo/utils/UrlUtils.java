@@ -6,5 +6,5 @@ public class UrlUtils {
     public static final String deviceInfoPrefix = "https://www.iothm.top:12443/v2/device/attrKey/4g_imei/";
     public static final String deviceInfoSuffix = "/info?infoFilter=imei,monitor_email,yunpan_password";
     public static final String appVersionURL = "https://www.iothm.top:12443/v2/app/autoUpdate/V3/version/latest";
-    public static final String appDownloadURL = "https://www.iothm.top:12443/v2/app/autoUpdate/V3/version/";
+    public static final String appDowloadURL = "https://www.iothm.top:12443/v2/app/autoUpdate/V3/version/";
 }

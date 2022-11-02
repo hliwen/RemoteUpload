@@ -57,7 +57,7 @@ public class Utils {
         }
     }
 
-    public static File makeDir(String dir){
+    public static File makeDir(String dir) {
         File fileFolder = new File(dir);
         if (!fileFolder.exists()) {
             fileFolder.mkdir();
@@ -94,33 +94,7 @@ public class Utils {
         return System.currentTimeMillis() + "";
     }
 
-    public static String getTimeString(long date) {
-        try {
-            return getDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(date));
-        } catch (Exception e) {
 
-        }
-        return System.currentTimeMillis() + "";
-    }
-
-
-    public static String getyyyyMMString(long time) {
-        try {
-            return getDateFormat("yyyyMM").format(new Date(time));
-        } catch (Exception e) {
-
-        }
-        return System.currentTimeMillis() + "";
-    }
-
-    public static String getyyyyMMDDString(long time) {
-        try {
-            return getDateFormat("yyyyMMdd").format(new Date(time));
-        } catch (Exception e) {
-
-        }
-        return System.currentTimeMillis() + "";
-    }
 
 
     public static String getMMddString() {
@@ -150,6 +124,25 @@ public class Utils {
         return System.currentTimeMillis() + "";
     }
 
+    public static int getyyMMddtringInt(long time) {
+        try {
+            String s = getDateFormat("yyMMdd").format(new Date(time));
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+
+        }
+        return 100000;
+    }
+
+    public static String getyyyyMMtring(long time) {
+        try {
+            return getDateFormat("yyyyMM").format(new Date(time));
+        } catch (Exception e) {
+
+        }
+        return "100000";
+    }
+
 
     public static void closeAndroid() {
 //
@@ -169,6 +162,8 @@ public class Utils {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
     };
 
     @SuppressLint("WrongConstant")

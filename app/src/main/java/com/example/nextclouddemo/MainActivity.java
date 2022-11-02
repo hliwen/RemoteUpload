@@ -31,6 +31,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
 import com.example.gpiotest.LedControl;
 import com.example.nextclouddemo.model.DeviceInfoModel;
@@ -41,6 +42,7 @@ import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
+import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
@@ -73,7 +75,7 @@ public class MainActivity extends Activity {
 
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 10 * 60 * 1000;
-    private static final boolean phoneDebug = true;
+    private static final boolean phoneDebug = false;
 
 
     private static String TAG = "MainActivitylog";
@@ -101,6 +103,27 @@ public class MainActivity extends Activity {
     private boolean localDownling;
     private boolean openDeviceProtFlag;
 
+    private RelativeLayout surfaceViewParent;
+    private TextView messageText;
+    private TextView UpanSpaceText;
+    private TextView accessNumberText;
+    private TextView cameraStateText;
+    private TextView isConnectNetworkText;
+    private TextView mqttStateText;
+    private TextView UpanPictureCountText;
+    private TextView uploadNumberText;
+    private TextView uploadUseTimeText;
+    private TextView hasUploadpictureNumberText;
+    private TextView uploadModelText;
+    private TextView remoteNameText;
+    private TextView hasDownloadPictureNumberText;
+    private TextView serverStateText;
+    private TextView currentVersionText;
+    private TextView serverVersionText;
+    private TextView downloadAppProgressText;
+    private TextView updateResultText;
+
+    private UpdateUtils updateUtils;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -111,10 +134,37 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
 
         mHandler = new MyHandler(MainActivity.this);
+
         communication = new Communication();
 
         initView();
 
+        updateUtils = new UpdateUtils(new UpdateUtils.UpdateListener() {
+            @Override
+            public void serverVersion(int version) {
+                runOnUiThreadText(serverVersionText, "最新版本：" + version);
+            }
+
+            @Override
+            public void downloadProgress(int progress) {
+                runOnUiThreadText(downloadAppProgressText, "app下载：" + progress + "kb");
+            }
+
+            @Override
+            public void startUpdate() {
+                runOnUiThreadText(updateResultText, "开始升级");
+                mHandler.removeMessages(msg_close_device);
+                mHandler.removeMessages(msg_send_restart_app);
+                mHandler.sendEmptyMessageDelayed(msg_send_restart_app, 3000);
+            }
+
+            @Override
+            public void updateResult(boolean succeed) {
+                mHandler.removeMessages(msg_send_restart_app);
+                runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
+                mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+            }
+        });
 
         serverStateText.setText("服务器状态：false");
         remoteNameText.setText("云端名称：");
@@ -156,23 +206,8 @@ public class MainActivity extends Activity {
 
     }
 
-    private RelativeLayout surfaceViewParent;
-    private TextView messageText;
-    private TextView UpanSpaceText;
-    private TextView accessNumberText;
-    private TextView cameraStateText;
-    private TextView isConnectNetworkText;
-    private TextView mqttStateText;
-    private TextView UpanPictureCountText;
-    private TextView uploadNumberText;
-    private TextView uploadUseTimeText;
-    private TextView hasUploadpictureNumberText;
-    private TextView uploadModelText;
-    private TextView remoteNameText;
-    private TextView hasDownloadPictureNumberText;
-    private TextView serverStateText;
 
-
+    @SuppressLint("SetTextI18n")
     private void initView() {
         surfaceViewParent = findViewById(R.id.surfaceViewParent);
         messageText = findViewById(R.id.messageText);
@@ -189,7 +224,15 @@ public class MainActivity extends Activity {
         remoteNameText = findViewById(R.id.remoteNameText);
         hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
         serverStateText = findViewById(R.id.serverStateText);
+        currentVersionText = findViewById(R.id.currentVersionText);
+        serverVersionText = findViewById(R.id.serverVersionText);
+        downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
+        updateResultText = findViewById(R.id.updateResultText);
 
+        AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
+
+        int appVerison = appInfo.getVersionCode();
+        currentVersionText.setText("当前版本：" + appVerison);
     }
 
     private int signalStrengthValue;
@@ -225,7 +268,9 @@ public class MainActivity extends Activity {
                 if (doingInit)
                     return;
                 doingInit = true;
+                updateUtils.networkAvailable(MainActivity.this);
                 initAddress();
+
             }
 
             @Override
@@ -241,7 +286,7 @@ public class MainActivity extends Activity {
                 MqttManager.getInstance().release();
                 openNetworkLed(false);
                 openNetworkLed(true);
-
+                updateUtils.networkLost();
             }
         });
     }
@@ -1056,6 +1101,7 @@ public class MainActivity extends Activity {
     private static final int msg_send_ShutDown = 4;
     private static final int msg_send_first_registerUSBReceiver = 5;
     private static final int msg_send_second_registerUSBReceiver = 6;
+    private static final int msg_send_restart_app = 7;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -1089,7 +1135,7 @@ public class MainActivity extends Activity {
                     Utils.closeAndroid();
                     break;
                 case msg_send_first_registerUSBReceiver:
-                    if (false) {
+                    if (activity.networkAvailable) {
                         activity.registerUSBReceiver();
                         activity.openCamera();
                     } else {
@@ -1100,6 +1146,9 @@ public class MainActivity extends Activity {
                 case msg_send_second_registerUSBReceiver:
                     activity.registerUSBReceiver();
                     activity.openCamera();
+                    break;
+                case msg_send_restart_app:
+                    activity.updateUtils.execLinuxCommand();
                     break;
             }
         }

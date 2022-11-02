@@ -2,10 +2,9 @@ package com.example.nextclouddemo;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 
+import com.blankj.utilcode.util.Utils;
 
-//import androidx.multidex.MultiDex;
 
 public class MyApplication extends Application {
 
@@ -14,7 +13,8 @@ public class MyApplication extends Application {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
-//        MultiDex.install(this);
+
+        Utils.init(this);
         LogcatHelper.getInstance().start();
     }
 

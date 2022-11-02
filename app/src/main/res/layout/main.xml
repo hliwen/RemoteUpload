@@ -3,7 +3,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:visibility="invisible">
+    android:visibility="visible">
 
 
     <RelativeLayout
@@ -228,6 +228,48 @@
             android:textColor="#000000"
             android:textSize="11sp" />
 
+
+        <TextView
+            android:id="@+id/currentVersionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/currentVersion"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+        <TextView
+            android:id="@+id/serverVersionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/serverversionT"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/updateResultText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/downloadAppProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text=""
+            android:textColor="#000000"
+            android:textSize="11sp" />
 
     </LinearLayout>
 
