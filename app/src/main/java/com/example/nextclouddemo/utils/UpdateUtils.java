@@ -6,6 +6,11 @@ import android.text.TextUtils;
 import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.LogUtils;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public class UpdateUtils {
 
     private static final String TAG = "UpdateUtils";
@@ -45,7 +50,15 @@ public class UpdateUtils {
 
 
     private void getServiceVersion() {
-
+        try {
+            URL url = new URL(UrlUtils.appVersionURL);
+            HttpURLConnection urlcon = null;
+            urlcon = (HttpURLConnection) url.openConnection();
+            int ResponseCode = urlcon.getResponseCode();
+            if(ResponseCode==200){}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private boolean checkUpdate(String currentVersion, String serviceVersion) {
