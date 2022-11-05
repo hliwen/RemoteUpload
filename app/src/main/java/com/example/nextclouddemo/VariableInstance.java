@@ -2,6 +2,7 @@ package com.example.nextclouddemo;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Vector;
 
 public class VariableInstance {
     private static VariableInstance instance = null;
@@ -28,6 +29,8 @@ public class VariableInstance {
     public String LogcatDir;
     public boolean formarCamera;
 
+    public Vector<String> usbFileNameList;
+    public int storeUSBDeviceID = -1;
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();
@@ -42,6 +45,8 @@ public class VariableInstance {
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
         TFCardVideoDir = sdCardDirRoot + VideoDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
+        usbFileNameList = new Vector<>();
+        storeUSBDeviceID = -1;
     }
 
 
