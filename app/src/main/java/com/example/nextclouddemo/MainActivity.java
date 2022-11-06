@@ -178,7 +178,7 @@ public class MainActivity extends Activity {
                 registerStoreUSBReceiver();
                 openCamera();
             }
-        }, 5000);
+        }, 3000);
     }
 
 

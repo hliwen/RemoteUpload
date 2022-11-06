@@ -302,7 +302,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                                     try {
                                         device.init();
                                     } catch (Exception e) {
-                                        Log.e(TAG, "readUSBDevice:device.init() error:" + e);
+                                        Log.e(TAG, "initStoreUSBDevice :device.init() error:" + e);
                                         continue;
                                     }
 
@@ -339,6 +339,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
 
                                     } catch (Exception e) {
+                                         Log.e(TAG, "run: initStoreUSBDevice Exception ="+e );
                                     }
 
 
