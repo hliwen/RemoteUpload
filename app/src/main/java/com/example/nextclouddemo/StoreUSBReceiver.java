@@ -82,7 +82,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             try {
                 UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
                 for (UsbFile file : usbLogcatDirFileList) {
-                    file.delete();
+                    formatStoreUSB(file);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "formatUSB: Exception =" + e);
@@ -97,6 +97,20 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             } catch (Exception e) {
                 Log.e(TAG, "formatUSB: Exception =" + e);
             }
+        }
+    }
+
+    public void formatStoreUSB(UsbFile usbFile) {
+        try {
+            UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
+            for (UsbFile file : usbLogcatDirFileList) {
+                if (file.isDirectory()) {
+                    formatStoreUSB(file);
+                } else
+                    file.delete();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "formatStoreUSB: Exception =" + e);
         }
     }
 
