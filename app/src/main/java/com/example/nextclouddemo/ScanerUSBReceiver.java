@@ -46,6 +46,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
     private ScanerUSBListener downloadFlieListener;
     private ArrayList<SameDayPicutreInfo> pictureInfoList;
+    private int cameraTotalPicture;
 
     class SameDayPicutreInfo {
         public int yearMonthDay;
@@ -307,6 +308,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         }
 
         pictureInfoList.clear();
+        cameraTotalPicture = 0;
+
         for (int storageId : storageIds) {
             int[] pictureHandlesItem = mtpDevice.getObjectHandles(storageId, 0, 0);
             if (pictureHandlesItem != null)
@@ -320,6 +323,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     int yymmdd = Utils.getyyMMddtringInt(createDate);
                     String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
                     String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
+
+                    if (!pictureFormatFile(FileEnd))
+                        continue;
+
+                    cameraTotalPicture++;
+
                     if (VariableInstance.getInstance().formarCamera) {
                         mtpDevice.deleteObject(i);
                         continue;
@@ -356,8 +365,9 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         }
 
 
-        Log.d(TAG, "mtpDeviceScaner: 扫描到图片size =" + pictureCount);
+        Log.d(TAG, "mtpDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture);
         downloadFlieListener.downloadUpanCount(pictureCount);
+        downloadFlieListener.scanCameraComplete(cameraTotalPicture);
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
             if (VariableInstance.getInstance().UploadMode == 1) {
@@ -474,6 +484,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         UsbFile mRootFolder = currentFs.getRootDirectory();
 
         pictureInfoList.clear();
+        cameraTotalPicture = 0;
         readPicFileFromUSBFile(currentFs, mRootFolder);
 
         Collections.sort(pictureInfoList, new SameOrder());
@@ -485,8 +496,9 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             pictureCount += sameDayPicutreInfo.rowPictureInfos.size();
         }
 
-        Log.d(TAG, "usbDeviceScaner: 扫描到图片size =" + pictureCount);
+        Log.d(TAG, "usbDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture);
         downloadFlieListener.downloadUpanCount(pictureCount);
+        downloadFlieListener.scanCameraComplete(cameraTotalPicture);
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
             if (VariableInstance.getInstance().UploadMode == 1) {
@@ -544,9 +556,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     String fileName = yymmdd + "-" + usbFileItem.getName();
                     String FileEnd = fileName.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
 
+                    if (!pictureFormatFile(FileEnd))
+                        continue;
+                    cameraTotalPicture++;
+
                     if (VariableInstance.getInstance().formarCamera) {
-                        if (pictureFormatFile(FileEnd))
-                            usbFile.delete();
+                        usbFile.delete();
                         continue;
                     }
 
@@ -582,7 +597,6 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         InputStream in = null;
         String pictureSavePath = null;
         File pictureSaveLocalFile = null;
-
 
         try {
             pictureSavePath = tfCardPictureDir + File.separator + pictureInfo.pictureName;
@@ -712,6 +726,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         boolean uploadToUSB(File localFile, String yearMonth);
 
         void cameraUSBDetached();
+
+        void scanCameraComplete(int pictureCont);
     }
 
 

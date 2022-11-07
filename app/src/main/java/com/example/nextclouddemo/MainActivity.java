@@ -134,6 +134,7 @@ public class MainActivity extends Activity {
     private TextView serverVersionText;
     private TextView downloadAppProgressText;
     private TextView updateResultText;
+    private TextView cameraPictureCountText;
 
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
@@ -152,8 +153,8 @@ public class MainActivity extends Activity {
         updateUtils = new UpdateUtils(updateListener);
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
         VariableInstance.getInstance().formarCamera = false;
-        VariableInstance.getInstance().downdNum=0;
-        VariableInstance.getInstance().uploadNum=0;
+        VariableInstance.getInstance().downdNum = 0;
+        VariableInstance.getInstance().uploadNum = 0;
         VariableInstance.getInstance().usbFileNameList.clear();
 
         initView();
@@ -207,6 +208,7 @@ public class MainActivity extends Activity {
         serverVersionText = findViewById(R.id.serverVersionText);
         downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
         updateResultText = findViewById(R.id.updateResultText);
+        cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
 
@@ -424,6 +426,12 @@ public class MainActivity extends Activity {
         @Override
         public void cameraUSBDetached() {
             storeUSBReceiver.getUSBPictureCount();
+        }
+
+        @Override
+        public void scanCameraComplete(int pictureCont) {
+            Log.e(TAG, "scanCameraComplete: pictureCont =" + pictureCont);
+            runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + pictureCont);
         }
     };
 
