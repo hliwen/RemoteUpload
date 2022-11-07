@@ -20,6 +20,7 @@ import com.github.mjdev.libaums.partition.Partition;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
@@ -244,6 +245,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
                     stopStoreUSBInitThreadExecutor();
                     storeUSBListener.storeUSBDeviceDetached();
+                    VariableInstance.getInstance().downdNum = 0;
+                    VariableInstance.getInstance().uploadNum = 0;
+                    VariableInstance.getInstance().usbFileNameList.clear();
                 } else {
                     getUSBPictureCount();
                 }
@@ -261,7 +265,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
 
     public void initStoreUSBDevice() {
-        Log.e(TAG, "initUploadUSBDevice: ");
+        Log.e(TAG, "initStoreUSBDevice: ");
         stopStoreUSBInitThreadExecutor();
         initStoreUSBThreadExecutor = Executors.newSingleThreadExecutor();
         Runnable runnable = new Runnable() {
@@ -269,8 +273,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             public void run() {
                 if (usbManager == null)
                     usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+
                 if (usbManager == null) {
-                    Log.e(TAG, "initUploadUSBDevice: usbManager==null");
+                    Log.e(TAG, "initStoreUSBDevice: usbManager==null");
                     return;
                 }
                 //获取所有已连接上的USB列表
@@ -279,92 +284,109 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                     return;
                 }
 
-                Log.d(TAG, "initUploadUSBDevice: " + "当前连接设备个数:" + allConnectedUSBDeviceList.size());
-                for (UsbDevice usbDevice : allConnectedUSBDeviceList.values()) {
+                Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备个数:" + allConnectedUSBDeviceList.size());
+
+                Collection<UsbDevice> usbDevices = allConnectedUSBDeviceList.values();
+
+                if (usbDevices == null)
+                    return;
+
+                for (UsbDevice usbDevice : usbDevices) {
                     if (usbDevice == null) {
-                        Log.e(TAG, "run: allConnectedUSBDeviceList usbDevice = null ");
+                        Log.e(TAG, "initStoreUSBDevice run: allConnectedUSBDeviceList usbDevice = null ");
                         continue;
                     }
+
+                    if (!usbManager.hasPermission(usbDevice)) {
+                        Log.e(TAG, "usbDeviceScaner: hasPermission =false");
+                        @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
+                        usbManager.requestPermission(usbDevice, pendingIntent);
+                        continue;
+                    }
+
                     //遍历连接的设备接口
-                    for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
+                    int interfaceCount = usbDevice.getInterfaceCount();
+                    Log.e(TAG, "initStoreUSBDevice run: 遍历连接的设备接口 interfaceCount =" + interfaceCount);
+                    for (int i = 0; i < interfaceCount; i++) {
                         UsbInterface usbInterface = usbDevice.getInterface(i);
                         if (usbInterface == null)
                             continue;
-                        switch (usbInterface.getInterfaceClass()) {
-                            case UsbConstants.USB_CLASS_MASS_STORAGE: {
-                                Log.d(TAG, "initUploadUSBDevice: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
-                                if (usbManager.hasPermission(usbDevice)) {
-                                    UsbMassStorageDevice device = getUsbMass(usbDevice);
-                                    if (device == null) {
-                                        Log.e(TAG, "usbDeviceScaner: device == null");
-                                        continue;
-                                    }
-                                    try {
-                                        device.init();
-                                    } catch (Exception e) {
-                                        Log.e(TAG, "initStoreUSBDevice :device.init() error:" + e);
-                                        continue;
-                                    }
+                        int interfaceClass = usbInterface.getInterfaceClass();
 
-                                    if (device.getPartitions().size() <= 0) {
-                                        Log.e(TAG, "readUSBDevice: " + "device.getPartitions().size() error");
-                                        continue;
-                                    }
-                                    Partition partition = device.getPartitions().get(0);
-                                    FileSystem currentFs = partition.getFileSystem();
-                                    UsbFile mRootFolder = currentFs.getRootDirectory();
-
-                                    try {
-                                        UsbFile[] usbFileList = mRootFolder.listFiles();
-                                        for (UsbFile usbFileItem : usbFileList) {
-                                            if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
-                                                storeUSBLogcatDirUsbFile = usbFileItem;
-                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().wifiConfigurationFileName)) {
-                                                storeUSBWifiConfigurationFile = usbFileItem;
-                                            } else if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
-                                                storeUSBFs = currentFs;
-                                                storeUSBPictureDirUsbFile = usbFileItem;
-                                                VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
-                                            }
-                                        }
-
-                                        if (storeUSBPictureDirUsbFile == null) {
-                                            storeUSBFs = currentFs;
-                                            storeUSBPictureDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().PictureDirName);
-                                            VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
-                                        }
-
-                                        if (storeUSBLogcatDirUsbFile == null)
-                                            storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
-
-
-                                    } catch (Exception e) {
-                                         Log.e(TAG, "run: initStoreUSBDevice Exception ="+e );
-                                    }
-
-
-                                    Log.d(TAG, "usbDeviceScaner: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
-                                    if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
-                                        continue;
-                                    } else {
-                                        getUSBPictureCount();
-                                        storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
-                                    }
-                                } else {
-                                    Log.e(TAG, "usbDeviceScaner: hasPermission =false");
-                                    @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
-                                    usbManager.requestPermission(usbDevice, pendingIntent);
-                                }
+                        if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
+                            Log.d(TAG, "initStoreUSBDevice: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+                            UsbMassStorageDevice device = getUsbMass(usbDevice);
+                            boolean initSucceed = initDevice(device, usbDevice);
+                            Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initSucceed);
+                            if (initSucceed) {
+                                return;
                             }
-                            break;
-                            default:
-                                break;
                         }
                     }
                 }
             }
         };
         initStoreUSBThreadExecutor.execute(runnable);
+    }
+
+
+    private boolean initDevice(UsbMassStorageDevice device, UsbDevice usbDevice) {
+        if (device == null) {
+            Log.e(TAG, "initDevice: device == null");
+            return false;
+        }
+        try {
+            device.init();
+        } catch (Exception e) {
+            Log.e(TAG, "initDevice :device.init() error:" + e);
+            return false;
+        }
+
+        if (device.getPartitions().size() <= 0) {
+            Log.e(TAG, "initDevice: " + "device.getPartitions().size() error");
+            return false;
+        }
+        Partition partition = device.getPartitions().get(0);
+        FileSystem currentFs = partition.getFileSystem();
+        UsbFile mRootFolder = currentFs.getRootDirectory();
+
+        try {
+            UsbFile[] usbFileList = mRootFolder.listFiles();
+            for (UsbFile usbFileItem : usbFileList) {
+                if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
+                    storeUSBLogcatDirUsbFile = usbFileItem;
+                } else if (usbFileItem.getName().contains(VariableInstance.getInstance().wifiConfigurationFileName)) {
+                    storeUSBWifiConfigurationFile = usbFileItem;
+                } else if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
+                    storeUSBFs = currentFs;
+                    storeUSBPictureDirUsbFile = usbFileItem;
+                    VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
+                }
+            }
+
+            if (storeUSBPictureDirUsbFile == null) {
+                storeUSBFs = currentFs;
+                storeUSBPictureDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().PictureDirName);
+                VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
+            }
+
+            if (storeUSBLogcatDirUsbFile == null)
+                storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+
+
+        } catch (Exception e) {
+            Log.e(TAG, "run: initDevice Exception =" + e);
+        }
+
+
+        Log.d(TAG, "usbDeviceScaner: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
+            return false;
+        } else {
+            getUSBPictureCount();
+            storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
+        }
+        return true;
     }
 
 
@@ -431,7 +453,6 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         void storeUSBDeviceDetached();
 
         void storeUSBSaveOnePictureComplete(String speed);
-
 
     }
 

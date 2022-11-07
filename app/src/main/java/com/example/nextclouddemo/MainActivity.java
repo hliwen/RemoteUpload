@@ -151,6 +151,10 @@ public class MainActivity extends Activity {
         communication = new Communication();
         updateUtils = new UpdateUtils(updateListener);
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
+        VariableInstance.getInstance().formarCamera = false;
+        VariableInstance.getInstance().downdNum=0;
+        VariableInstance.getInstance().uploadNum=0;
+        VariableInstance.getInstance().usbFileNameList.clear();
 
         initView();
 
