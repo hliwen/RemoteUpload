@@ -98,26 +98,29 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 for (UsbFile file : usbLogcatDirFileList) {
                     file.delete();
                 }
-            } catch (Exception e) {
+            } catch (Exception | OutOfMemoryError e) {
                 Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
             }
         }
     }
 
     public void formatStoreUSB(UsbFile usbFile) {
+
         try {
-            if (usbFile.isDirectory()) {
-                UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
-                for (UsbFile file : usbLogcatDirFileList) {
-                    if (file.isDirectory()) {
-                        formatStoreUSB(file);
-                    } else
-                        file.delete();
-                }
-            } else {
-                usbFile.delete();
-            }
-        } catch (Exception e) {
+            Log.e(TAG, "formatStoreUSB: " + usbFile.getName());
+//            if (usbFile.isDirectory()) {
+//                UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
+//                for (UsbFile file : usbLogcatDirFileList) {
+//                    if (file.isDirectory()) {
+//                        formatStoreUSB(file);
+//                    } else
+//                        file.delete();
+//                }
+//            } else {
+//                usbFile.delete();
+//            }
+            usbFile.delete();
+        } catch (Exception | OutOfMemoryError e) {
             Log.e(TAG, "formatStoreUSB: Exception =" + e);
             formatException = true;
         }

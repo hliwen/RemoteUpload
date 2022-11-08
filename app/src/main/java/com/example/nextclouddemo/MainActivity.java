@@ -625,7 +625,6 @@ public class MainActivity extends Activity {
             return;
 
         getInfo();
-        runOnUiThreadText(accessNumberText, "入网号:" + getPhoneImei(false));
 
         Thread workThread = new Thread(new Runnable() {
             @Override
@@ -639,7 +638,12 @@ public class MainActivity extends Activity {
                         updateServerStateUI(false);
                         return;
                     }
-                    DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(getPhoneImei(false));
+
+                    String imei = getPhoneImei(false);
+                    if ("0".equals(imei))
+                        imei = getPhoneImei(true);
+                    DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
+
                     if (serverUrlModel == null || deviceInfoModel.responseCode != 200) {
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
@@ -760,7 +764,7 @@ public class MainActivity extends Activity {
                 formatUSB();
                 break;
             case FormatTF:
-                formatTF();
+                formatUSB();
                 break;
             case FormatCamera:
                 formatCamera();
@@ -812,23 +816,43 @@ public class MainActivity extends Activity {
         }
     }
 
+    private boolean formatingUSB;
+
     private void formatUSB() {
+        if (formatingUSB)
+            return;
+        formatingUSB = true;
         Log.e(TAG, "formatUSB: ");
         runOnUiThreadText(FormatUSBButton, "开始删除USB图片");
         new Thread(new Runnable() {
             @Override
             public void run() {
+
+                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().TFCardVideoDir);
+                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+
                 if (storeUSBReceiver != null)
                     storeUSBReceiver.formatStoreUSB();
 
                 if (scanerUSBReceiver != null) {
                     scanerUSBReceiver.storeUSBDetached();
                 }
+                formatingUSB = false;
+                mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
             }
         }).start();
     }
 
+
+    private boolean formatingCamera;
+
     private void formatCamera() {
+        if (formatingCamera)
+            return;
+        formatingCamera = true;
+        Log.e(TAG, "formatCamera: ");
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -837,21 +861,8 @@ public class MainActivity extends Activity {
                 if (scanerUSBReceiver != null) {
                     scanerUSBReceiver.formatCamera();
                 }
-                openDeviceProt(false);
-                openDeviceProt(true);
-            }
-        }).start();
-    }
-
-    private void formatTF() {
-        Log.e(TAG, "formatTF: ");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().TFCardVideoDir);
-                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+                formatingCamera = false;
+                mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
             }
         }).start();
     }
@@ -1016,8 +1027,6 @@ public class MainActivity extends Activity {
             cameraStateText.setText("相机状态:" + openDeviceProtFlag);
         } else if (button.getId() == R.id.FormatUSB) {
             formatUSB();
-        } else if (button.getId() == R.id.FormatTF) {
-            formatTF();
         } else if (button.getId() == R.id.FormatCamera) {
             formatCamera();
         }
@@ -1126,32 +1135,36 @@ public class MainActivity extends Activity {
 
     @SuppressLint("HardwareIds")
     private String getPhoneImei(boolean init) {
+        Log.e(TAG, "getPhoneImei: init =" + init);
         String imei = "0";
-
-//            imei = "867706050952138";
-
+//      imei = "867706050952138";
         if (init) {
             try {
                 TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
                 imei = telephonyManager.getDeviceId();
-                Log.d(TAG, "getPhoneImei: imei =" + imei);
+                Log.d(TAG, "getPhoneImei:1111 imei =" + imei);
                 if (imei == null) {
                     imei = "0";
                 }
-                Log.d(TAG, "getPhoneImei: imei =" + imei);
+                Log.d(TAG, "getPhoneImei:2222 imei =" + imei);
             } catch (Exception | Error e) {
-                Log.e(TAG, "getPhoneImei: Exception =" + e);
+                Log.e(TAG, "getPhoneImei:3333 Exception =" + e);
                 imei = "0";
             }
         } else {
             DeviceModel deviceModel = getDeviceModel();
             if (deviceModel == null || deviceModel.SN == null || deviceModel.SN.length() == 0) {
                 imei = "0";
+                Log.e(TAG, "getPhoneImei: 444444");
             } else {
                 imei = deviceModel.SN;
             }
         }
-        Log.d(TAG, "getPhoneImei: imei =" + imei);
+        Log.d(TAG, "getPhoneImei:555555 imei =" + imei);
+
+        if (!"0".equals(imei)) {
+            runOnUiThreadText(accessNumberText, "入网号:" + imei);
+        }
         return imei;
     }
 
