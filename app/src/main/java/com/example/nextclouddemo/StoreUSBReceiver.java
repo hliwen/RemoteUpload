@@ -77,40 +77,49 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         return freeSpace;
     }
 
+    private boolean formatException = false;
+
     public void formatStoreUSB() {
+        formatException = false;
         if (storeUSBPictureDirUsbFile != null) {
             try {
-                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
-                for (UsbFile file : usbLogcatDirFileList) {
-                    formatStoreUSB(file);
-                }
+                formatStoreUSB(storeUSBPictureDirUsbFile);
             } catch (Exception e) {
-                Log.e(TAG, "formatUSB: Exception =" + e);
+                Log.e(TAG, "storeUSBPictureDirUsbFile : Exception =" + e);
+                formatException = true;
             }
         }
-        if (storeUSBPictureDirUsbFile != null) {
+
+        storeUSBListener.formatStoreUSBException(formatException);
+
+        if (storeUSBLogcatDirUsbFile != null) {
             try {
                 UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
                 for (UsbFile file : usbLogcatDirFileList) {
                     file.delete();
                 }
             } catch (Exception e) {
-                Log.e(TAG, "formatUSB: Exception =" + e);
+                Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
             }
         }
     }
 
     public void formatStoreUSB(UsbFile usbFile) {
         try {
-            UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
-            for (UsbFile file : usbLogcatDirFileList) {
-                if (file.isDirectory()) {
-                    formatStoreUSB(file);
-                } else
-                    file.delete();
+            if (usbFile.isDirectory()) {
+                UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
+                for (UsbFile file : usbLogcatDirFileList) {
+                    if (file.isDirectory()) {
+                        formatStoreUSB(file);
+                    } else
+                        file.delete();
+                }
+            } else {
+                usbFile.delete();
             }
         } catch (Exception e) {
             Log.e(TAG, "formatStoreUSB: Exception =" + e);
+            formatException = true;
         }
     }
 
@@ -465,6 +474,8 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         void initStoreUSBComplete(UsbFile wifiConfigurationFile);
 
         void storeUSBDeviceDetached();
+
+        void formatStoreUSBException(boolean exception);
 
         void storeUSBSaveOnePictureComplete(String speed);
 

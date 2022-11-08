@@ -29,6 +29,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -135,6 +136,7 @@ public class MainActivity extends Activity {
     private TextView downloadAppProgressText;
     private TextView updateResultText;
     private TextView cameraPictureCountText;
+    private TextView FormatUSBButton;
 
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
@@ -209,6 +211,7 @@ public class MainActivity extends Activity {
         downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
         updateResultText = findViewById(R.id.updateResultText);
         cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
+        FormatUSBButton = findViewById(R.id.FormatUSB);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
 
@@ -370,6 +373,11 @@ public class MainActivity extends Activity {
                 scanerUSBReceiver.storeUSBDetached();
                 openDeviceProt(false);
             }
+        }
+
+        @Override
+        public void formatStoreUSBException(boolean exception) {
+            runOnUiThreadText(FormatUSBButton, exception ? "格式化USB失败" : "格式化USB成功");
         }
 
         @Override
@@ -806,6 +814,7 @@ public class MainActivity extends Activity {
 
     private void formatUSB() {
         Log.e(TAG, "formatUSB: ");
+        runOnUiThreadText(FormatUSBButton, "开始删除USB图片");
         new Thread(new Runnable() {
             @Override
             public void run() {
