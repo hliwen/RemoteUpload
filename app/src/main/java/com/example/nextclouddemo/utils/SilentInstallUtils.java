@@ -20,7 +20,6 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 
 import com.blankj.utilcode.util.AppUtils;
@@ -70,7 +69,7 @@ public final class SilentInstallUtils {
         //加上apk合法性判断
         AppUtils.AppInfo apkInfo = AppUtils.getApkInfo(file);
         if (apkInfo == null || TextUtils.isEmpty(apkInfo.getPackageName())) {
-            LogUtils.iTag(TAG, "apk info is null, the file maybe damaged: " + file.getAbsolutePath());
+            Log.i(TAG, "apk info is null, the file maybe damaged: " + file.getAbsolutePath());
             return false;
         }
 
@@ -80,9 +79,9 @@ public final class SilentInstallUtils {
 
             //已安装的版本比apk版本要高, 则不需要安装
             if (appInfo.getVersionCode() >= apkInfo.getVersionCode()) {
-                LogUtils.iTag(TAG, "The latest version has been installed locally: " + file.getAbsolutePath(),
-                        "app info: packageName: " + appInfo.getPackageName() + "; app name: " + appInfo.getName(),
-                        "apk version code: " + apkInfo.getVersionCode(),
+                Log.i(TAG, "The latest version has been installed locally: " + file.getAbsolutePath() + "," +
+                        "app info: packageName: " + appInfo.getPackageName() + "; app name: " + appInfo.getName() + "," +
+                        "apk version code: " + apkInfo.getVersionCode() + "," +
                         "app version code: " + appInfo.getVersionCode());
                 return true;
             }
@@ -101,8 +100,8 @@ public final class SilentInstallUtils {
                 }
 
                 if (appPackageInfo != null && apkPackageInfo != null && !compareSharedUserId(appPackageInfo.sharedUserId, apkPackageInfo.sharedUserId)) {
-                    LogUtils.wTag(TAG, "Apk sharedUserId is not match",
-                            "app shellUid: " + appPackageInfo.sharedUserId,
+                    Log.w(TAG, "Apk sharedUserId is not match" + "," +
+                            "app shellUid: " + appPackageInfo.sharedUserId + "," +
                             "apk shellUid: " + apkPackageInfo.sharedUserId);
                     return false;
                 }
@@ -125,7 +124,7 @@ public final class SilentInstallUtils {
             boolean success = installByPackageInstaller(context, file, apkInfo);
             sPreferences.edit().putBoolean(packageName, success).apply();
             if (success) {
-                LogUtils.iTag(TAG, "Install Success[PackageInstaller]: " + file.getAbsolutePath());
+                Log.i(TAG, "Install Success[PackageInstaller]: " + file.getAbsolutePath());
                 return true;
             }
         }
@@ -134,18 +133,18 @@ public final class SilentInstallUtils {
         if (installByReflect(context, file)) {
             if (sPreferences != null)
                 sPreferences.edit().putBoolean(apkInfo.getPackageName(), true).apply();
-            LogUtils.iTag(TAG, "Install Success[Reflect]", file.getPath());
+            Log.i(TAG, "Install Success[Reflect]" + file.getPath());
             return true;
         }
 
         if (installByShell(file, DeviceUtils.isDeviceRooted())) {
             if (sPreferences != null)
                 sPreferences.edit().putBoolean(apkInfo.getPackageName(), true).apply();
-            LogUtils.iTag(TAG, "Install Success[Shell]", file.getPath());
+            Log.i(TAG, "Install Success[Shell]" + file.getPath());
             return true;
         }
 
-        LogUtils.iTag(TAG, "Install Failure: " + file.getAbsolutePath());
+        Log.i(TAG, "Install Failure: " + file.getAbsolutePath());
         return false;
     }
 
@@ -166,31 +165,31 @@ public final class SilentInstallUtils {
         //如果是系统app, 则不支持卸载
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(packageName);
         if (appInfo != null && appInfo.isSystem()) {
-            LogUtils.iTag(TAG, "Uninstall Failure[System App]: " + packageName);
+            Log.i(TAG, "Uninstall Failure[System App]: " + packageName);
             return false;
         }
 
         context = context.getApplicationContext();
         try {
             if (uninstallByPackageInstaller(context, packageName)) {
-                LogUtils.iTag(TAG, "Uninstall Success[PackageInstaller]: " + packageName);
+                Log.i(TAG, "Uninstall Success[PackageInstaller]: " + packageName);
                 return true;
             }
 
             if (uninstallByReflect(context, packageName)) {
-                LogUtils.iTag(TAG, "Uninstall Success[Reflect]: " + packageName);
+                Log.i(TAG, "Uninstall Success[Reflect]: " + packageName);
                 return true;
             }
 
             if (uninstallByShell(packageName, DeviceUtils.isDeviceRooted())) {
-                LogUtils.iTag(TAG, "Uninstall Success[Shell]: " + packageName);
+                Log.i(TAG, "Uninstall Success[Shell]: " + packageName);
                 return true;
             }
 
         } catch (Throwable ignored) {
         }
 
-        LogUtils.iTag(TAG, "Uninstall Failure: " + packageName);
+        Log.i(TAG, "Uninstall Failure: " + packageName);
         return false;
     }
 
@@ -216,9 +215,9 @@ public final class SilentInstallUtils {
 
 
     private static boolean executeShell(String cmd, boolean isRoot) {
-        LogUtils.iTag(TAG, "ShellCommand: " + cmd, "isRoot: " + isRoot);
+        Log.i(TAG, "ShellCommand: " + cmd + ",isRoot: " + isRoot);
         ShellUtils.CommandResult result = ShellUtils.execCmd(cmd, isRoot);
-        LogUtils.iTag(TAG, "ShellCommand Result: " + result.toString());
+        Log.i(TAG, "ShellCommand Result: " + result.toString());
         return result.successMsg != null && result.successMsg.toLowerCase(Locale.US).contains("success");
     }
 
@@ -227,7 +226,7 @@ public final class SilentInstallUtils {
      * 调用反射方式安装, 通过PackageManager#installPackage方法进行安装, 该方法在7.0已经移除
      */
     private static boolean installByReflect(Context context, File file) throws InterruptedException {
-        LogUtils.iTag(TAG, "InstallByReflect", file.getPath());
+        Log.i(TAG, "InstallByReflect:" + file.getPath());
         Method installer = getInstallPackageMethod();
         if (installer == null)
             return false;
@@ -267,7 +266,7 @@ public final class SilentInstallUtils {
      * 调用反射方式卸载, 通过PackageManager#deletePackage, 该方法在7.0已经移除
      */
     private static boolean uninstallByReflect(Context context, String packageName) throws InterruptedException {
-        LogUtils.iTag(TAG, "UninstallByReflect", packageName);
+        Log.i(TAG, "UninstallByReflect:" + packageName);
         Method deleter = getDeletePackageMethod();
         if (deleter == null)
             return false;
@@ -303,7 +302,7 @@ public final class SilentInstallUtils {
      */
     @RequiresPermission(Manifest.permission.INSTALL_PACKAGES)
     private static boolean installByPackageInstaller(Context context, File file, AppUtils.AppInfo apkInfo) throws InterruptedException {
-        LogUtils.iTag(TAG, "InstallByPackageInstaller", file.getPath());
+        Log.i(TAG, "InstallByPackageInstaller," + file.getPath());
 
         OutputStream out = null;
         InputStream in = null;
@@ -342,8 +341,8 @@ public final class SilentInstallUtils {
         } catch (InterruptedException e) {
             throw e;
         } catch (Throwable e) {
-            e.printStackTrace();
-            LogUtils.wTag(TAG, e);
+
+            Log.w(TAG, ""+e);
         } finally {
             //如果会话已经开启, 但是没有成功, 则需要将会话进行销毁
             try {
@@ -362,7 +361,7 @@ public final class SilentInstallUtils {
 
     @RequiresPermission(Manifest.permission.DELETE_PACKAGES)
     private static boolean uninstallByPackageInstaller(Context context, String packageName) {
-        LogUtils.iTag(TAG, "UninstallByPackageInstaller", packageName);
+        Log.i(TAG, "UninstallByPackageInstaller," + packageName);
         try {
             InstallReceiver callback = new InstallReceiver(context, false, packageName);
             PackageInstaller installer = Utils.getApp().getPackageManager().getPackageInstaller();
@@ -448,7 +447,7 @@ public final class SilentInstallUtils {
                     status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
                     mSuccess = status == PackageInstaller.STATUS_SUCCESS;
                 }
-                LogUtils.iTag(TAG, mParam, mOperate + " Result: " + mSuccess + "[" + status + "]");
+
             } finally {
                 mCountDownLatch.countDown();
             }

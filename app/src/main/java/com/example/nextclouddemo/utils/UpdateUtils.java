@@ -55,8 +55,6 @@ public class UpdateUtils {
                         downloadFaild();
                     }
                 }
-
-                Log.e(TAG, "run: servierVersion =" + servierVersion + ",appVerison =" + appVerison);
             }
         }).start();
 

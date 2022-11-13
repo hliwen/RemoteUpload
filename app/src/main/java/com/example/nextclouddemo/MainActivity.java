@@ -1393,7 +1393,7 @@ public class MainActivity extends Activity {
         wifiManager.disableNetwork(wifiManager.getConnectionInfo().getNetworkId());
         int netId = wifiManager.addNetwork(getWifiConfig(ssid, pws, true, wifiManager));
         boolean enableNetwork = wifiManager.enableNetwork(netId, true);
-        android.util.Log.d(TAG, "connectWifiPws: enableNetwork =" + enableNetwork);
+         Log.d(TAG, "connectWifiPws: enableNetwork =" + enableNetwork);
     }
 
     /**

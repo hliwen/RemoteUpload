@@ -1,13 +1,16 @@
 package com.example.nextclouddemo.mqtt;
 
-import android.util.Log;
 
+import com.example.nextclouddemo.utils.Log;
+
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
+import org.greenrobot.eventbus.EventBus;
 
 /**
  * @author Ai（陈祥林）
@@ -45,19 +48,6 @@ public class MqttManager {
         return mInstance;
     }
 
-    /**
-     * 释放单例, 及其所引用的资源
-     */
-    public static void release() {
-        try {
-            if (mInstance != null) {
-                disConnect();
-                mInstance = null;
-            }
-        } catch (Exception e) {
-            Log.e("MqttManager", "release : " + e.toString());
-        }
-    }
 
     /**
      * 创建Mqtt 连接
@@ -113,7 +103,7 @@ public class MqttManager {
             doConnect();
 
         } catch (MqttException e) {
-            Log.e("MqttManager", "creatConnect : " + e.toString());
+            Log.e("MqttManager", "MqttManager creatConnect : " + e.toString());
 
         }
 
@@ -128,33 +118,10 @@ public class MqttManager {
             try {
                 client.connect(conOpt);
             } catch (Exception e) {
-                Log.e("MqttManager", "doConnect : " + e.toString());
+                Log.e("MqttManager", "MqttManager doConnect : " + e.toString());
             }
         }
     }
-
-
-    /**
-     * 发布消息
-     *
-     * @param topicName 主题名称
-     * @param qos       质量(0,1,2)
-     * @param payload   发送的内容
-     */
-    public void publish(String topicName, int qos, byte[] payload) {
-        if (client != null && client.isConnected()) {
-            // 创建和配置一个消息
-            MqttMessage message = new MqttMessage(payload);
-            message.setPayload(payload);
-            message.setQos(qos);
-            try {
-                client.publish(topicName, message);
-            } catch (MqttException e) {
-                Log.e("MqttManager", "publish : " + e.toString());
-            }
-        }
-    }
-
 
     public void publish(String topicName, int qos, String payload) {
         if (client != null && client.isConnected()) {
@@ -165,7 +132,7 @@ public class MqttManager {
             try {
                 client.publish(topicName, message);
             } catch (MqttException e) {
-                Log.e("MqttManager", "publish : " + e.toString());
+                Log.e("MqttManager", "MqttManager publish : " + e.toString());
             }
         }
     }
@@ -175,16 +142,24 @@ public class MqttManager {
      * 订阅主题
      *
      * @param topicName 主题名称
-     * @param qos      消息质量
+     * @param qos       消息质量
      */
     public void subscribe(String topicName, int qos) {
         if (client != null && client.isConnected()) {
             try {
                 client.subscribe(topicName, qos);
             } catch (MqttException e) {
-                Log.e("MqttManager", "subscribe : " + e.toString());
+                Log.e("MqttManager", "MqttManager subscribe : " + e.toString());
             }
         }
+    }
+
+
+    /**
+     * 判断是否连接
+     */
+    public static boolean isConnected() {
+        return client != null && client.isConnected();
     }
 
 
@@ -197,11 +172,65 @@ public class MqttManager {
         }
     }
 
-
     /**
-     * 判断是否连接
+     * 释放单例, 及其所引用的资源
      */
-    public static boolean isConnected() {
-        return client != null && client.isConnected();
+    public static void release() {
+        try {
+            if (mInstance != null) {
+                disConnect();
+                mInstance = null;
+            }
+        } catch (Exception e) {
+            Log.e("MqttManager", "MqttManager release : " + e.toString());
+        }
+    }
+
+
+    class MqttCallbackBus implements MqttCallback {
+
+        /**
+         * 连接中断
+         */
+        @Override
+        public void connectionLost(Throwable cause) {
+            Log.e("MqttManager", "MqttManager connectionLost cause : " + cause.toString());
+            // 可在此方法内写重连的逻辑
+            EventBus.getDefault().post("connectionLost");
+            int number = 99;
+            for (int i = 0; i < number; i++) {
+                Log.e("MqttManager", "MqttManager 连接失败,正在第" + i + "次尝试");
+                if (isConnected()) {
+                    Log.e("TAG", "MqttManager connectionLost: isConnected return");
+                    return;
+                }
+                try {
+                    Thread.sleep(2000);
+                    MqttManager.getInstance().doConnect();
+                } catch (Exception e) {
+                    //Thread.sleep(5000);
+                    continue;
+                }
+            }
+        }
+
+        /**
+         * 消息送达
+         */
+        @Override
+        public void messageArrived(String topic, MqttMessage message) throws Exception {
+            Log.e("MqttManager", "MqttManager messageArrived topic : " + topic + "\t MqttMessage : " + message.toString());
+            EventBus.getDefault().post(message.toString());
+        }
+
+
+        /**
+         * 交互完成
+         */
+        @Override
+        public void deliveryComplete(IMqttDeliveryToken token) {
+            Log.e("MqttManager", "MqttManager deliveryComplete token : " + token.toString());
+            EventBus.getDefault().post("deliveryComplete");
+        }
     }
 }

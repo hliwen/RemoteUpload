@@ -126,7 +126,7 @@ public class CameraHelper {
             mCamera.startPreview();
             handler.sendEmptyMessageDelayed(1, 1000);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "onStartPreview: Exception ="+e );
         }
         isPreview = true;
         autoFocus();
@@ -180,7 +180,7 @@ public class CameraHelper {
             try {
                 mCamera.setDisplayOrientation(cameraDisplayOrientation);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "setCameraDisplayOrientation: Exception ="+e);
             }
             autoFocus();
             return result;
@@ -202,8 +202,8 @@ public class CameraHelper {
                     });
                 }
             } catch (Exception e) {
-                Log.e(TAG, "snoppa camera autofocus exceptiom:" + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "snoppa camera autofocus Exception:" + e);
+
             }
         }
     }
@@ -214,7 +214,7 @@ public class CameraHelper {
             try {
                 mCamera.setParameters(parameters);
             } catch (Exception e) {
-                e.printStackTrace();
+
             }
         }
     }
