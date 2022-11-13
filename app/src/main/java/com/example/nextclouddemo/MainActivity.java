@@ -744,43 +744,53 @@ public class MainActivity extends Activity {
         if (message.contains(UploadMode3)) {
             UploadMode3(message);
             getInfo();
+            sendMessageToMqtt("ZQ\r\n");
             return;
         }
 
         if (message.contains(UploadMode4)) {
             UploadMode4(message);
             getInfo();
+            sendMessageToMqtt("ZQ\r\n");
             return;
         }
 
         switch (message) {
             case Record1:
                 openCamera();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case Record2:
                 openCamera();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case FormatUSB:
                 formatUSB();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case FormatTF:
                 formatUSB();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case FormatCamera:
                 formatCamera();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case Upload:
                 break;
             case UploadMode1:
                 UploadMode1();
                 getInfo();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case UploadMode2:
                 UploadMode2();
                 getInfo();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case GetInfo:
                 getInfo();
+                sendMessageToMqtt("ZQ\r\n");
                 break;
             case return2GImei:
                 initMqtt();
@@ -1396,7 +1406,7 @@ public class MainActivity extends Activity {
         wifiManager.disableNetwork(wifiManager.getConnectionInfo().getNetworkId());
         int netId = wifiManager.addNetwork(getWifiConfig(ssid, pws, true, wifiManager));
         boolean enableNetwork = wifiManager.enableNetwork(netId, true);
-         Log.d(TAG, "connectWifiPws: enableNetwork =" + enableNetwork);
+        Log.d(TAG, "connectWifiPws: enableNetwork =" + enableNetwork);
     }
 
     /**
@@ -1466,7 +1476,7 @@ public class MainActivity extends Activity {
     }
 
 
-    private void wifiEnabledBroadcast(){
+    private void wifiEnabledBroadcast() {
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiManager == null)
             return;

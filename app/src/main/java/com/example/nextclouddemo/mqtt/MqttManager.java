@@ -116,6 +116,8 @@ public class MqttManager {
     public void doConnect() {
         if (client != null) {
             try {
+                if (isConnected())
+                    return;
                 client.connect(conOpt);
             } catch (Exception e) {
                 Log.e("MqttManager", "MqttManager doConnect : " + e.toString());
@@ -202,6 +204,7 @@ public class MqttManager {
                 Log.e("MqttManager", "MqttManager 连接失败,正在第" + i + "次尝试");
                 if (isConnected()) {
                     Log.e("TAG", "MqttManager connectionLost: isConnected return");
+                    EventBus.getDefault().post("mqttConnected");
                     return;
                 }
                 try {
@@ -219,7 +222,9 @@ public class MqttManager {
          */
         @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-            Log.e("MqttManager", "MqttManager messageArrived topic : " + topic + "\t MqttMessage : " + message.toString());
+            Log.e("MqttManager", "MqttManager messageArrived topic : ");
+            if (message == null || message.toString() == null)
+                return;
             EventBus.getDefault().post(message.toString());
         }
 
