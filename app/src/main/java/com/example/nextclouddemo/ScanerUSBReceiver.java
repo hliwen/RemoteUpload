@@ -296,6 +296,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             Log.e(TAG, "mtpDeviceScaner: usbDeviceConnection == null 结束扫描");
             return;
         }
+
+
         MtpDevice mtpDevice = new MtpDevice(usbDevice);
         if (mtpDevice == null || !mtpDevice.open(usbDeviceConnection)) {
             Log.e(TAG, "mtpDeviceScaner 数码相机打开失败 mtpDevice == null || !mtpDevice.open(usbDeviceConnection) 结束扫描");

@@ -229,7 +229,11 @@ public class MqttManager {
          */
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
-            Log.e("MqttManager", "MqttManager deliveryComplete token : " + token.toString());
+            try {
+                Log.e("TAG", "deliveryComplete: " + token.getMessage().toString());
+            } catch (MqttException e) {
+
+            }
             EventBus.getDefault().post("deliveryComplete");
         }
     }

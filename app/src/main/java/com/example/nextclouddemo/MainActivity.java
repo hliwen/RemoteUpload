@@ -454,7 +454,7 @@ public class MainActivity extends Activity {
             }
             if (totalTime != 0)
                 UploadUseTime = totalTime / 1000;
-            runOnUiThreadText(uploadUseTimeText, "本次上传耗时:" + totalTime / 1000 + "s");
+            runOnUiThreadText(uploadUseTimeText, "本次同步到服务器耗时:" + totalTime / 1000 + "s");
 
             getInfo();
             Log.d(TAG, " send msg_close_device 6666666666666666");
@@ -863,6 +863,9 @@ public class MainActivity extends Activity {
                 }
                 formatingCamera = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
+
+                openDeviceProt(false);
+                openDeviceProt(true);
             }
         }).start();
     }
@@ -1005,7 +1008,7 @@ public class MainActivity extends Activity {
 
     @SuppressLint("SetTextI18n")
     public void onClickHandler(View button) {
-        if (button.getId() == R.id.downloadphoto) {
+        if (button.getId() == R.id.rescaner) {
             openDeviceProt(false);
             openDeviceProt(true);
         } else if (button.getId() == R.id.guanji) {
@@ -1463,6 +1466,39 @@ public class MainActivity extends Activity {
     }
 
 
+    private void wifiEnabledBroadcast(){
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager == null)
+            return;
+        DeviceModel deviceModelConnect = getDeviceModel();
+        if (deviceModelConnect == null) {
+            Log.e(TAG, "onReceive: WIFI_STATE_ENABLED deviceModelConnect = null");
+            return;
+        }
+        if (deviceModelConnect.wifi != null) {
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
+                Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                mHandler.removeMessages(msg_wifi_disconnected);
+                mHandler.removeMessages(msg_wifi_connected);
+                mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 1000);
+                return;
+            }
+            if (deviceModelConnect.pass == null) {
+                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+            } else {
+                if (deviceModelConnect.pass.length() == 0) {
+                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                } else {
+                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
+                }
+            }
+        } else {
+            Log.e(TAG, "WIFI_STATE_ENABLED: 当前配置的WiFi文件有错");
+        }
+
+    }
+
     private class WifiReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -1473,36 +1509,12 @@ public class MainActivity extends Activity {
 
                 case WifiManager.WIFI_STATE_ENABLED:
                     Log.d(TAG, "onReceive: WIFI_STATE_ENABLED");
-                    WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                    if (wifiManager == null)
-                        return;
-                    DeviceModel deviceModelConnect = getDeviceModel();
-                    if (deviceModelConnect == null) {
-                        Log.e(TAG, "onReceive: WIFI_STATE_ENABLED deviceModelConnect = null");
-                        return;
-                    }
-                    if (deviceModelConnect.wifi != null) {
-                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                        if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                            Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                            mHandler.removeMessages(msg_wifi_disconnected);
-                            mHandler.removeMessages(msg_wifi_connected);
-                            mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 1000);
-                            return;
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            wifiEnabledBroadcast();
                         }
-                        if (deviceModelConnect.pass == null) {
-                            connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                        } else {
-                            if (deviceModelConnect.pass.length() == 0) {
-                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                            } else {
-                                connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                            }
-                        }
-                    } else {
-                        Log.e(TAG, "WIFI_STATE_ENABLED: 当前配置的WiFi文件有错");
-                    }
-
+                    }).start();
                     break;
                 case WifiManager.WIFI_STATE_DISABLED:
                     Log.d(TAG, "onReceive: WIFI_STATE_DISABLED");
