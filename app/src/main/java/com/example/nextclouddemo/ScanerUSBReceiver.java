@@ -387,8 +387,6 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     downloadMTPCameraPictureToTFCard(mtpDevice, pictureInfo, true);
                 }
             } else if (VariableInstance.getInstance().UploadMode == 3) {
-
-
                 for (int i = 0; i < pictureItem.rowPictureInfos.size(); i++) {
                     boolean needUpload = false;
                     Integer integer = i + 1;
@@ -400,15 +398,31 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     downloadMTPCameraPictureToTFCard(mtpDevice, pictureItem.rowPictureInfos.get(i), needUpload);
                 }
 
-                for (PictureInfo pictureInfo : pictureItem.jpgPictureInfos) {
-                    downloadMTPCameraPictureToTFCard(mtpDevice, pictureInfo, false);
+                for (int i = 0; i < pictureItem.jpgPictureInfos.size(); i++) {
+                    boolean needUpload = false;
+                    Integer integer = i + 1;
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    Log.d(TAG, "mtpDeviceScaner: index =" + index + ",integer =" + integer);
+                    if (index > -1) {
+                        needUpload = true;
+                    }
+                    downloadMTPCameraPictureToTFCard(mtpDevice, pictureItem.jpgPictureInfos.get(i), needUpload);
                 }
+
             } else if (VariableInstance.getInstance().UploadMode == 4) {
                 for (int i = 0; i < pictureItem.rowPictureInfos.size(); i++) {
                     Integer integer = i + 1;
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
                     if (index > -1) {
                         downloadMTPCameraPictureToTFCard(mtpDevice, pictureItem.rowPictureInfos.get(i), true);
+                    }
+                }
+
+                for (int i = 0; i < pictureItem.jpgPictureInfos.size(); i++) {
+                    Integer integer = i + 1;
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1) {
+                        downloadMTPCameraPictureToTFCard(mtpDevice, pictureItem.jpgPictureInfos.get(i), true);
                     }
                 }
             }
@@ -529,15 +543,33 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     }
                     downloadUSBCameraPictureToTFCard(pictureItem.rowPictureInfos.get(i), needUpload);
                 }
-                for (PictureInfo pictureInfo : pictureItem.jpgPictureInfos) {
-                    downloadUSBCameraPictureToTFCard(pictureInfo, false);
+
+                for (int i = 0; i < pictureItem.jpgPictureInfos.size(); i++) {
+                    boolean needUpload = false;
+                    Integer integer = i + 1;
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    Log.d(TAG, "usbDeviceScaner: index =" + index + ",integer =" + integer);
+                    if (index > -1) {
+                        needUpload = true;
+                    }
+                    downloadUSBCameraPictureToTFCard(pictureItem.jpgPictureInfos.get(i), needUpload);
                 }
+
+
             } else if (VariableInstance.getInstance().UploadMode == 4) {
                 for (int i = 0; i < pictureItem.rowPictureInfos.size(); i++) {
                     Integer integer = i + 1;
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
                     if (index > -1) {
                         downloadUSBCameraPictureToTFCard(pictureItem.rowPictureInfos.get(i), true);
+                    }
+                }
+
+                for (int i = 0; i < pictureItem.jpgPictureInfos.size(); i++) {
+                    Integer integer = i + 1;
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1) {
+                        downloadUSBCameraPictureToTFCard(pictureItem.jpgPictureInfos.get(i), true);
                     }
                 }
             }

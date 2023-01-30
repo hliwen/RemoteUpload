@@ -70,6 +70,8 @@ import java.util.List;
 
 public class MainActivity extends Activity {
 
+    public static final boolean debug = false;
+
     private static final String Record1 = "Start,Record1;";
     private static final String Record2 = "Start,Record2;";
     private static final String FormatUSB = "Start,Format;";
@@ -183,7 +185,11 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 registerStoreUSBReceiver();
-                openCamera();
+                if (!debug)
+                    openCamera();
+
+                if (debug)
+                    initCellularNetWork();
             }
         }, 3000);
     }
@@ -1150,7 +1156,6 @@ public class MainActivity extends Activity {
     private String getPhoneImei(boolean init) {
         Log.e(TAG, "getPhoneImei: init =" + init);
         String imei = "0";
-//      imei = "867706050952138";
         if (init) {
             try {
                 TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -1175,6 +1180,9 @@ public class MainActivity extends Activity {
         }
         Log.d(TAG, "getPhoneImei:555555 imei =" + imei);
 
+        if (debug)
+            imei = "867706050952138";
+
         if (!"0".equals(imei)) {
             runOnUiThreadText(accessNumberText, "入网号:" + imei);
         }
@@ -1186,10 +1194,12 @@ public class MainActivity extends Activity {
         Log.d(TAG, "openDeviceProt: 设备通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭"));
         if (openDeviceProtFlag == true && open)
             return;
+
         openDeviceProtFlag = open;
         runOnUiThreadText(cameraStateText, "相机状态:" + openDeviceProtFlag);
 
-
+        if (debug)
+            return;
         if (open) {
             LedControl.writeGpio(mGpioCharB, 2, 1);
         } else {
@@ -1199,7 +1209,8 @@ public class MainActivity extends Activity {
 
     private void openNetworkLed(boolean open) {
         Log.d(TAG, "openNetworkLed: 网络端口 led: " + (open ? "打开" : "关闭"));
-
+        if (debug)
+            return;
         if (open) {
             LedControl.writeGpio(mGpioCharB, 3, 1);//打开网络
         } else {
@@ -1209,7 +1220,8 @@ public class MainActivity extends Activity {
 
     private void startDownLed(boolean start) {
         Log.d(TAG, "startDownLed: 下载 led: " + (start ? "打开" : "关闭"));
-
+        if (debug)
+            return;
         if (start) {
             LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_TIMER);
         } else {
@@ -1219,7 +1231,8 @@ public class MainActivity extends Activity {
 
     private void restLed() {
         Log.d(TAG, "restLed:  恢复 led ------");
-
+        if (debug)
+            return;
         LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_NONE);
         LedControl.nativeEnableLed(LedControl.LED_RED_BRIGHTNESS_PATH, LedControl.LED_OFF);
     }
@@ -1303,6 +1316,9 @@ public class MainActivity extends Activity {
     }
 
     private void saveDeviceStyle(int style) {
+        if (debug)
+            style = 1;
+
         VariableInstance.getInstance().deviceStyle = style;
         SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
         editor.putInt("devicestyle", style);
@@ -1312,7 +1328,13 @@ public class MainActivity extends Activity {
     private int getDeviceStyle() {
         SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
         int style = sharedPreferences.getInt("devicestyle", 0);
+
+        if (debug)
+            style = 1;
+
         VariableInstance.getInstance().deviceStyle = style;
+
+
         return style;
     }
 
