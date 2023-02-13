@@ -31,12 +31,17 @@ import com.blankj.utilcode.util.ShellUtils;
 import com.blankj.utilcode.util.UriUtils;
 import com.blankj.utilcode.util.Utils;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -459,4 +464,58 @@ public final class SilentInstallUtils {
         return TextUtils.equals(appUid, apkUid) || (appUid != null && appUid.equalsIgnoreCase(apkUid));
     }
 
+
+    /**
+     * Silent install
+     *
+     * @param path Package
+     * @return true: success false: failed
+     */
+    public static boolean installSilent(String path) {
+        boolean result = false;
+        BufferedReader es = null;
+        DataOutputStream os = null;
+
+        try {
+            Process process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+
+            String command = "pm install -r " + path + "\n";
+            os.write(command.getBytes(Charset.forName("utf-8")));
+            os.flush();
+            os.writeBytes("exit\n");
+            os.flush();
+
+            process.waitFor();
+            es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            StringBuilder builder = new StringBuilder();
+            while ((line = es.readLine()) != null) {
+                builder.append(line);
+            }
+            Log.d(TAG, "install msg is " + builder.toString());
+
+        /* Installation is considered a Failure if the result contains
+            the Failure character, or a success if it is not.
+             */
+            if (!builder.toString().contains("Failure")) {
+                result = true;
+            }
+        } catch (Exception e) {
+            Log.e(TAG,"installSilent Exception ="+e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+                if (es != null) {
+                    es.close();
+                }
+            } catch (IOException e) {
+                Log.e(TAG,"installSilent IOException ="+e);
+            }
+        }
+        return result;
+    }
 }
