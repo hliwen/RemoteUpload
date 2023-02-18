@@ -46,6 +46,7 @@ public class UpdateUtils {
                     updateListener.serverVersion(servierVersion);
 
                 Log.e(TAG, "run: appVerison =" + appVerison + ",servierVersion =" + servierVersion);
+
                 if (servierVersion > appVerison) {
                     boolean downloadSucced = startDownloadApp(UrlUtils.appDowloadURL + servierVersion);
                     Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
@@ -154,7 +155,7 @@ public class UpdateUtils {
             if (updateListener != null)
                 updateListener.startUpdate();
             execLinuxCommand();
-            boolean installSuccess = SilentInstallUtils.install(context, filaPath);
+            boolean installSuccess = SilentInstallUtils.installSilent(filaPath);
             if (updateListener != null)
                 updateListener.updateResult(installSuccess);
             Log.e(TAG, "downloadSucceed: installSuccess =" + installSuccess);
@@ -175,7 +176,6 @@ public class UpdateUtils {
             localDataOutputStream.writeBytes(cmd);
             localDataOutputStream.flush();
         } catch (IOException e) {
-
 
         }
     }

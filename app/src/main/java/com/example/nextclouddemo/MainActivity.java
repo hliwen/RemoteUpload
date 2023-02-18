@@ -48,6 +48,7 @@ import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
+import com.example.nextclouddemo.utils.SilentInstallUtils;
 import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
 import com.github.mjdev.libaums.fs.UsbFile;
@@ -61,10 +62,13 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.util.List;
 
 
@@ -1449,7 +1453,8 @@ public class MainActivity extends Activity {
      * @param pws
      * @param isHasPws
      */
-    private WifiConfiguration getWifiConfig(String ssid, String pws, boolean isHasPws, WifiManager wifiManager) {
+    private WifiConfiguration getWifiConfig(String ssid, String pws,
+                                            boolean isHasPws, WifiManager wifiManager) {
 
         WifiConfiguration config = new WifiConfiguration();
         config.allowedAuthAlgorithms.clear();

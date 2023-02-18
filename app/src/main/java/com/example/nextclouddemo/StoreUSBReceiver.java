@@ -142,6 +142,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         InputStream is = null;
         try {
             File localFile = new File(LogcatHelper.getInstance().logcatFilePath);
+
+            //TODO 重命名文件名
+
             UsbFile create = storeUSBLogcatDirUsbFile.createFile(localFile.getName());
             os = new UsbFileOutputStream(create);
             is = new FileInputStream(localFile);

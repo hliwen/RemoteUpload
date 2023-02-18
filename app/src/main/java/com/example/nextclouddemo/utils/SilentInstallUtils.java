@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class SilentInstallUtils {
 
-    private static final String TAG = "SilentInstallUtils";
+    private static final String TAG = "updatelog";
 
     private static final String SP_NAME_PACKAGE_INSTALL_RESULT = "package_install_result";
     private static volatile Method sInstallPackage;
@@ -347,7 +347,7 @@ public final class SilentInstallUtils {
             throw e;
         } catch (Throwable e) {
 
-            Log.w(TAG, ""+e);
+            Log.w(TAG, "" + e);
         } finally {
             //如果会话已经开启, 但是没有成功, 则需要将会话进行销毁
             try {
@@ -467,6 +467,7 @@ public final class SilentInstallUtils {
 
     /**
      * Silent install
+     * "/storage/emulated/0/Download/" + appName
      *
      * @param path Package
      * @return true: success false: failed
@@ -480,11 +481,14 @@ public final class SilentInstallUtils {
             Process process = Runtime.getRuntime().exec("su");
             os = new DataOutputStream(process.getOutputStream());
 
+            Log.d(TAG, "installSilent:1111 ");
+
             String command = "pm install -r " + path + "\n";
             os.write(command.getBytes(Charset.forName("utf-8")));
             os.flush();
             os.writeBytes("exit\n");
             os.flush();
+            Log.d(TAG, "installSilent:222222 ");
 
             process.waitFor();
             es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -501,9 +505,12 @@ public final class SilentInstallUtils {
              */
             if (!builder.toString().contains("Failure")) {
                 result = true;
+            } else {
+                delayInstall(path);
+                uninstallapk();
             }
         } catch (Exception e) {
-            Log.e(TAG,"installSilent Exception ="+e);
+            Log.e(TAG, "installSilent Exception =" + e);
         } finally {
             try {
                 if (os != null) {
@@ -513,9 +520,65 @@ public final class SilentInstallUtils {
                     es.close();
                 }
             } catch (IOException e) {
-                Log.e(TAG,"installSilent IOException ="+e);
+                Log.e(TAG, "installSilent IOException =" + e);
             }
         }
+        Log.e(TAG, "installSilent: result = " + result);
         return result;
+    }
+
+
+    private static void delayInstall(String path) {
+        DataOutputStream localDataOutputStream = null;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process process = runtime.exec("su");
+            OutputStream localOutputStream = process.getOutputStream();
+            localDataOutputStream = new DataOutputStream(localOutputStream);
+
+            String command = "sleep 10; pm install -r " + path + "\n";
+            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            localDataOutputStream.flush();
+        } catch (Exception e) {
+            Log.e(TAG, "installSilent Exception =" + e);
+        } finally {
+            try {
+                if (localDataOutputStream != null) {
+                    localDataOutputStream.close();
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, "installSilent IOException =" + e);
+            }
+        }
+        Log.e(TAG, "installSilent: end ");
+
+    }
+
+
+    private static void uninstallapk() {
+        Process process = null;
+        DataOutputStream os = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+
+            Log.d(TAG, "installSilent:1111 ");
+
+            String command = "pm uninstall com.example.nextclouddemo" + "\n";
+            os.write(command.getBytes(Charset.forName("utf-8")));
+            os.flush();
+            os.writeBytes("exit\n");
+            os.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+            } catch (Exception e) {
+            }
+        }
     }
 }
