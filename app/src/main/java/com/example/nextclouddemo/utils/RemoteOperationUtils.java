@@ -233,7 +233,7 @@ public class RemoteOperationUtils {
             fileSize = fis.available();
             fis.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "uploadImageFileToRemote: Exception ="+e );
         }
 
 

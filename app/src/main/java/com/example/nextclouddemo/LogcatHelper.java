@@ -1,9 +1,6 @@
 package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
-import android.os.Environment;
-import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -73,7 +70,7 @@ public class LogcatHelper {
                 out = new FileOutputStream(file);
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+
             }
             /**
              *
@@ -83,7 +80,8 @@ public class LogcatHelper {
              *
              * */
             // cmds = "logcat *:e *:w | grep \"(" + mPID + ")\"";
-            cmds = "logcat  | grep \"(" + mPID + ")\"";//打印所有日志信息
+//            cmds = "logcat  | grep \"(" + mPID + ")\"";//打印所有日志信息
+            cmds = "logcat  -s MainActivitylog | *:e | grep \"(" + mPID + ")\"";//打印所有日志信息
 //             cmds = "logcat -s way";//打印标签过滤信息
 //            cmds = "logcat *:e *:i | grep \"(" + mPID + ")\"";
 
@@ -112,7 +110,7 @@ public class LogcatHelper {
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
+
             } finally {
                 if (logcatProc != null) {
                     logcatProc.destroy();
@@ -123,14 +121,14 @@ public class LogcatHelper {
                         mReader.close();
                         mReader = null;
                     } catch (IOException e) {
-                        e.printStackTrace();
+
                     }
                 }
                 if (out != null) {
                     try {
                         out.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+
                     }
                     out = null;
                 }

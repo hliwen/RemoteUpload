@@ -19,58 +19,56 @@
             android:id="@+id/line1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+
             android:orientation="vertical">
 
-            <Button
+            <TextView
                 android:id="@+id/guanji"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/closeDevice" />
 
-            <Button
-                android:id="@+id/downloadphoto"
+            <TextView
+                android:id="@+id/rescaner"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/rescaner" />
 
-            <Button
+            <TextView
                 android:id="@+id/aaa"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/opengpioview" />
 
 
-            <Button
+            <TextView
                 android:id="@+id/openPreview"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/openpreview_view" />
 
-            <Button
+            <TextView
                 android:id="@+id/closePreview"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/closepreview_view" />
 
-            <Button
+            <TextView
                 android:id="@+id/clearView"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/clear_screen" />
 
-            <Button
+            <TextView
                 android:id="@+id/FormatUSB"
-                style="@style/ButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:onClick="onClickHandler"
+                android:padding="5dp"
                 android:text="@string/formatusb" />
 
-            <Button
-                android:id="@+id/FormatTF"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/formattf" />
 
-            <Button
+            <TextView
                 android:id="@+id/FormatCamera"
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
@@ -85,8 +83,41 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginStart="125dp"
-
         android:orientation="vertical">
+
+
+        <TextView
+            android:id="@+id/currentVersionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/currentVersion"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/serverVersionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/serverversionT"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/cameraStateText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/camerastatetext"
+            android:textColor="#000000"
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/isConnectNetworkText"
@@ -118,15 +149,6 @@
             android:textColor="#000000"
             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/uploadModelText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/uploadmodeltext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/accessNumberText"
@@ -147,6 +169,50 @@
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/remotenametext"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/uploadModelText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/uploadmodeltext"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+
+        <TextView
+            android:id="@+id/UpanSpaceText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/upanspacetext"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/UpanPictureCountText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/upanpicturecounttext"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/cameraPictureCountText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/camera_picture_count"
             android:textColor="#000000"
             android:textSize="11sp" />
 
@@ -173,38 +239,6 @@
             android:textColor="#000000"
             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/cameraStateText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/camerastatetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/UpanSpaceText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/upanspacetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/UpanPictureCountText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/upanpicturecounttext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/hasUploadpictureNumberText"
@@ -228,27 +262,6 @@
             android:textColor="#000000"
             android:textSize="11sp" />
 
-
-        <TextView
-            android:id="@+id/currentVersionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/currentVersion"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-        <TextView
-            android:id="@+id/serverVersionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/serverversionT"
-            android:textColor="#000000"
-            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/updateResultText"
