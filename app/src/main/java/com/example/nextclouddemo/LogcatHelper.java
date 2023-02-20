@@ -70,7 +70,6 @@ public class LogcatHelper {
                 out = new FileOutputStream(file);
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
-
             }
             /**
              *

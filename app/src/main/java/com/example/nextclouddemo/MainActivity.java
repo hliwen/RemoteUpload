@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
 
 
     private static final int close_device_timeout = 3 * 60 * 1000;
-    private static final int close_device_timeout_a = 10 * 60 * 1000;
+    private static final int close_device_timeout_a = 5 * 60 * 1000;
 
 
     private static String TAG = "MainActivitylog";
@@ -147,6 +147,7 @@ public class MainActivity extends Activity {
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
     private int signalStrengthValue;
+    private int appVerison;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -224,8 +225,7 @@ public class MainActivity extends Activity {
         FormatUSBButton = findViewById(R.id.FormatUSB);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
-
-        int appVerison = appInfo.getVersionCode();
+        appVerison = appInfo.getVersionCode();
         currentVersionText.setText("当前版本：" + appVerison);
         Log.d(TAG, "initView: appVerison =" + appVerison);
 
@@ -1121,7 +1121,8 @@ public class MainActivity extends Activity {
                 ";PhotoSum," + UpanPictureCount +
                 ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum +
                 ";UploadMode," + uploadModelString +
-                ";UploadUseTime," + UploadUseTime + ";";
+                ";UploadUseTime," + UploadUseTime +
+                ";Version," + appVerison + ";";
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
     }

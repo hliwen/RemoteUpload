@@ -20,7 +20,9 @@ import com.github.mjdev.libaums.partition.Partition;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
@@ -123,7 +125,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 }
             } else {
                 if (usbFile.getLength() != 0) {
-                    Log.e(TAG, "formatStoreUSB:2222 delete " );
+                    Log.e(TAG, "formatStoreUSB:2222 delete ");
                     usbFile.delete();
                 }
             }
@@ -140,11 +142,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             return;
         UsbFileOutputStream os = null;
         InputStream is = null;
+        File localFile = null;
         try {
-            File localFile = new File(LogcatHelper.getInstance().logcatFilePath);
-
-            //TODO 重命名文件名
-
+            localFile = new File(LogcatHelper.getInstance().logcatFilePath);
             UsbFile create = storeUSBLogcatDirUsbFile.createFile(localFile.getName());
             os = new UsbFileOutputStream(create);
             is = new FileInputStream(localFile);
@@ -168,6 +168,15 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             } catch (Exception e) {
                 Log.e(TAG, "uploadLogcatToUSB: asdfadsfad Exception =" + e);
             }
+
+            if (LogcatHelper.getInstance().logcatFilePath.startsWith("1970")) {
+                @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+                String date = format.format(new Date(System.currentTimeMillis()));
+                File file = new File(VariableInstance.getInstance().LogcatDir, "logcat" + date + ".txt");
+                if (localFile != null)
+                    localFile.renameTo(file);
+            }
+
         }
     }
 

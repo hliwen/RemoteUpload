@@ -1,5 +1,7 @@
 package com.example.nextclouddemo.utils;
 
+import android.annotation.SuppressLint;
+
 import com.example.nextclouddemo.LogcatHelper;
 import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.model.UploadFileModel;
@@ -13,6 +15,8 @@ import com.owncloud.android.lib.resources.files.model.RemoteFile;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -233,7 +237,7 @@ public class RemoteOperationUtils {
             fileSize = fis.available();
             fis.close();
         } catch (Exception e) {
-            Log.e(TAG, "uploadImageFileToRemote: Exception ="+e );
+            Log.e(TAG, "uploadImageFileToRemote: Exception =" + e);
         }
 
 
@@ -470,6 +474,11 @@ public class RemoteOperationUtils {
                         if (files != null) {
                             for (File file : files) {
                                 String remotePath = remoteLogcatDir + file.getName();
+                                if (remotePath.startsWith("1970")) {
+                                    @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+                                    String date = format.format(new Date(System.currentTimeMillis()));
+                                    remotePath = remoteCameraDir + "logcat" + date + ".txt";
+                                }
                                 Long timeStampLong = file.lastModified() / 1000;
                                 String timeStamp = timeStampLong.toString();
                                 UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
