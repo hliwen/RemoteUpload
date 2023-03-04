@@ -1137,7 +1137,7 @@ public class MainActivity extends Activity {
         try {
             TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             @SuppressLint({"HardwareIds", "MissingPermission"}) String number = telephonyManager.getLine1Number();
-            Log.d(TAG, "getPhoneNumber: number =" + number);
+            Log.d(TAG, "getPhoneNumber: 11number =" + number);
             if (number == null) {
                 number = "0";
             }
