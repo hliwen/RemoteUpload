@@ -28,6 +28,8 @@ public class VariableInstance {
     public String TFCardVideoDir;
     public String LogcatDir;
     public boolean formarCamera;
+    public boolean connectCamera;
+    public boolean initUSB;
 
     public Vector<String> usbFileNameList;
     public int storeUSBDeviceID = -1;

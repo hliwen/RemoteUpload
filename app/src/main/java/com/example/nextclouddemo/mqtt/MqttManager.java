@@ -196,14 +196,14 @@ public class MqttManager {
          */
         @Override
         public void connectionLost(Throwable cause) {
-            Log.e("MqttManager", "MqttManager connectionLost cause : " + cause.toString());
+//            Log.e("MqttManager", "MqttManager connectionLost cause : " + cause.toString());
             // 可在此方法内写重连的逻辑
             EventBus.getDefault().post("connectionLost");
             int number = 99;
             for (int i = 0; i < number; i++) {
-                Log.e("MqttManager", "MqttManager 连接失败,正在第" + i + "次尝试");
+//                Log.e("MqttManager", "MqttManager 连接失败,正在第" + i + "次尝试");
                 if (isConnected()) {
-                    Log.e("TAG", "MqttManager connectionLost: isConnected return");
+//                    Log.e("TAG", "MqttManager connectionLost: isConnected return");
                     EventBus.getDefault().post("mqttConnected");
                     return;
                 }

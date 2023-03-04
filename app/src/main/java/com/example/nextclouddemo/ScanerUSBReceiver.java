@@ -105,10 +105,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     public class order implements Comparator<PictureInfo> {
         @Override
         public int compare(PictureInfo lhs, PictureInfo rhs) {
-            if (rhs.pictureCreateData > lhs.pictureCreateData)
-                return -1;
-            else if (rhs.pictureCreateData == lhs.pictureCreateData)
-                return 0;
+            if (rhs.pictureCreateData > lhs.pictureCreateData) return -1;
+            else if (rhs.pictureCreateData == lhs.pictureCreateData) return 0;
             return 1;
         }
     }
@@ -116,10 +114,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     public class SameOrder implements Comparator<SameDayPicutreInfo> {
         @Override
         public int compare(SameDayPicutreInfo lhs, SameDayPicutreInfo rhs) {
-            if (rhs.yearMonthDay > lhs.yearMonthDay)
-                return -1;
-            else if (rhs.yearMonthDay == lhs.yearMonthDay)
-                return 0;
+            if (rhs.yearMonthDay > lhs.yearMonthDay) return -1;
+            else if (rhs.yearMonthDay == lhs.yearMonthDay) return 0;
             return 1;
         }
     }
@@ -136,10 +132,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         Utils.makeDir(tfCardPictureDir);
         Utils.makeDir(tfCardUploadPictureDir);
 
-        Log.d(TAG, "USBMTPReceiver:" +
-                " \n tfcardpicturedir =" + tfCardPictureDir +
-                " \n tfcarduploadpicturedir =" + tfCardUploadPictureDir
-        );
+        Log.d(TAG, "USBMTPReceiver:" + " \n tfcardpicturedir =" + tfCardPictureDir + " \n tfcarduploadpicturedir =" + tfCardUploadPictureDir);
 
     }
 
@@ -163,8 +156,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                         Log.e(TAG, "onReceive: hasPermission");
                         checkConnectedDevice(usbDevice);
                     } else {
-                        @SuppressLint("UnspecifiedImmutableFlag")
-                        PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
+                        @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                         usbManager.requestPermission(usbDevice, pendingIntent);
                         Log.e(TAG, "onReceive: no hasPermission");
                     }
@@ -212,8 +204,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     private void stopScanerThread() {
         Log.d(TAG, "stopScanerThread: ");
         try {
-            if (scanerThreadExecutor != null)
-                scanerThreadExecutor.shutdown();
+            if (scanerThreadExecutor != null) scanerThreadExecutor.shutdown();
         } catch (Exception e) {
 
         }
@@ -254,15 +245,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                 }
 
                 try {
-                    if (device == null)
-                        return;
+                    if (device == null) return;
 
                     for (int i = 0; i < device.getInterfaceCount(); i++) {
-                        if (device == null)
-                            return;
+                        if (device == null) return;
                         UsbInterface usbInterface = device.getInterface(i);
-                        if (usbInterface == null)
-                            continue;
+                        if (usbInterface == null) continue;
 
                         switch (usbInterface.getInterfaceClass()) {
                             case UsbConstants.USB_CLASS_STILL_IMAGE:
@@ -314,46 +302,44 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
         for (int storageId : storageIds) {
             int[] pictureHandlesItem = mtpDevice.getObjectHandles(storageId, 0, 0);
-            if (pictureHandlesItem != null)
-                for (int i : pictureHandlesItem) {
-                    MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
+            if (pictureHandlesItem != null) for (int i : pictureHandlesItem) {
+                MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
 
-                    if (mtpObjectInfo == null) {
-                        continue;
-                    }
-                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
-                    int yymmdd = Utils.getyyMMddtringInt(createDate);
-                    String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
-                    String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
+                if (mtpObjectInfo == null) {
+                    continue;
+                }
+                long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
+                int yymmdd = Utils.getyyMMddtringInt(createDate);
+                String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
+                String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
-                    if (!pictureFormatFile(FileEnd))
-                        continue;
+                if (!pictureFormatFile(FileEnd)) continue;
 
-                    cameraTotalPicture++;
+                cameraTotalPicture++;
 
-                    if (VariableInstance.getInstance().formarCamera) {
-                        mtpDevice.deleteObject(i);
-                        continue;
-                    }
+                if (VariableInstance.getInstance().formarCamera) {
+                    mtpDevice.deleteObject(i);
+                    continue;
+                }
 
-                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
-                    int index = pictureInfoList.indexOf(sameDayPicutreInfo);
-                    if (index > -1) {
-                        sameDayPicutreInfo = pictureInfoList.get(index);
-                    } else {
-                        pictureInfoList.add(sameDayPicutreInfo);
-                    }
+                SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
+                int index = pictureInfoList.indexOf(sameDayPicutreInfo);
+                if (index > -1) {
+                    sameDayPicutreInfo = pictureInfoList.get(index);
+                } else {
+                    pictureInfoList.add(sameDayPicutreInfo);
+                }
 
-                    if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
-                        if (rowFormatFile(FileEnd)) {
-                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
-                            sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
-                        } else if (jPGFormatFile(FileEnd)) {
-                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
-                            sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
-                        }
+                if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
+                    if (rowFormatFile(FileEnd)) {
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
+                        sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
+                    } else if (jPGFormatFile(FileEnd)) {
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
+                        sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
                     }
                 }
+            }
         }
 
         Collections.sort(pictureInfoList, new SameOrder());
@@ -368,6 +354,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
 
         Log.d(TAG, "mtpDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture);
+        VariableInstance.getInstance().connectCamera = true;
         downloadFlieListener.downloadUpanCount(pictureCount);
         downloadFlieListener.scanCameraComplete(cameraTotalPicture);
 
@@ -439,8 +426,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         try {
             String pictureSaveLocalPath = tfCardPictureDir + File.separator + pictureInfo.pictureName;
             File pictureSaveFile = new File(pictureSaveLocalPath);
-            if (pictureSaveFile != null && pictureSaveFile.exists())
-                pictureSaveFile.delete();
+            if (pictureSaveFile != null && pictureSaveFile.exists()) pictureSaveFile.delete();
 
             mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
@@ -513,6 +499,9 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         }
 
         Log.d(TAG, "usbDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture);
+
+        VariableInstance.getInstance().connectCamera = true;
+
         downloadFlieListener.downloadUpanCount(pictureCount);
         downloadFlieListener.scanCameraComplete(cameraTotalPicture);
 
@@ -590,8 +579,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     String fileName = yymmdd + "-" + usbFileItem.getName();
                     String FileEnd = fileName.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
 
-                    if (!pictureFormatFile(FileEnd))
-                        continue;
+                    if (!pictureFormatFile(FileEnd)) continue;
                     cameraTotalPicture++;
 
                     if (VariableInstance.getInstance().formarCamera) {
@@ -636,8 +624,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             pictureSavePath = tfCardPictureDir + File.separator + pictureInfo.pictureName;
             pictureSaveLocalFile = new File(pictureSavePath);
 
-            if (pictureSaveLocalFile.exists())
-                pictureSaveLocalFile.delete();
+            if (pictureSaveLocalFile.exists()) pictureSaveLocalFile.delete();
             out = new FileOutputStream(pictureSavePath);
             in = new UsbFileInputStream(pictureInfo.cameraUsbFile);
             int bytesRead = 0;
@@ -674,8 +661,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     if (needUpload) {
                         String pictureSaveUploadLocalPath = tfCardUploadPictureDir + File.separator + pictureInfo.pictureName;
                         File pictureUploadSaveFile = new File(pictureSaveUploadLocalPath);
-                        if (pictureUploadSaveFile.exists())
-                            pictureUploadSaveFile.delete();
+                        if (pictureUploadSaveFile.exists()) pictureUploadSaveFile.delete();
 
                         uploadout = new FileOutputStream(pictureSaveUploadLocalPath);
                         uploadin = new UsbFileInputStream(pictureInfo.cameraUsbFile);
@@ -726,24 +712,19 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
 
     private boolean pictureFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
-                || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
-                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg")))
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg")))
             return true;
         return false;
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
-                || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
-                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")))
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")))
             return true;
         return false;
     }
 
     private boolean jPGFormatFile(String FileEnd) {
-        if ((FileEnd.equals("jpg")))
-            return true;
+        if ((FileEnd.equals("jpg"))) return true;
         return false;
     }
 

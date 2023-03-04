@@ -474,7 +474,7 @@ public class RemoteOperationUtils {
                         if (files != null) {
                             for (File file : files) {
                                 String remotePath = remoteLogcatDir + file.getName();
-                                if (remotePath.startsWith("1970")) {
+                                if (remotePath.startsWith("logcat1970")) {
                                     @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                                     String date = format.format(new Date(System.currentTimeMillis()));
                                     remotePath = remoteCameraDir + "logcat" + date + ".txt";

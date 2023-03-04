@@ -169,7 +169,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 Log.e(TAG, "uploadLogcatToUSB: asdfadsfad Exception =" + e);
             }
 
-            if (LogcatHelper.getInstance().logcatFilePath.startsWith("1970")) {
+            if (LogcatHelper.getInstance().logcatFilePath.startsWith("logcat1970")) {
                 @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                 String date = format.format(new Date(System.currentTimeMillis()));
                 File file = new File(VariableInstance.getInstance().LogcatDir, "logcat" + date + ".txt");
@@ -364,6 +364,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                             boolean initSucceed = initDevice(device, usbDevice);
                             Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initSucceed);
                             if (initSucceed) {
+                                VariableInstance.getInstance().initUSB = true;
                                 return;
                             }
                         }
