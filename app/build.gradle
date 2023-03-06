@@ -5,6 +5,16 @@ plugins {
 android {
     compileSdkVersion 31
 
+
+    signingConfigs {
+        release {
+            keyAlias 'upload'
+            keyPassword 'upload'
+            storeFile file('../doc/upload.jks')
+            storePassword 'upload'
+        }
+    }
+
     useLibrary 'org.apache.http.legacy'
     defaultConfig {
         applicationId "com.example.nextclouddemo"
@@ -30,9 +40,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            debuggable true
+        }
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            debuggable false
         }
     }
     compileOptions {
