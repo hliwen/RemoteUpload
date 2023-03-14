@@ -221,7 +221,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         try {
             stopScanerThread();
             pictureInfoList.clear();
-            downloadFlieListener.downloadComplete();
+            downloadFlieListener.downloadComplete(10);
         } catch (Exception e) {
 
         }
@@ -256,12 +256,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                             case UsbConstants.USB_CLASS_STILL_IMAGE:
                                 downloadFlieListener.startDownload();
                                 mtpDeviceScaner(device);
-                                downloadFlieListener.downloadComplete();
+                                downloadFlieListener.downloadComplete(cameraTotalPicture);
                                 break;
                             case UsbConstants.USB_CLASS_MASS_STORAGE:
                                 downloadFlieListener.startDownload();
                                 usbDeviceScaner(device);
-                                downloadFlieListener.downloadComplete();
+                                downloadFlieListener.downloadComplete(cameraTotalPicture);
                                 break;
                             default:
                                 break;
@@ -734,7 +734,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
         void startDownload();
 
-        void downloadComplete();
+        void downloadComplete(int cameraTotalPicture);
 
         void downloadUpanCount(int size);
 

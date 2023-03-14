@@ -67,6 +67,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -420,11 +421,33 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void downloadComplete() {
-            Log.d(TAG, "downloadComplete: remoteUploading =" + remoteUploading);
+        public void downloadComplete(int cameraTotalPicture) {
+
             localDownling = false;
             if (!remoteUploading) startDownLed(false);
             openDeviceProt(false);
+
+            SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+            int scanerCount = sharedPreferences.getInt("ScanerCount", 0);
+
+            Log.d(TAG, "downloadComplete: remoteUploading =" + remoteUploading + ",scanerCount =" + scanerCount + ",cameraTotalPicture =" + cameraTotalPicture);
+            if (cameraTotalPicture == 0 && scanerCount < 5) {
+
+                scanerCount++;
+                SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+                editor.putInt("ScanerCount", scanerCount);
+                editor.apply();
+                delayStartActivity();
+                finish();
+                return;
+            }
+
+
+            SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+            editor.putInt("ScanerCount", 0);
+            editor.apply();
+
+
             Log.d(TAG, " send msg_close_device 55555555555555555");
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
@@ -452,9 +475,36 @@ public class MainActivity extends Activity {
         public void scanCameraComplete(int pictureCont) {
             Log.e(TAG, "scanCameraComplete: pictureCont =" + pictureCont);
             runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + pictureCont);
+
         }
     };
 
+
+    private static void delayStartActivity() {
+        DataOutputStream localDataOutputStream = null;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process process = runtime.exec("su");
+            OutputStream localOutputStream = process.getOutputStream();
+            localDataOutputStream = new DataOutputStream(localOutputStream);
+
+            String command = "sleep 3 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
+            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            localDataOutputStream.flush();
+        } catch (Exception e) {
+            Log.e(TAG, "installSilent Exception =" + e);
+        } finally {
+            try {
+                if (localDataOutputStream != null) {
+                    localDataOutputStream.close();
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, "installSilent IOException =" + e);
+            }
+        }
+        Log.e(TAG, "installSilent: end ");
+    }
 
     RemoteOperationUtils.RemoteOperationListener remoteOperationListener = new RemoteOperationUtils.RemoteOperationListener() {
         @Override
@@ -1088,8 +1138,7 @@ public class MainActivity extends Activity {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1098,8 +1147,7 @@ public class MainActivity extends Activity {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1109,18 +1157,7 @@ public class MainActivity extends Activity {
         }
 
 
-        String info = "4gCcid," + getPhoneNumber() +
-                ";UploadSpeed," + getUploadploadSpeed() +
-                ";4gCsq," + getSignalStrength() +
-                ";SdFree," + freeSpace +
-                ";SdFull," + capacity +
-                ";PhotoSum," + UpanPictureCount +
-                ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum +
-                ";UploadMode," + uploadModelString +
-                ";UploadUseTime," + UploadUseTime +
-                ";Version," + appVerison +
-                ";initUSB," + VariableInstance.getInstance().initUSB +
-                ";connectCamera," + VariableInstance.getInstance().connectCamera + ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";";
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
     }
@@ -1393,8 +1430,7 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
-            canCloseDevice = false;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop) canCloseDevice = false;
         else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;
