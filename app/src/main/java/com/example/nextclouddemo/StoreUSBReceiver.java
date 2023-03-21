@@ -364,7 +364,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                             boolean initSucceed = initDevice(device, usbDevice);
                             Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initSucceed);
                             if (initSucceed) {
-                                VariableInstance.getInstance().initUSB = true;
+
                                 return;
                             }
                         }
@@ -429,6 +429,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
             return false;
         } else {
+            VariableInstance.getInstance().initUSB = true;
             getUSBPictureCount();
             storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
         }
