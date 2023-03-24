@@ -75,8 +75,8 @@ import java.util.UUID;
 
 public class MainActivity extends Activity {
 
-    //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
-    //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
+    //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
+
     public static final boolean debug = false;
 
     private static final String Record1 = "Start,Record1;";
