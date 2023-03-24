@@ -75,7 +75,7 @@ import java.util.UUID;
 
 public class MainActivity extends Activity {
 
-    //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
+    //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
 
     public static final boolean debug = false;
 
