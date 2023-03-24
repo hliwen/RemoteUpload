@@ -71,7 +71,7 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.List;
-
+import java.util.UUID;
 
 public class MainActivity extends Activity {
 
@@ -94,18 +94,15 @@ public class MainActivity extends Activity {
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
 
-
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
-
+    private static final int delay_crate_acitivity_time = 20 * 1000;
     private static String TAG = "MainActivitylog";
     private MyHandler mHandler;
     private OwnCloudClient mClient;
-
     private ScanerUSBReceiver scanerUSBReceiver;
     private StoreUSBReceiver storeUSBReceiver;
-
 
     char mGpioCharB = 'b';
     private String returnImei;
@@ -113,7 +110,6 @@ public class MainActivity extends Activity {
     private Communication communication;
     private boolean doingInit;
     private RemoteOperationUtils operationUtils;
-
 
     private String messageTextString;
 
@@ -145,12 +141,23 @@ public class MainActivity extends Activity {
     private TextView downloadAppProgressText;
     private TextView updateResultText;
     private TextView cameraPictureCountText;
+    private TextView cameraDeviceText;
+    private TextView cameraScanerErroMessageText;
     private TextView FormatUSBButton;
 
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
     private int signalStrengthValue;
     private int appVerison;
+
+
+    private int cameraPictureCount;
+    private String cameraName;
+    private String cameraScanerErroMessage;
+
+
+    private String uuidString;
+
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -161,6 +168,16 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
 
         mHandler = new MyHandler(MainActivity.this);
+
+        UUID uuid = UUID.randomUUID();
+        uuidString = uuid.toString();
+
+        mHandler.removeMessages(msg_delay_creta_acitivity);
+        mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
+    }
+
+
+    void delayCreate() {
         communication = new Communication();
         updateUtils = new UpdateUtils(updateListener);
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
@@ -225,6 +242,8 @@ public class MainActivity extends Activity {
         downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
         updateResultText = findViewById(R.id.updateResultText);
         cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
+        cameraDeviceText = findViewById(R.id.cameraDeviceText);
+        cameraScanerErroMessageText = findViewById(R.id.cameraScanerErroMessageText);
         FormatUSBButton = findViewById(R.id.FormatUSB);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
@@ -472,10 +491,20 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void scanCameraComplete(int pictureCont) {
+        public void scanCameraComplete(int pictureCont, String deviceName) {
             Log.e(TAG, "scanCameraComplete: pictureCont =" + pictureCont);
             runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + pictureCont);
+            runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
 
+            cameraPictureCount = pictureCont;
+            cameraName = deviceName;
+
+        }
+
+        @Override
+        public void scanErroCode(String erromsg) {
+            cameraScanerErroMessage = erromsg;
+            runOnUiThreadText(cameraScanerErroMessageText, "相机名称：" + erromsg);
         }
     };
 
@@ -742,7 +771,7 @@ public class MainActivity extends Activity {
 
 
     private void initMqtt() {
-        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "123", "/camera/v1/device/" + returnImei + "/android");
+        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
 
         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
     }
@@ -931,7 +960,8 @@ public class MainActivity extends Activity {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null)
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1157,7 +1187,7 @@ public class MainActivity extends Activity {
         }
 
 
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";";
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
     }
@@ -1601,6 +1631,7 @@ public class MainActivity extends Activity {
     private static final int msg_wifi_disconnected = 5;
     private static final int msg_wifi_connected = 6;
 
+    private static final int msg_delay_creta_acitivity = 7;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -1640,6 +1671,9 @@ public class MainActivity extends Activity {
                     break;
                 case msg_wifi_connected:
                     activity.networkConnect();
+                    break;
+                case msg_delay_creta_acitivity:
+                    activity.delayCreate();
                     break;
 
             }

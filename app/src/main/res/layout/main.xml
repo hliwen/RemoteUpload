@@ -75,6 +75,7 @@
                 android:text="@string/formatcamera" />
 
 
+
         </LinearLayout>
 
     </ScrollView>
@@ -101,7 +102,7 @@
             android:id="@+id/serverVersionText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/serverversionT"
@@ -112,7 +113,7 @@
             android:id="@+id/cameraStateText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/camerastatetext"
@@ -154,7 +155,7 @@
             android:id="@+id/accessNumberText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/accessnumbertext"
@@ -165,7 +166,7 @@
             android:id="@+id/remoteNameText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/remotenametext"
@@ -187,7 +188,7 @@
             android:id="@+id/UpanSpaceText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/upanspacetext"
@@ -198,7 +199,7 @@
             android:id="@+id/UpanPictureCountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/upanpicturecounttext"
@@ -209,10 +210,21 @@
             android:id="@+id/cameraPictureCountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/camera_picture_count"
+            android:textColor="#000000"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/cameraDeviceText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:text="@string/camera_device_name"
             android:textColor="#000000"
             android:textSize="11sp" />
 
@@ -221,7 +233,7 @@
             android:id="@+id/uploadNumberText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/uploadnumbertext"
@@ -232,7 +244,7 @@
             android:id="@+id/uploadUseTimeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/uploadusetimetext"
@@ -244,7 +256,7 @@
             android:id="@+id/hasUploadpictureNumberText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/hasuploadpicturenumbertext"
@@ -255,7 +267,7 @@
             android:id="@+id/hasDownloadPictureNumberText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text="@string/hasdownloadpicturenumbertext"
@@ -267,7 +279,7 @@
             android:id="@+id/updateResultText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:textColor="#000000"
@@ -277,12 +289,24 @@
             android:id="@+id/downloadAppProgressText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="1dp"
             android:background="#ffffff"
             android:onClick="onClickHandler"
             android:text=""
             android:textColor="#000000"
             android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/cameraScanerErroMessageText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:background="#ffffff"
+            android:onClick="onClickHandler"
+            android:textColor="#000000"
+            android:textSize="11sp"
+            android:text="@string/cameraScanerErroMessageText" />
+
 
     </LinearLayout>
 

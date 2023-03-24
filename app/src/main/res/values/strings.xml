@@ -54,6 +54,8 @@
     <string name="currentVersion">当前版本：</string>
     <string name="serverversionT">最新版本：</string>
     <string name="camera_picture_count">相机照片总数：</string>
+    <string name="camera_device_name">相机名称：</string>
+    <string name="cameraScanerErroMessageText">相机扫描异常信息</string>
 
 
 </resources>
