@@ -354,10 +354,10 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         }
 
 
-        Log.d(TAG, "mtpDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + mtpDevice.getDeviceName());
+        Log.d(TAG, "mtpDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
         VariableInstance.getInstance().connectCamera = true;
         downloadFlieListener.downloadUpanCount(pictureCount);
-        downloadFlieListener.scanCameraComplete(cameraTotalPicture, mtpDevice.getDeviceName());
+        downloadFlieListener.scanCameraComplete(cameraTotalPicture, usbDevice.getProductName());
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
             if (VariableInstance.getInstance().UploadMode == 1) {
@@ -501,12 +501,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             pictureCount += sameDayPicutreInfo.rowPictureInfos.size();
         }
 
-        Log.d(TAG, "usbDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + usbDevice.getDeviceName());
+        Log.d(TAG, "usbDeviceScaner: 扫描到需要下载图片 ：" + pictureCount + ",相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
 
         VariableInstance.getInstance().connectCamera = true;
 
         downloadFlieListener.downloadUpanCount(pictureCount);
-        downloadFlieListener.scanCameraComplete(cameraTotalPicture, usbDevice.getDeviceName());
+        downloadFlieListener.scanCameraComplete(cameraTotalPicture, usbDevice.getProductName());
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
             if (VariableInstance.getInstance().UploadMode == 1) {

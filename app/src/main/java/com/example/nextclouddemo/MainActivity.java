@@ -771,7 +771,8 @@ public class MainActivity extends Activity {
 
 
     private void initMqtt() {
-        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
+        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379",
+                "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
 
         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
     }

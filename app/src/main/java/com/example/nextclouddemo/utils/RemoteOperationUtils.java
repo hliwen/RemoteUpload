@@ -2,6 +2,7 @@ package com.example.nextclouddemo.utils;
 
 import android.annotation.SuppressLint;
 
+import com.example.nextclouddemo.FirstLogcatHelper;
 import com.example.nextclouddemo.LogcatHelper;
 import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.model.UploadFileModel;
@@ -79,15 +80,7 @@ public class RemoteOperationUtils {
         remoteVideoMonthDayDir = remoteVideoDir + yearMonthFileDir + FileUtils.PATH_SEPARATOR;
         remoteVideoTodayDir = remoteVideoMonthDayDir + monthDayVideoFileDir + FileUtils.PATH_SEPARATOR;
 
-        Log.d(TAG, "initRemoteDir: " +
-                "\n userNameDir =" + userNameDir +
-                "\n remoteLogcatDir =" + remoteLogcatDir +
-                "\n remoteCameraDir =" + remoteCameraDir +
-                "\n remoteCameraMonthDayDir =" + remoteCameraMonthDayDir +
-                "\n remoteVideoDir =" + remoteVideoDir +
-                "\n remoteVideoMonthDayDir =" + remoteVideoMonthDayDir +
-                "\n remoteVideoTodayDir =" + remoteVideoTodayDir
-        );
+        Log.d(TAG, "initRemoteDir: " + "\n userNameDir =" + userNameDir + "\n remoteLogcatDir =" + remoteLogcatDir + "\n remoteCameraDir =" + remoteCameraDir + "\n remoteCameraMonthDayDir =" + remoteCameraMonthDayDir + "\n remoteVideoDir =" + remoteVideoDir + "\n remoteVideoMonthDayDir =" + remoteVideoMonthDayDir + "\n remoteVideoTodayDir =" + remoteVideoTodayDir);
 
         int result = checkFileExit(FileUtils.PATH_SEPARATOR, userNameDir);
         if (result == requestFailure) {
@@ -116,37 +109,28 @@ public class RemoteOperationUtils {
             }
 
             boolean checkCameraPath = checkResult(exictP, remoteCameraDir, remoteCameraMonthDayDir);
-            if (!checkCameraPath)
-                return false;
+            if (!checkCameraPath) return false;
 
             boolean checkVideoPath = checkResult(exictV, remoteVideoDir, remoteVideoMonthDayDir);
 
             createFilefolder(remoteVideoTodayDir);
 
-            if (!checkVideoPath)
-                return false;
+            if (!checkVideoPath) return false;
 
-            if (!exictL)
-                createFilefolder(remoteLogcatDir);
+            if (!exictL) createFilefolder(remoteLogcatDir);
         } else {
             boolean createResult = createFilefolder(userNameDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(remoteCameraDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(remoteCameraMonthDayDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(remoteVideoDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(remoteVideoMonthDayDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(remoteVideoTodayDir);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
         }
         return true;
     }
@@ -155,22 +139,18 @@ public class RemoteOperationUtils {
     private boolean checkResult(boolean exit, String dir1, String dir2) {
         if (exit) {
             int result = checkFileExit(dir1, dir2);
-            if (result == requestFailure)
-                return false;
+            if (result == requestFailure) return false;
             if (result == fileExist) {
                 return true;
             } else {
                 boolean createResult = createFilefolder(dir2);
-                if (!createResult)
-                    return false;
+                if (!createResult) return false;
             }
         } else {
             boolean createResult = createFilefolder(dir1);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
             createResult = createFilefolder(dir2);
-            if (!createResult)
-                return false;
+            if (!createResult) return false;
         }
         return true;
     }
@@ -178,8 +158,7 @@ public class RemoteOperationUtils {
 
     public int checkFileExit(String remote, String dir) {
         Log.v(TAG, "checkFileExit: remote =" + remote + ",dir =" + dir);
-        if (mClient == null)
-            return requestFailure;
+        if (mClient == null) return requestFailure;
         ReadFolderRemoteOperation refreshOperation = new ReadFolderRemoteOperation(remote);
         RemoteOperationResult result = refreshOperation.execute(mClient);
         if (result == null || !result.isSuccess()) {
@@ -194,17 +173,14 @@ public class RemoteOperationUtils {
                 break;
             }
         }
-        if (exict)
-            return fileExist;
-        else
-            return noExist;
+        if (exict) return fileExist;
+        else return noExist;
     }
 
 
     public boolean createFilefolder(String flieFolder) {
         Log.i(TAG, "createFilefolder: flieFolder =" + flieFolder);
-        if (mClient == null)
-            return false;
+        if (mClient == null) return false;
         CreateFolderRemoteOperation createOperation = new CreateFolderRemoteOperation(flieFolder, false);
         RemoteOperationResult result = createOperation.execute(mClient);
         if (result == null || !result.isSuccess()) {
@@ -217,15 +193,12 @@ public class RemoteOperationUtils {
 
     private boolean uploadImageFileToRemote(UploadFileModel fileModel) {
         Log.e(TAG, "uploadImageFileToRemote: fileModel =" + fileModel);
-        if (fileModel == null)
-            return false;
+        if (fileModel == null) return false;
         File file = new File(fileModel.localPath);
-        if (file == null || !file.exists())
-            return false;
+        if (file == null || !file.exists()) return false;
 
         if (mClient == null || !connectRemote) {
-            if (!pictureFileListCache.contains(fileModel))
-                pictureFileListCache.add(fileModel);
+            if (!pictureFileListCache.contains(fileModel)) pictureFileListCache.add(fileModel);
             return false;
         }
 
@@ -253,8 +226,7 @@ public class RemoteOperationUtils {
         remoteOperationListener.pictureUploadEnd();
         if (result == null) {
             Log.e(TAG, "uploadFileToRemote: result == null ");
-            if (!pictureFileListCache.contains(fileModel))
-                pictureFileListCache.add(fileModel);
+            if (!pictureFileListCache.contains(fileModel)) pictureFileListCache.add(fileModel);
             return false;
         }
         boolean isSuccess = result.isSuccess();
@@ -266,11 +238,9 @@ public class RemoteOperationUtils {
             if (totalTime != 0) {
                 remoteOperationListener.updateUploadSpeed(("" + (fileSize / totalTime / 1024)));
             }
-            if (file.exists())
-                file.delete();
+            if (file.exists()) file.delete();
         } else {
-            if (!pictureFileListCache.contains(fileModel))
-                pictureFileListCache.add(fileModel);
+            if (!pictureFileListCache.contains(fileModel)) pictureFileListCache.add(fileModel);
         }
         Log.d(TAG, "uploadFileToRemote: isSuccess =" + isSuccess);
         return isSuccess;
@@ -283,8 +253,7 @@ public class RemoteOperationUtils {
             return;
         }
         Log.d(TAG, "uploadVideo: file.lenght =" + file.length());
-        if (mClient == null || !connectRemote)
-            return;
+        if (mClient == null || !connectRemote) return;
         remoteOperationListener.videoUploadStart();
         String remotePath = remoteVideoTodayDir + file.getName();
 
@@ -306,17 +275,17 @@ public class RemoteOperationUtils {
         if (!pictureFileListCache.contains(uploadFileModel))
             pictureFileListCache.add(uploadFileModel);
 
-        if (mClient != null && connectRemote)
+        if (mClient != null && connectRemote) {
+            startUploadFirstLocatThread();
             startUploadThread();
+        }
     }
 
     private long startUploadTime;
 
     public void addVideoFile(String path) {
-        if (path == null)
-            return;
-        if (!videoFileListCache.contains(path))
-            videoFileListCache.add(path);
+        if (path == null) return;
+        if (!videoFileListCache.contains(path)) videoFileListCache.add(path);
         if (mClient == null || !connectRemote) {
             return;
         }
@@ -324,8 +293,7 @@ public class RemoteOperationUtils {
     }
 
     public void startVideoWorkThread() {
-        if (videoWorkThread != null)
-            return;
+        if (videoWorkThread != null) return;
         videoWorkThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -370,8 +338,7 @@ public class RemoteOperationUtils {
     public void startUploadThread() {
         Log.d(TAG, "startUploadThread: ");
         pictureIsThreadStop = false;
-        if (pictureWorkThread != null)
-            return;
+        if (pictureWorkThread != null) return;
         startUploadTime = System.currentTimeMillis();
         pictureWorkThread = new Thread(new Runnable() {
             @Override
@@ -455,6 +422,7 @@ public class RemoteOperationUtils {
         pictureFileListCache.clear();
     }
 
+
     public void startUploadLocatThread() {
 
         Log.e(TAG, "asdfadsfad startUploadLocatThread: ");
@@ -484,8 +452,7 @@ public class RemoteOperationUtils {
                                 UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                                 RemoteOperationResult result = uploadOperation.execute(mClient);
 
-                                if (result.isSuccess())
-                                    file.delete();
+                                if (result.isSuccess()) file.delete();
                             }
                         }
                     }
@@ -494,6 +461,48 @@ public class RemoteOperationUtils {
                 }
                 Log.e(TAG, "run: asdfadsfad uploadLogcatComplete");
                 remoteOperationListener.uploadLogcatComplete();
+            }
+        }).start();
+
+    }
+
+    public void startUploadFirstLocatThread() {
+
+        Log.e(TAG, "asdfadsfad startUploadLocatThread: ");
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    if (FirstLogcatHelper.getInstance().mLogDumper == null)
+                        return;
+                    if (mClient == null)
+                        return;
+
+
+                    FirstLogcatHelper.getInstance().stop();
+                    Thread.sleep(1000);
+
+                    File file = new File(FirstLogcatHelper.getInstance().logcatFilePath);
+                    if (file == null || !file.exists()) return;
+
+                    String remotePath = remoteLogcatDir + file.getName();
+                    if (remotePath.startsWith("logcat1970")) {
+                        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+                        String date = format.format(new Date(System.currentTimeMillis()));
+                        remotePath = remoteCameraDir + "logcat" + date + "AAA.txt";
+                    }
+                    Long timeStampLong = file.lastModified() / 1000;
+                    String timeStamp = timeStampLong.toString();
+                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
+                    RemoteOperationResult result = uploadOperation.execute(mClient);
+
+                    if (result.isSuccess()) file.delete();
+
+                } catch (Exception e) {
+
+                }
             }
         }).start();
 
