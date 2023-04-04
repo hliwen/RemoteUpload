@@ -771,8 +771,7 @@ public class MainActivity extends Activity {
 
 
     private void initMqtt() {
-        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379",
-                "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
+        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
 
         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
     }
@@ -925,6 +924,9 @@ public class MainActivity extends Activity {
                 }
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
+
+                delayStartActivity();//TODO hu
+                finish();
             }
         }).start();
     }
@@ -961,8 +963,7 @@ public class MainActivity extends Activity {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")

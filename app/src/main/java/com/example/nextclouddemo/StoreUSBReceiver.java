@@ -17,6 +17,7 @@ import com.github.mjdev.libaums.fs.UsbFile;
 import com.github.mjdev.libaums.fs.UsbFileOutputStream;
 import com.github.mjdev.libaums.partition.Partition;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -38,6 +39,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
     private UsbManager usbManager;
 
     private FileSystem storeUSBFs;
+    private UsbDevice storeUSBDevice;
     private UsbFile storeUSBLogcatDirUsbFile;
     private UsbFile storeUSBPictureDirUsbFile;
     private UsbFile storeUSBWifiConfigurationFile;
@@ -53,8 +55,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
     public void stopStoreUSBInitThreadExecutor() {
         Log.e(TAG, "stopStoreUSBInitThreadExecutor: ");
         try {
-            if (initStoreUSBThreadExecutor != null)
-                initStoreUSBThreadExecutor.shutdown();
+            if (initStoreUSBThreadExecutor != null) initStoreUSBThreadExecutor.shutdown();
         } catch (Exception e) {
         }
         VariableInstance.getInstance().storeUSBDeviceID = -1;
@@ -66,15 +67,13 @@ public class StoreUSBReceiver extends BroadcastReceiver {
     }
 
     public int getStoreUSBCapacity() {
-        if (storeUSBFs == null)
-            return 0;
+        if (storeUSBFs == null) return 0;
         int capacity = (int) (storeUSBFs.getCapacity() / (1024 * 1024));
         return capacity;
     }
 
     public int getStoreUSBFreeSpace() {
-        if (storeUSBFs == null)
-            return 0;
+        if (storeUSBFs == null) return 0;
         int freeSpace = (int) (storeUSBFs.getFreeSpace() / (1024 * 1024));
         return freeSpace;
     }
@@ -82,28 +81,55 @@ public class StoreUSBReceiver extends BroadcastReceiver {
     private boolean formatException = false;
 
     public void formatStoreUSB() {
+
+
         formatException = false;
-        if (storeUSBPictureDirUsbFile != null) {
+
+        if (storeUSBDevice != null) {
+            String path = storeUSBDevice.getDeviceName();
+
+            // 使用文件系统命令格式化存储设备
+            Process process = null;
+            DataOutputStream os = null;
             try {
-                formatStoreUSB(storeUSBPictureDirUsbFile);
+                process = Runtime.getRuntime().exec("su");
+                os = new DataOutputStream(process.getOutputStream());
+                os.writeBytes("mkfs.vfat " + path + "\n");
+                os.flush();
+                os.writeBytes("exit\n");
+                os.flush();
+                process.waitFor();
             } catch (Exception e) {
-                Log.e(TAG, "storeUSBPictureDirUsbFile : Exception =" + e);
+                e.printStackTrace();
                 formatException = true;
             }
         }
 
-        storeUSBListener.formatStoreUSBException(formatException);
 
-        if (storeUSBLogcatDirUsbFile != null) {
-            try {
-                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
-                for (UsbFile file : usbLogcatDirFileList) {
-                    file.delete();
-                }
-            } catch (Exception | OutOfMemoryError e) {
-                Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
-            }
-        }
+        storeUSBListener.formatStoreUSBException(formatException);
+//TODO hu
+//
+//        if (storeUSBPictureDirUsbFile != null) {
+//            try {
+//                formatStoreUSB(storeUSBPictureDirUsbFile);
+//            } catch (Exception e) {
+//                Log.e(TAG, "storeUSBPictureDirUsbFile : Exception =" + e);
+//                formatException = true;
+//            }
+//        }
+//
+//        storeUSBListener.formatStoreUSBException(formatException);
+//
+//        if (storeUSBLogcatDirUsbFile != null) {
+//            try {
+//                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
+//                for (UsbFile file : usbLogcatDirFileList) {
+//                    file.delete();
+//                }
+//            } catch (Exception | OutOfMemoryError e) {
+//                Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
+//            }
+//        }
     }
 
     public void formatStoreUSB(UsbFile usbFile) {
@@ -116,8 +142,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                     if (file.isDirectory()) {
                         formatStoreUSB(file);
                     } else {
-                        if (file.getLength() == 0)
-                            continue;
+                        if (file.getLength() == 0) continue;
 
                         Log.e(TAG, "formatStoreUSB: 1111  delete " + file.getName());
                         file.delete();
@@ -138,8 +163,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
     public void uploadLogcatToUSB() {
         Log.e(TAG, "uploadLogcatToUSB:asdfadsfad logcatFileDirUsbFile =" + storeUSBLogcatDirUsbFile + ",logcatFilePath =" + LogcatHelper.getInstance().logcatFilePath);
-        if (storeUSBLogcatDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null || storeUSBFs == null)
-            return;
+        if (storeUSBLogcatDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null || storeUSBFs == null) return;
         UsbFileOutputStream os = null;
         InputStream is = null;
         File localFile = null;
@@ -173,8 +197,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                 String date = format.format(new Date(System.currentTimeMillis()));
                 File file = new File(VariableInstance.getInstance().LogcatDir, "logcat" + date + ".txt");
-                if (localFile != null)
-                    localFile.renameTo(file);
+                if (localFile != null) localFile.renameTo(file);
             }
 
         }
@@ -227,8 +250,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             }
             VariableInstance.getInstance().downdNum++;
             long time11 = ((System.currentTimeMillis() - time) / 1000);
-            if (time11 == 0)
-                time11 = 1;
+            if (time11 == 0) time11 = 1;
 
             String speed = fileSize / time11 / 1024 + "";
             Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
@@ -236,8 +258,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             if (e.toString().contains("Item already exists")) {
                 Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
-            } else
-                Log.e(TAG, "uploadToUSB: 111111111 Exception =" + e);
+            } else Log.e(TAG, "uploadToUSB: 111111111 Exception =" + e);
         } finally {
             try {
                 if (os != null) {
@@ -316,8 +337,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                if (usbManager == null)
-                    usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager == null) usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
 
                 if (usbManager == null) {
                     Log.e(TAG, "initStoreUSBDevice: usbManager==null");
@@ -333,8 +353,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
                 Collection<UsbDevice> usbDevices = allConnectedUSBDeviceList.values();
 
-                if (usbDevices == null)
-                    return;
+                if (usbDevices == null) return;
 
                 for (UsbDevice usbDevice : usbDevices) {
                     if (usbDevice == null) {
@@ -354,8 +373,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                     Log.e(TAG, "initStoreUSBDevice run: 遍历连接的设备接口 interfaceCount =" + interfaceCount);
                     for (int i = 0; i < interfaceCount; i++) {
                         UsbInterface usbInterface = usbDevice.getInterface(i);
-                        if (usbInterface == null)
-                            continue;
+                        if (usbInterface == null) continue;
                         int interfaceClass = usbInterface.getInterfaceClass();
 
                         if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
@@ -405,6 +423,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                     storeUSBWifiConfigurationFile = usbFileItem;
                 } else if (usbFileItem.getName().contains(VariableInstance.getInstance().PictureDirName)) {
                     storeUSBFs = currentFs;
+                    storeUSBDevice = usbDevice;
                     storeUSBPictureDirUsbFile = usbFileItem;
                     VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
                 }
@@ -412,12 +431,12 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
             if (storeUSBPictureDirUsbFile == null) {
                 storeUSBFs = currentFs;
+                storeUSBDevice = usbDevice;
                 storeUSBPictureDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().PictureDirName);
                 VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
             }
 
-            if (storeUSBLogcatDirUsbFile == null)
-                storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+            if (storeUSBLogcatDirUsbFile == null) storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
 
 
         } catch (Exception e) {
@@ -438,8 +457,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
 
     public int getUSBPictureCount() {
-        if (storeUSBPictureDirUsbFile == null)
-            return -1;
+        if (storeUSBPictureDirUsbFile == null) return -1;
         VariableInstance.getInstance().usbFileNameList.clear();
         getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
         storeUSBListener.storeUSBPictureCount(VariableInstance.getInstance().usbFileNameList.size());
@@ -468,10 +486,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
 
     private boolean pictureFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw")
-                || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw")
-                || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg"))) return true;
         return false;
     }
 

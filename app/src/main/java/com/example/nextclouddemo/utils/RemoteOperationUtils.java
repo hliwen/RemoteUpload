@@ -17,7 +17,12 @@ import com.owncloud.android.lib.resources.files.model.RemoteFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -335,6 +340,14 @@ public class RemoteOperationUtils {
     }
 
 
+
+    public class MyOrder implements Comparator<UploadFileModel> {
+        @Override
+        public int compare(UploadFileModel o1, UploadFileModel o2) {
+            return o2.toString().compareTo(o1.toString());
+        }
+    }
+
     public void startUploadThread() {
         Log.d(TAG, "startUploadThread: ");
         pictureIsThreadStop = false;
@@ -347,6 +360,12 @@ public class RemoteOperationUtils {
                     UploadFileModel fileModel = null;
                     try {
                         Log.e(TAG, "run: fileListCache.size =" + pictureFileListCache.size());
+
+                        List<UploadFileModel> list = new ArrayList<>(pictureFileListCache);
+                        Collections.sort(list, new MyOrder());
+                        pictureFileListCache = new LinkedBlockingQueue<>(list);
+
+
                         fileModel = pictureFileListCache.poll(20, TimeUnit.SECONDS);
                     } catch (InterruptedException e) {
                         Log.e(TAG, "startUploadThread: e =" + e);
