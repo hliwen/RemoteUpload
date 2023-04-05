@@ -918,7 +918,6 @@ public class MainActivity extends Activity {
                 Utils.resetDir(VariableInstance.getInstance().LogcatDir);
 
                 if (storeUSBReceiver != null)
-
                     storeUSBReceiver.formatStoreUSB();
 
                 if (scanerUSBReceiver != null) {
