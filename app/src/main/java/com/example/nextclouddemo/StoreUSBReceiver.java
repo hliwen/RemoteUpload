@@ -85,51 +85,51 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
         formatException = false;
 
-        if (storeUSBDevice != null) {
-            String path = storeUSBDevice.getDeviceName();
+//        if (storeUSBDevice != null) {
+//            String path = storeUSBDevice.getDeviceName();
+//
+//            // 使用文件系统命令格式化存储设备
+//            Process process = null;
+//            DataOutputStream os = null;
+//            try {
+//                process = Runtime.getRuntime().exec("su");
+//                os = new DataOutputStream(process.getOutputStream());
+//                os.writeBytes("mkfs.vfat " + path + "\n");
+//                os.flush();
+//                os.writeBytes("exit\n");
+//                os.flush();
+//                process.waitFor();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                formatException = true;
+//            }
+//        }
 
-            // 使用文件系统命令格式化存储设备
-            Process process = null;
-            DataOutputStream os = null;
+
+//        storeUSBListener.formatStoreUSBException(formatException);
+
+
+        if (storeUSBPictureDirUsbFile != null) {
             try {
-                process = Runtime.getRuntime().exec("su");
-                os = new DataOutputStream(process.getOutputStream());
-                os.writeBytes("mkfs.vfat " + path + "\n");
-                os.flush();
-                os.writeBytes("exit\n");
-                os.flush();
-                process.waitFor();
+                formatStoreUSB(storeUSBPictureDirUsbFile);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "storeUSBPictureDirUsbFile : Exception =" + e);
                 formatException = true;
             }
         }
 
-
         storeUSBListener.formatStoreUSBException(formatException);
-//TODO hu
-//
-//        if (storeUSBPictureDirUsbFile != null) {
-//            try {
-//                formatStoreUSB(storeUSBPictureDirUsbFile);
-//            } catch (Exception e) {
-//                Log.e(TAG, "storeUSBPictureDirUsbFile : Exception =" + e);
-//                formatException = true;
-//            }
-//        }
-//
-//        storeUSBListener.formatStoreUSBException(formatException);
-//
-//        if (storeUSBLogcatDirUsbFile != null) {
-//            try {
-//                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
-//                for (UsbFile file : usbLogcatDirFileList) {
-//                    file.delete();
-//                }
-//            } catch (Exception | OutOfMemoryError e) {
-//                Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
-//            }
-//        }
+
+        if (storeUSBLogcatDirUsbFile != null) {
+            try {
+                UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
+                for (UsbFile file : usbLogcatDirFileList) {
+                    file.delete();
+                }
+            } catch (Exception | OutOfMemoryError e) {
+                Log.e(TAG, "formatUSB: storeUSBLogcatDirUsbFile Exception =" + e);
+            }
+        }
     }
 
     public void formatStoreUSB(UsbFile usbFile) {
@@ -163,7 +163,8 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
     public void uploadLogcatToUSB() {
         Log.e(TAG, "uploadLogcatToUSB:asdfadsfad logcatFileDirUsbFile =" + storeUSBLogcatDirUsbFile + ",logcatFilePath =" + LogcatHelper.getInstance().logcatFilePath);
-        if (storeUSBLogcatDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null || storeUSBFs == null) return;
+        if (storeUSBLogcatDirUsbFile == null || LogcatHelper.getInstance().logcatFilePath == null || storeUSBFs == null)
+            return;
         UsbFileOutputStream os = null;
         InputStream is = null;
         File localFile = null;
@@ -337,7 +338,8 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                if (usbManager == null) usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager == null)
+                    usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
 
                 if (usbManager == null) {
                     Log.e(TAG, "initStoreUSBDevice: usbManager==null");
@@ -436,7 +438,8 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                 VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
             }
 
-            if (storeUSBLogcatDirUsbFile == null) storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
+            if (storeUSBLogcatDirUsbFile == null)
+                storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
 
 
         } catch (Exception e) {
@@ -486,7 +489,8 @@ public class StoreUSBReceiver extends BroadcastReceiver {
 
 
     private boolean pictureFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2")) || (FileEnd.equals("jpg"))) return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")) || (FileEnd.equals("jpg")))
+            return true;
         return false;
     }
 
