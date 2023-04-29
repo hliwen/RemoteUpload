@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
-
+        openDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
 
         UUID uuid = UUID.randomUUID();
@@ -456,7 +456,7 @@ public class MainActivity extends Activity {
                 SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
                 editor.putInt("ScanerCount", scanerCount);
                 editor.apply();
-                delayStartActivity();
+                delayStartActivity();//TODO
                 finish();
                 return;
             }
@@ -1257,7 +1257,7 @@ public class MainActivity extends Activity {
 
 
     private void openDeviceProt(boolean open) {
-        Log.d(TAG, "openDeviceProt: 设备通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭"));
+        Log.e(TAG, "openDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭")+"-------------------------------------------");
         if (openDeviceProtFlag == true && open) return;
 
         openDeviceProtFlag = open;

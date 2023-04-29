@@ -282,8 +282,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED: {
+                Log.e(TAG, "StoreUSBReceiver onReceive: USB设备接入");
                 UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED ");
+                Log.e(TAG, "StoreUSBReceiver onReceive: ACTION_USB_DEVICE_ATTACHED ");
                 if (usbDevice == null) {
                     return;
                 }
@@ -294,10 +295,10 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             }
             break;
             case UsbManager.ACTION_USB_DEVICE_DETACHED: {
-                Log.e(TAG, "onReceive: 断开USB设备");
+                Log.e(TAG, "StoreUSBReceiver onReceive: 断开USB设备");
                 UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (usbDevice == null) {
-                    Log.e(TAG, "onReceive: mUSBDevice == null");
+                    Log.e(TAG, "StoreUSBReceiver onReceive: mUSBDevice == null");
                     return;
                 }
                 try {
@@ -306,9 +307,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                         usbMassStorageDevice.close();
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "onReceive: 设备断开异常 e =" + e);
+                    Log.e(TAG, "StoreUSBReceiver onReceive: 设备断开异常 e =" + e);
                 }
-                Log.e(TAG, "onReceive:断开USB设备 mUSBDevice id = " + usbDevice.getDeviceId() + ",deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+                Log.e(TAG, "StoreUSBReceiver onReceive:断开USB设备 mUSBDevice id = " + usbDevice.getDeviceId() + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
                 if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
                     stopStoreUSBInitThreadExecutor();
                     storeUSBListener.storeUSBDeviceDetached();
@@ -322,7 +323,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             break;
 
             case INIT_STORE_USB_PERMISSION:
-                Log.d(TAG, "onReceive: CHECK_UPLOAD_PERMISSION");
+                Log.d(TAG, "StoreUSBReceiver onReceive: CHECK_UPLOAD_PERMISSION");
                 initStoreUSBDevice();
                 break;
             default:
