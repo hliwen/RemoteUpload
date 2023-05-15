@@ -217,13 +217,31 @@ public class RemoteOperationUtils {
         } catch (Exception e) {
             Log.e(TAG, "uploadImageFileToRemote: Exception =" + e);
         }
-
-
-        String remotePath = remoteCameraMonthDayDir + file.getName();
+        String fileName = file.getName();
+        String remotePath = remoteCameraMonthDayDir + fileName;
         Long timeStampLong = file.lastModified() / 1000;
         String timeStamp = timeStampLong.toString();
 
-        Log.e(TAG, "uploadImageFileToRemote: " + file.getAbsolutePath() + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
+        Log.e(TAG, "uploadImageFileToRemote: " + fileModel.localPath + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
+
+        if (VariableInstance.getInstance().isUploadToday) {
+            try {
+                String fileDay = fileName.substring(0, fileName.indexOf("-"));
+
+                @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd");
+                Date date = dateFormat.parse(fileDay);
+                long timeDifference = Math.abs(System.currentTimeMillis() - date.getTime());
+                long days = timeDifference / (32 * 60 * 60 * 1000);
+                if (days > 1) {
+                    Log.e(TAG, "uploadImageFileToRemote: 只上传当天的照片，当前照片不是当天的，不上传 照片路径：" + file.getAbsolutePath());
+                    if (file.exists()) file.delete();
+                    return true;
+                }
+
+            } catch (Exception e) {
+
+            }
+        }
 
         remoteOperationListener.pictureUploadStart();
         UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "image/png", timeStamp);
@@ -277,8 +295,7 @@ public class RemoteOperationUtils {
 
     public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
         Log.e(TAG, "addUploadRemoteFile: uploadFileModel =" + uploadFileModel + ",fileListCache =" + pictureFileListCache.size());
-        if (!pictureFileListCache.contains(uploadFileModel))
-            pictureFileListCache.add(uploadFileModel);
+        if (!pictureFileListCache.contains(uploadFileModel)) pictureFileListCache.add(uploadFileModel);
 
         if (mClient != null && connectRemote) {
             startUploadFirstLocatThread();
@@ -493,10 +510,8 @@ public class RemoteOperationUtils {
             public void run() {
                 try {
 
-                    if (FirstLogcatHelper.getInstance().mLogDumper == null)
-                        return;
-                    if (mClient == null)
-                        return;
+                    if (FirstLogcatHelper.getInstance().mLogDumper == null) return;
+                    if (mClient == null) return;
 
 
                     FirstLogcatHelper.getInstance().stop();

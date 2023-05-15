@@ -31,6 +31,8 @@ public class VariableInstance {
     public boolean connectCamera;
     public boolean initUSB;
 
+    public boolean isUploadToday = true;
+
     public Vector<String> usbFileNameList;
     public int LastPictureCount;
     public boolean isScanerStoreUSB;

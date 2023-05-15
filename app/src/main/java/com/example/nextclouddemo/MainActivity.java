@@ -94,6 +94,8 @@ public class MainActivity extends Activity {
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
 
+    private static final String UploadToday = "Set,UploadToday,";
+
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
@@ -178,6 +180,7 @@ public class MainActivity extends Activity {
 
 
     void delayCreate() {
+        getUploadToday();
         communication = new Communication();
         updateUtils = new UpdateUtils(updateListener);
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
@@ -452,8 +455,7 @@ public class MainActivity extends Activity {
         public void downloadComplete(int cameraTotalPicture) {
 
             localDownling = false;
-            if (!remoteUploading)
-                startDownLed(false);
+            if (!remoteUploading) startDownLed(false);
             openDeviceProt(false);
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
@@ -848,6 +850,11 @@ public class MainActivity extends Activity {
             return;
         }
 
+        if (message.contains(UploadToday)) {
+            changeUploadToday(message);
+            sendMessageToMqtt("ZQ\r\n");
+        }
+
         switch (message) {
             case Record1:
                 openCamera();
@@ -999,6 +1006,14 @@ public class MainActivity extends Activity {
         VariableInstance.getInstance().UploadMode = 2;
         saveUploadModel(null);
         uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
+    }
+
+
+    private void changeUploadToday(String message) {
+        message = message.replace("Set,UploadToday,", "");
+        message = message.replace(";", "");
+        boolean isUploadToday = "1".equals(message);
+        saveUploadToday(isUploadToday);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1211,7 +1226,7 @@ public class MainActivity extends Activity {
         }
 
 
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";";
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
     }
@@ -1446,6 +1461,19 @@ public class MainActivity extends Activity {
         editor.apply();
     }
 
+
+    private void saveUploadToday(boolean isUploadToday) {
+        VariableInstance.getInstance().isUploadToday = isUploadToday;
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("isUploadToday", isUploadToday);
+        editor.apply();
+    }
+
+    private void getUploadToday() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        VariableInstance.getInstance().isUploadToday = sharedPreferences.getBoolean("isUploadToday", true);
+    }
+
     @SuppressLint("SetTextI18n")
     private void getUploadModel() {
         SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
@@ -1484,10 +1512,8 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
-            canCloseDevice = false;
-        else
-            canCloseDevice = true;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop) canCloseDevice = false;
+        else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;
     }
