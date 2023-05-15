@@ -185,6 +185,7 @@ public class MainActivity extends Activity {
         VariableInstance.getInstance().downdNum = 0;
         VariableInstance.getInstance().uploadNum = 0;
         VariableInstance.getInstance().usbFileNameList.clear();
+        Log.d(TAG, "usbFileNameList.clear 111111111  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
         VariableInstance.getInstance().connectCamera = false;
         VariableInstance.getInstance().initUSB = false;
 
@@ -195,7 +196,10 @@ public class MainActivity extends Activity {
             requestPermissions(value, 111);
         }
 
+        mHandler.removeMessages(msg_close_device);
         mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+        Log.d(TAG, "  remove msg_close_device 1111111111111");
+        Log.d(TAG, "  send msg_close_device 2222222222222");
         EventBus.getDefault().register(this);
         getUploadModel();
 
@@ -285,6 +289,7 @@ public class MainActivity extends Activity {
         public void startUpdate() {
             runOnUiThreadText(updateResultText, "开始升级");
             mHandler.removeMessages(msg_close_device);
+            Log.d(TAG, "  remove msg_close_device 3333333333333333");
             mHandler.removeMessages(msg_send_restart_app);
             mHandler.sendEmptyMessageDelayed(msg_send_restart_app, 3000);
         }
@@ -293,7 +298,10 @@ public class MainActivity extends Activity {
         public void updateResult(boolean succeed) {
             mHandler.removeMessages(msg_send_restart_app);
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
+            mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+            Log.d(TAG, "  remove msg_close_device 44444444444444444");
+            Log.d(TAG, "  send msg_close_device 5555555555555555");
         }
     };
 
@@ -435,15 +443,17 @@ public class MainActivity extends Activity {
             Log.d(TAG, "startDownload: uploading =" + remoteUploading);
             localDownling = true;
             if (!remoteUploading) startDownLed(true);
-            Log.d(TAG, " remove msg_close_device 444444444444444");
+
             mHandler.removeMessages(msg_close_device);
+            Log.d(TAG, "  remove msg_close_device 6666666666666");
         }
 
         @Override
         public void downloadComplete(int cameraTotalPicture) {
 
             localDownling = false;
-            if (!remoteUploading) startDownLed(false);
+            if (!remoteUploading)
+                startDownLed(false);
             openDeviceProt(false);
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
@@ -467,9 +477,12 @@ public class MainActivity extends Activity {
             editor.apply();
 
 
-            Log.d(TAG, " send msg_close_device 55555555555555555");
             mHandler.removeMessages(msg_close_device);
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+            Log.d(TAG, "  remove msg_close_device 7777777777777");
+            if (!remoteUploading) {
+                mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+                Log.d(TAG, "  send msg_close_device 888888888888888");
+            }
             getInfo();
         }
 
@@ -547,17 +560,20 @@ public class MainActivity extends Activity {
             runOnUiThreadText(uploadUseTimeText, "本次同步到服务器耗时:" + totalTime / 1000 + "s");
 
             getInfo();
-            Log.d(TAG, " send msg_close_device 6666666666666666");
+
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+
+            Log.d(TAG, "  remove msg_close_device aaaaaaaaaaaaaaa");
+            Log.d(TAG, "  send msg_close_device bbbbbbbbbbbbbbb");
         }
 
         @Override
         public void pictureUploadStart() {
             Log.d(TAG, "fileUploadStart: ");
             remoteUploading = true;
-            Log.d(TAG, " remove msg_close_device 7777777777777777777");
             mHandler.removeMessages(msg_close_device);
+            Log.d(TAG, " remove msg_close_device ccccccccccccccccccccccc");
             startDownLed(false);
         }
 
@@ -579,17 +595,19 @@ public class MainActivity extends Activity {
 
         @Override
         public void videoUploadStart() {
-            Log.d(TAG, "  remove msg_close_device 88888888888888888");
             mHandler.removeMessages(msg_close_device);
+            Log.d(TAG, "  remove msg_close_device dddddddddddddddddd");
             startDownLed(false);
         }
 
         @Override
         public void uploadVideoComplete(boolean succeed) {
             Log.e(TAG, "uploadVideoComplete: 上传视频结果 " + succeed);
-            Log.d(TAG, "  send msg_close_device 9999999999999999");
+
             mHandler.removeMessages(msg_close_device);
             mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+            Log.d(TAG, "  remove msg_close_device eeeeeeeeeeeeeeeeeeeeee");
+            Log.d(TAG, "  send msg_close_device ffffffffffffffffffff");
             if (!localDownling && !remoteUploading) {
                 restLed();
             }
@@ -750,8 +768,8 @@ public class MainActivity extends Activity {
                     operationUtils.connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
                     updateServerStateUI(operationUtils.connectRemote);
                     if (operationUtils.connectRemote) {
-                        Log.d(TAG, " send msg_close_device 3333333333");
                         mHandler.removeMessages(msg_close_device);
+                        Log.d(TAG, " send msg_close_device gggggggggggggggggg");
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startUploadThread();
                         operationUtils.startVideoWorkThread();
@@ -890,6 +908,7 @@ public class MainActivity extends Activity {
         sendShutDown = true;
         mHandler.removeMessages(msg_send_ShutDown);
         mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
+        Log.d(TAG, "send msg_send_ShutDown 1111111111111111");
         sendMessageToMqtt(UploadEndUploadUseTime + useTime + ";");
     }
 
@@ -897,6 +916,7 @@ public class MainActivity extends Activity {
         if (sendShutDown) {
             mHandler.removeMessages(msg_send_ShutDown);
             mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, 5000);
+            Log.d(TAG, "send msg_send_ShutDown 2222222222222222222");
             sendShutDown = false;
         }
     }
@@ -917,15 +937,14 @@ public class MainActivity extends Activity {
                 Utils.resetDir(VariableInstance.getInstance().TFCardVideoDir);
                 Utils.resetDir(VariableInstance.getInstance().LogcatDir);
 
-                if (storeUSBReceiver != null)
-                    storeUSBReceiver.formatStoreUSB();
+                if (storeUSBReceiver != null) storeUSBReceiver.formatStoreUSB();
 
                 if (scanerUSBReceiver != null) {
                     scanerUSBReceiver.storeUSBDetached();
                 }
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-
+                Log.d(TAG, "send  333333333333333333333333");
                 delayStartActivity();//TODO hu
                 finish();
             }
@@ -948,6 +967,7 @@ public class MainActivity extends Activity {
                     scanerUSBReceiver.formatCamera();
                 }
                 formatingCamera = false;
+                Log.d(TAG, "send msg_send_ShutDown 4444444444444444");
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
 
                 openDeviceProt(false);
@@ -1158,7 +1178,8 @@ public class MainActivity extends Activity {
             if (capacityA != 0) capacity = capacityA;
             freeSpaceA = storeUSBReceiver.getStoreUSBFreeSpace();
             if (freeSpaceA != 0) freeSpace = freeSpaceA;
-            PhotoSumA = storeUSBReceiver.getUSBPictureCount();
+
+            PhotoSumA = VariableInstance.getInstance().LastPictureCount;
             if (PhotoSumA != 0) UpanPictureCount = PhotoSumA;
         }
 
@@ -1257,7 +1278,7 @@ public class MainActivity extends Activity {
 
 
     private void openDeviceProt(boolean open) {
-        Log.e(TAG, "openDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭")+"-------------------------------------------");
+        Log.e(TAG, "openDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
         if (openDeviceProtFlag == true && open) return;
 
         openDeviceProtFlag = open;
@@ -1463,8 +1484,10 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop) canCloseDevice = false;
-        else canCloseDevice = true;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
+            canCloseDevice = false;
+        else
+            canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;
     }
@@ -1657,9 +1680,12 @@ public class MainActivity extends Activity {
                     if (activity.canCloseDevice()) {
                         activity.operationUtils.startUploadLocatThread();
                     } else {
-                        Log.d(TAG, "  send msg_close_device 11111111");
+
                         activity.mHandler.removeMessages(msg_close_device);
                         activity.mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
+
+                        Log.d(TAG, "  remove msg_close_device hhhhhhhhhhhhhhhhhhhh");
+                        Log.d(TAG, "  send msg_close_device iiiiiiiiiiiiiiiiiiiii");
                     }
                     break;
                 case msg_send_ShutDown:

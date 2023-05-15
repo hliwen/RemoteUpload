@@ -239,8 +239,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             public void run() {
                 Log.d(TAG, "checkConnectedDevice: 开始检查USB连接设备");
 
-                if (usbManager == null)
-                    usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+                if (usbManager == null) usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
                 if (usbManager == null) {
                     Log.e(TAG, "checkConnectedDevice run: usbManager==null");
                     return;
@@ -346,6 +345,16 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     pictureInfoList.add(sameDayPicutreInfo);
                 }
 
+                while (VariableInstance.getInstance().isScanerStoreUSB) {
+                    Log.e(TAG, "mtpDeviceScaner: isScanerStoreUSB waiting");
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+
+                    }
+                }
+
+                Log.e(TAG, "mtpDeviceScaner: pictureInfoList =" + pictureInfoList.size() + ",  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
                 if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
                     if (rowFormatFile(FileEnd)) {
                         PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
@@ -455,11 +464,9 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     if (needUpload) {
                         String pictureSaveUploadLocalPath = tfCardUploadPictureDir + File.separator + pictureInfo.pictureName;
                         File pictureUploadSaveFile = new File(pictureSaveUploadLocalPath);
-                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists())
-                            pictureUploadSaveFile.delete();
+                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) pictureUploadSaveFile.delete();
                         mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveUploadLocalPath);
-                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists())
-                            downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
+                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
                     }
                 }
             }
@@ -604,8 +611,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                 String fileName = yymmdd + "-" + name;
                 String FileEnd = name.substring(name.lastIndexOf(".") + 1).toLowerCase();
 
-                if (!pictureFormatFile(FileEnd))
-                    continue;
+                if (!pictureFormatFile(FileEnd)) continue;
                 cameraTotalPicture++;
 
                 if (VariableInstance.getInstance().formarCamera) {
@@ -626,7 +632,15 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                     pictureInfoList.add(sameDayPicutreInfo);
                 }
 
-                Log.e(TAG, "readPicFileFromUSBFile: pictureInfoList =" + pictureInfoList.size());
+                while (VariableInstance.getInstance().isScanerStoreUSB) {
+                    Log.e(TAG, "mtpDeviceScaner: isScanerStoreUSB waiting");
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+
+                    }
+                }
+                Log.e(TAG, "readPicFileFromUSBFile: pictureInfoList =" + pictureInfoList.size() + ",  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
 
                 if (!VariableInstance.getInstance().usbFileNameList.contains(fileName)) {
                     if (rowFormatFile(FileEnd)) {
@@ -701,8 +715,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                             uploadout.write(buffer, 0, bytesRead);
                         }
 
-                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists())
-                            downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
+                        if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
                     }
                 }
             }
@@ -740,14 +753,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     }
 
     private boolean pictureFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")) || (FileEnd.equals("jpg")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")) || (FileEnd.equals("jpg"))) return true;
         return false;
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
         return false;
     }
 

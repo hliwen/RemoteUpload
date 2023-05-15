@@ -5,7 +5,6 @@ plugins {
 android {
     compileSdkVersion 31
 
-
     signingConfigs {
         release {
             keyAlias 'upload'
@@ -20,9 +19,9 @@ android {
         applicationId "com.example.nextclouddemo"
         minSdkVersion 21
         targetSdkVersion 21
-        versionCode 20230429
+        versionCode 20230510
 
-        versionName "v1.1.15"
+        versionName "v1.1.16"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

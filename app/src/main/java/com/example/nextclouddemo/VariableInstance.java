@@ -32,7 +32,10 @@ public class VariableInstance {
     public boolean initUSB;
 
     public Vector<String> usbFileNameList;
+    public int LastPictureCount;
+    public boolean isScanerStoreUSB;
     public int storeUSBDeviceID = -1;
+
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();

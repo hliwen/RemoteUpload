@@ -45,8 +45,8 @@ public class RemoteOperationUtils {
     private RemoteOperationListener remoteOperationListener;
 
 
-    public volatile BlockingQueue<UploadFileModel> pictureFileListCache = new LinkedBlockingQueue<>(5000);
-    public volatile BlockingQueue<String> videoFileListCache = new LinkedBlockingQueue<>(5000);
+    public volatile BlockingQueue<UploadFileModel> pictureFileListCache = new LinkedBlockingQueue<>(20000);
+    public volatile BlockingQueue<String> videoFileListCache = new LinkedBlockingQueue<>(20000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
         this.remoteOperationListener = remoteOperationListener;
@@ -340,7 +340,6 @@ public class RemoteOperationUtils {
     }
 
 
-
     public class MyOrder implements Comparator<UploadFileModel> {
         @Override
         public int compare(UploadFileModel o1, UploadFileModel o2) {
@@ -378,7 +377,7 @@ public class RemoteOperationUtils {
                             if (files != null) {
                                 for (File file : files) {
                                     UploadFileModel uploadFileModel = new UploadFileModel(file.getAbsolutePath());
-                                    Log.d(TAG, "run: uploadFileModel 上一次没传完的=" + uploadFileModel);
+                                    Log.d(TAG, "run: uploadFileModel 上一次没传完的 " + uploadFileModel);
                                     if (!pictureFileListCache.contains(uploadFileModel)) {
                                         pictureFileListCache.add(uploadFileModel);
                                     }

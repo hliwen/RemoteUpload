@@ -145,9 +145,6 @@ public class Utils {
 
 
     public static void closeAndroid() {
-//
-//        if(true)
-//            return;//TODO hu
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});  //关机
             proc.waitFor();

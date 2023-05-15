@@ -6,7 +6,7 @@ public class UploadFileModel {
     public String localPath;
 
 
-    public UploadFileModel( String localPath) {
+    public UploadFileModel(String localPath) {
 
         this.localPath = localPath;
     }
@@ -14,9 +14,7 @@ public class UploadFileModel {
 
     @Override
     public String toString() {
-        return "MainActivitylog UploadFileModel{" +
-                "localPath='" + localPath + '\'' +
-                '}';
+        return "localPath:" + localPath;
     }
 
     @Override
