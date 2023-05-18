@@ -119,6 +119,8 @@ public class MainActivity extends Activity {
     private long lastOpenCameraTime;
 
 
+    private boolean isUpdating;
+
     private boolean remoteUploading;
     private boolean localDownling;
     private boolean openDeviceProtFlag;
@@ -290,6 +292,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void startUpdate() {
+            isUpdating=true;
             runOnUiThreadText(updateResultText, "开始升级");
             mHandler.removeMessages(msg_close_device);
             Log.d(TAG, "  remove msg_close_device 3333333333333333");
@@ -299,6 +302,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void updateResult(boolean succeed) {
+            isUpdating=false;
             mHandler.removeMessages(msg_send_restart_app);
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
             mHandler.removeMessages(msg_close_device);
@@ -462,7 +466,7 @@ public class MainActivity extends Activity {
             int scanerCount = sharedPreferences.getInt("ScanerCount", 0);
 
             Log.d(TAG, "downloadComplete: remoteUploading =" + remoteUploading + ",scanerCount =" + scanerCount + ",cameraTotalPicture =" + cameraTotalPicture);
-            if (cameraTotalPicture == 0 && scanerCount < 5) {
+            if (!isUpdating && cameraTotalPicture == 0 && scanerCount < 5) {
 
                 scanerCount++;
                 SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
@@ -532,7 +536,7 @@ public class MainActivity extends Activity {
             OutputStream localOutputStream = process.getOutputStream();
             localDataOutputStream = new DataOutputStream(localOutputStream);
 
-            String command = "sleep 3 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
+            String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
             localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
             localDataOutputStream.flush();
         } catch (Exception e) {

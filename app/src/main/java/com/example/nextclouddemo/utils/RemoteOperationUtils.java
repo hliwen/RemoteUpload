@@ -248,7 +248,7 @@ public class RemoteOperationUtils {
         RemoteOperationResult result = uploadOperation.execute(mClient);
         remoteOperationListener.pictureUploadEnd();
         if (result == null) {
-            Log.e(TAG, "uploadFileToRemote: result == null ");
+            Log.e(TAG, "uploadImageFileToRemote: result == null ");
             if (!pictureFileListCache.contains(fileModel)) pictureFileListCache.add(fileModel);
             return false;
         }
@@ -265,7 +265,7 @@ public class RemoteOperationUtils {
         } else {
             if (!pictureFileListCache.contains(fileModel)) pictureFileListCache.add(fileModel);
         }
-        Log.d(TAG, "uploadFileToRemote: isSuccess =" + isSuccess);
+        Log.d(TAG, "uploadImageFileToRemote: isSuccess =" + isSuccess);
         return isSuccess;
     }
 
