@@ -202,8 +202,8 @@ public class MainActivity extends Activity {
         }
 
         mHandler.removeMessages(msg_close_device);
-        mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
         Log.d(TAG, "  remove msg_close_device 1111111111111");
+        mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
         Log.d(TAG, "  send msg_close_device 2222222222222");
         EventBus.getDefault().register(this);
         getUploadModel();
@@ -306,8 +306,8 @@ public class MainActivity extends Activity {
             mHandler.removeMessages(msg_send_restart_app);
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
             mHandler.removeMessages(msg_close_device);
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             Log.d(TAG, "  remove msg_close_device 44444444444444444");
+            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             Log.d(TAG, "  send msg_close_device 5555555555555555");
         }
     };
@@ -571,9 +571,8 @@ public class MainActivity extends Activity {
             getInfo();
 
             mHandler.removeMessages(msg_close_device);
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-
             Log.d(TAG, "  remove msg_close_device aaaaaaaaaaaaaaa");
+            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             Log.d(TAG, "  send msg_close_device bbbbbbbbbbbbbbb");
         }
 
@@ -614,8 +613,8 @@ public class MainActivity extends Activity {
             Log.e(TAG, "uploadVideoComplete: 上传视频结果 " + succeed);
 
             mHandler.removeMessages(msg_close_device);
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             Log.d(TAG, "  remove msg_close_device eeeeeeeeeeeeeeeeeeeeee");
+            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
             Log.d(TAG, "  send msg_close_device ffffffffffffffffffff");
             if (!localDownling && !remoteUploading) {
                 restLed();
@@ -778,7 +777,7 @@ public class MainActivity extends Activity {
                     updateServerStateUI(operationUtils.connectRemote);
                     if (operationUtils.connectRemote) {
                         mHandler.removeMessages(msg_close_device);
-                        Log.d(TAG, " send msg_close_device gggggggggggggggggg");
+                        Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startUploadThread();
                         operationUtils.startVideoWorkThread();
@@ -958,7 +957,7 @@ public class MainActivity extends Activity {
                 }
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-                Log.d(TAG, "send  333333333333333333333333");
+                Log.d(TAG, "send  msg_send_ShutDown 333333333333333333333333");
                 if (isUpdating)
                     return;
                 delayStartActivity();//TODO hu
@@ -1695,9 +1694,7 @@ public class MainActivity extends Activity {
 
     private static final int msg_wifi_disconnected = 5;
     private static final int msg_wifi_connected = 6;
-
     private static final int msg_delay_creta_acitivity = 7;
-
     private static final int msg_delay_open_device_prot = 8;
 
     private static class MyHandler extends Handler {
