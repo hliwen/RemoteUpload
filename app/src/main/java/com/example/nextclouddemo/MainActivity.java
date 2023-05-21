@@ -292,7 +292,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void startUpdate() {
-            isUpdating=true;
+            isUpdating = true;
             runOnUiThreadText(updateResultText, "开始升级");
             mHandler.removeMessages(msg_close_device);
             Log.d(TAG, "  remove msg_close_device 3333333333333333");
@@ -302,7 +302,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void updateResult(boolean succeed) {
-            isUpdating=false;
+            isUpdating = false;
             mHandler.removeMessages(msg_send_restart_app);
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
             mHandler.removeMessages(msg_close_device);
@@ -472,8 +472,11 @@ public class MainActivity extends Activity {
                 SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
                 editor.putInt("ScanerCount", scanerCount);
                 editor.apply();
-                delayStartActivity();//TODO
-                finish();
+
+                openDeviceProt(false);
+                mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 10000);
+
+
                 return;
             }
 
@@ -956,6 +959,8 @@ public class MainActivity extends Activity {
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
                 Log.d(TAG, "send  333333333333333333333333");
+                if (isUpdating)
+                    return;
                 delayStartActivity();//TODO hu
                 finish();
             }
@@ -995,7 +1000,8 @@ public class MainActivity extends Activity {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null)
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1211,7 +1217,8 @@ public class MainActivity extends Activity {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1220,7 +1227,8 @@ public class MainActivity extends Activity {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1516,7 +1524,8 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop) canCloseDevice = false;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
+            canCloseDevice = false;
         else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;
@@ -1689,6 +1698,8 @@ public class MainActivity extends Activity {
 
     private static final int msg_delay_creta_acitivity = 7;
 
+    private static final int msg_delay_open_device_prot = 8;
+
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
 
@@ -1733,6 +1744,9 @@ public class MainActivity extends Activity {
                     break;
                 case msg_delay_creta_acitivity:
                     activity.delayCreate();
+                    break;
+                case msg_delay_open_device_prot:
+                    activity.openDeviceProt(true);
                     break;
 
             }
