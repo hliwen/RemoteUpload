@@ -312,56 +312,63 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
             return;
         }
 
+        Log.e(TAG, "mtpDeviceScaner: storageIds.length =" + storageIds.length);
+
         pictureInfoList.clear();
         cameraTotalPicture = 0;
 
         for (int storageId : storageIds) {
             int[] pictureHandlesItem = mtpDevice.getObjectHandles(storageId, 0, 0);
-            if (pictureHandlesItem != null) for (int i : pictureHandlesItem) {
-                MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
+            Log.e(TAG, "mtpDeviceScaner: pictureHandlesItem =" + pictureHandlesItem);
+            if (pictureHandlesItem != null) {
+                Log.e(TAG, "mtpDeviceScaner: pictureHandlesItem.lenght =" + pictureHandlesItem.length);
+                for (int i : pictureHandlesItem) {
+                    MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
 
-                if (mtpObjectInfo == null) {
-                    continue;
-                }
-                long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
-                int yymmdd = Utils.getyyMMddtringInt(createDate);
-                String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
-                String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-
-                if (!pictureFormatFile(FileEnd)) continue;
-
-                cameraTotalPicture++;
-
-                if (VariableInstance.getInstance().formarCamera) {
-                    mtpDevice.deleteObject(i);
-                    continue;
-                }
-
-                SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
-                int index = pictureInfoList.indexOf(sameDayPicutreInfo);
-                if (index > -1) {
-                    sameDayPicutreInfo = pictureInfoList.get(index);
-                } else {
-                    pictureInfoList.add(sameDayPicutreInfo);
-                }
-
-                while (VariableInstance.getInstance().isScanerStoreUSB) {
-                    Log.e(TAG, "mtpDeviceScaner: isScanerStoreUSB waiting");
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-
+                    if (mtpObjectInfo == null) {
+                        Log.e(TAG, "mtpDeviceScaner: mtpObjectInfo == null");
+                        continue;
                     }
-                }
+                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
+                    int yymmdd = Utils.getyyMMddtringInt(createDate);
+                    String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
+                    String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
-                Log.e(TAG, "mtpDeviceScaner: pictureInfoList =" + pictureInfoList.size() + ",  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
-                if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
-                    if (rowFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
-                        sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
-                    } else if (jPGFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
-                        sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
+                    if (!pictureFormatFile(FileEnd)) continue;
+
+                    cameraTotalPicture++;
+
+                    if (VariableInstance.getInstance().formarCamera) {
+                        mtpDevice.deleteObject(i);
+                        continue;
+                    }
+
+                    SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
+                    int index = pictureInfoList.indexOf(sameDayPicutreInfo);
+                    if (index > -1) {
+                        sameDayPicutreInfo = pictureInfoList.get(index);
+                    } else {
+                        pictureInfoList.add(sameDayPicutreInfo);
+                    }
+
+                    while (VariableInstance.getInstance().isScanerStoreUSB) {
+                        Log.e(TAG, "mtpDeviceScaner: isScanerStoreUSB waiting");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+
+                        }
+                    }
+
+                    Log.e(TAG, "mtpDeviceScaner: pictureInfoList =" + pictureInfoList.size() + ",  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
+                    if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
+                        if (rowFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
+                            sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
+                        } else if (jPGFormatFile(FileEnd)) {
+                            PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
+                            sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
+                        }
                     }
                 }
             }
