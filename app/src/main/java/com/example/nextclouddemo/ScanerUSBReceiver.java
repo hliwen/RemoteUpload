@@ -40,6 +40,9 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     private UsbDevice cameraUsbDevice;
     private int cameraUsbDeviceID;
     private UsbManager usbManager;
+
+    private int requestPerminssCount;
+
     private String tfCardPictureDir;
     private String tfCardUploadPictureDir;
     private ScanerUSBListener downloadFlieListener;
@@ -117,11 +120,12 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         }
     }
 
+
     public ScanerUSBReceiver(Context context, ScanerUSBListener downloadFlieListener) {
         this.downloadFlieListener = downloadFlieListener;
         this.tfCardPictureDir = VariableInstance.getInstance().TFCardPictureDir;
         this.tfCardUploadPictureDir = VariableInstance.getInstance().TFCardUploadPictureDir;
-
+        requestPerminssCount = 0;
 
         usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         pictureInfoList = new ArrayList<>();
@@ -232,6 +236,8 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
     private void checkConnectedDevice(UsbDevice device) {
         Log.e(TAG, "checkConnectedDevice:  ");
+
+
         stopScanerThread(3);
         scanerThreadExecutor = Executors.newSingleThreadExecutor();
         Runnable runnable = new Runnable() {
@@ -250,6 +256,23 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
                         Log.e(TAG, "checkConnectedDevice run: device==null");
                         return;
                     }
+
+
+                    try {
+                        if (usbManager.hasPermission(device)) {
+                            Log.e(TAG, "checkConnectedDevice: hasPermission");
+                        } else {
+                            requestPerminssCount++;
+                            @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(CHECK_PERMISSION), 0);
+                            usbManager.requestPermission(device, pendingIntent);
+                            Log.e(TAG, "checkConnectedDevice: no hasPermission");
+                            if (requestPerminssCount < 10)
+                                return;
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "checkConnectedDevice: Exception =" + e);
+                    }
+
 
                     for (int i = 0; i < device.getInterfaceCount(); i++) {
                         if (device == null) {
