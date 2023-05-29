@@ -14,6 +14,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -475,8 +476,6 @@ public class MainActivity extends Activity {
 
                 openDeviceProt(false);
                 mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 10000);
-
-
                 return;
             }
 
@@ -741,50 +740,86 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    ServerUrlModel serverUrlModel = communication.getServerUrl();
-                    Log.e(TAG, "run: serverUrlModel =" + serverUrlModel);
-                    if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
+
+                    DeviceInfoModel localInfo = getLocalDeviceInfoModel();
+                    if (localInfo.serverUri != null && localInfo.returnImei != null && localInfo.deveceName != null && localInfo.username != null && localInfo.password != null) {
+                        String imei = getPhoneImei(false);
+                        if ("0".equals(imei)) imei = getPhoneImei(true);
                         mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
-                        updateServerStateUI(false);
-                        return;
-                    }
 
-                    String imei = getPhoneImei(false);
-                    if ("0".equals(imei)) imei = getPhoneImei(true);
-                    DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
+                        returnImei = localInfo.returnImei;
+                        deveceName = localInfo.deveceName;
+                        EventBus.getDefault().post(return2GImei);
 
-                    if (serverUrlModel == null || deviceInfoModel.responseCode != 200) {
-                        mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
-                        updateServerStateUI(false);
-                        return;
-                    }
 
-                    mHandler.removeMessages(msg_reload_device_info);
+                        mClient = OwnCloudClientFactory.createOwnCloudClient(Uri.parse(localInfo.serverUri), MainActivity.this, true);
+                        mClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(localInfo.username, localInfo.password));
+                        operationUtils.mClient = mClient;
 
-                    Log.e(TAG, "run: deviceInfoModel =" + deviceInfoModel);
+                        operationUtils.connectRemote = operationUtils.initRemoteDir(localInfo.deveceName);
+                        updateServerStateUI(operationUtils.connectRemote);
+                        if (operationUtils.connectRemote) {
+                            mHandler.removeMessages(msg_close_device);
+                            Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
+                            mHandler.removeMessages(msg_reload_device_info);
+                            operationUtils.startUploadThread();
+                            operationUtils.startVideoWorkThread();
+                        } else {
+                            saveLocalDeviceInfoModel(null, null, null, null, null);
+                            mHandler.removeMessages(msg_reload_device_info);
+                            mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
+                        }
 
-                    returnImei = deviceInfoModel.returnImei;
-                    deveceName = deviceInfoModel.deveceName;
-                    EventBus.getDefault().post(return2GImei);
-
-                    mClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
-                    mClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
-                    operationUtils.mClient = mClient;
-
-                    operationUtils.connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
-                    updateServerStateUI(operationUtils.connectRemote);
-                    if (operationUtils.connectRemote) {
-                        mHandler.removeMessages(msg_close_device);
-                        Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
-                        mHandler.removeMessages(msg_reload_device_info);
-                        operationUtils.startUploadThread();
-                        operationUtils.startVideoWorkThread();
                     } else {
+                        ServerUrlModel serverUrlModel = communication.getServerUrl();
+                        Log.e(TAG, "run: serverUrlModel =" + serverUrlModel);
+                        if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
+                            mHandler.removeMessages(msg_reload_device_info);
+                            mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
+                            updateServerStateUI(false);
+                            return;
+                        }
+
+                        String imei = getPhoneImei(false);
+                        if ("0".equals(imei)) imei = getPhoneImei(true);
+
+                        DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
+
+                        if (serverUrlModel == null || deviceInfoModel.responseCode != 200) {
+                            mHandler.removeMessages(msg_reload_device_info);
+                            mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
+                            updateServerStateUI(false);
+                            return;
+                        }
+
                         mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
+
+                        Log.e(TAG, "run: deviceInfoModel =" + deviceInfoModel);
+
+                        returnImei = deviceInfoModel.returnImei;
+                        deveceName = deviceInfoModel.deveceName;
+                        EventBus.getDefault().post(return2GImei);
+
+                        mClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
+                        mClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
+                        operationUtils.mClient = mClient;
+
+                        operationUtils.connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
+                        updateServerStateUI(operationUtils.connectRemote);
+                        if (operationUtils.connectRemote) {
+                            saveLocalDeviceInfoModel(serverUrlModel.stringServerUri, deviceInfoModel.returnImei, deviceInfoModel.deveceName, deviceInfoModel.username, deviceInfoModel.password);
+                            mHandler.removeMessages(msg_close_device);
+                            Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
+                            mHandler.removeMessages(msg_reload_device_info);
+                            operationUtils.startUploadThread();
+                            operationUtils.startVideoWorkThread();
+                        } else {
+                            mHandler.removeMessages(msg_reload_device_info);
+                            mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
+                        }
                     }
+
+
                 } catch (Exception e) {
                     Log.e(TAG, "run:Exception111 = " + e);
                     updateServerStateUI(false);
@@ -795,6 +830,27 @@ public class MainActivity extends Activity {
         workThread.start();
     }
 
+
+    private DeviceInfoModel getLocalDeviceInfoModel() {
+        DeviceInfoModel deviceInfoModel = new DeviceInfoModel();
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        deviceInfoModel.serverUri = sharedPreferences.getString("remoteserverUri", null);
+        deviceInfoModel.returnImei = sharedPreferences.getString("remotereturnImei", null);
+        deviceInfoModel.deveceName = sharedPreferences.getString("remotedeveceName", null);
+        deviceInfoModel.username = sharedPreferences.getString("remoteusername", null);
+        deviceInfoModel.password = sharedPreferences.getString("remotepassword", null);
+        return deviceInfoModel;
+    }
+
+    private void saveLocalDeviceInfoModel(String serverUri, String returnImei, String deveceName, String username, String password) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putString("remoteserverUri", serverUri);
+        editor.putString("remotereturnImei", returnImei);
+        editor.putString("remotedeveceName", deveceName);
+        editor.putString("remoteusername", username);
+        editor.putString("remotepassword", password);
+        editor.apply();
+    }
 
     private void initMqtt() {
         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + uuidString, "/camera/v1/device/" + returnImei + "/android");
@@ -958,8 +1014,7 @@ public class MainActivity extends Activity {
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
                 Log.d(TAG, "send  msg_send_ShutDown 333333333333333333333333");
-                if (isUpdating)
-                    return;
+                if (isUpdating) return;
                 delayStartActivity();//TODO hu
                 finish();
             }
@@ -999,8 +1054,7 @@ public class MainActivity extends Activity {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1216,8 +1270,7 @@ public class MainActivity extends Activity {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1226,8 +1279,7 @@ public class MainActivity extends Activity {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1523,8 +1575,7 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
-            canCloseDevice = false;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop) canCloseDevice = false;
         else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;

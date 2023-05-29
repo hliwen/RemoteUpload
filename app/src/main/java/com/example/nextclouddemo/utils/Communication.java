@@ -18,7 +18,7 @@ public class Communication {
 
     private static final String TAG = "MainActivitylog";
 
-    public Communication(){
+    public Communication() {
 
     }
 
@@ -47,7 +47,8 @@ public class Communication {
             JSONObject jsonObject = new JSONObject(content);
             JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
             jsonObject = new JSONObject(jsonArray.getString(0));
-            Uri serverUri = Uri.parse(jsonObject.getString("url"));
+            serverUrlModel.stringServerUri = jsonObject.getString("url");
+            Uri serverUri = Uri.parse(serverUrlModel.stringServerUri);
             serverUrlModel.serverUri = serverUri;
         } catch (Exception e) {
             Log.e(TAG, "getServerUrl: e =" + e);
@@ -94,7 +95,6 @@ public class Communication {
         }
         return deviceInfoModel;
     }
-
 
 
 }

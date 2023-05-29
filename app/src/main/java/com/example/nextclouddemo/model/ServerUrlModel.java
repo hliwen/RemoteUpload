@@ -9,11 +9,12 @@ public class ServerUrlModel {
     public String toString() {
         return "MainActivitylog ServerUrlModel{" +
                 "responseCode=" + responseCode +
-                ", serverUri=" + serverUri +
+                ", stringServerUri=" + stringServerUri +
                 '}';
     }
 
     public Uri serverUri;
+    public String stringServerUri;
 
 
 }
