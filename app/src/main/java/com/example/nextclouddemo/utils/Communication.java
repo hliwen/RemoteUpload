@@ -31,8 +31,7 @@ public class Communication {
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
             serverUrlModel.responseCode = ResponseCode;
-            if (ResponseCode != 200)
-                return serverUrlModel;
+            if (ResponseCode != 200) return serverUrlModel;
 
             InputStream inputStream = urlcon.getInputStream();
             InputStreamReader isr = new InputStreamReader(inputStream, "UTF-8");
@@ -82,14 +81,28 @@ public class Communication {
             jsonObject = new JSONObject(jsonArray.getString(0));
 
             JSONObject deviceObject = new JSONObject(jsonObject.getString("device"));
-
             deviceInfoModel.deveceName = deviceObject.getString("name");
+
             jsonArray = jsonObject.getJSONArray("deviceAttrList");
-            jsonObject = new JSONObject(jsonArray.getString(1));
-            deviceInfoModel.username = jsonObject.getString("attrVal");
-            jsonObject = new JSONObject(jsonArray.getString(2));
-            deviceInfoModel.password = jsonObject.getString("attrVal");
-            deviceInfoModel.returnImei = jsonObject.getString("imei");
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                jsonObject = new JSONObject(jsonArray.getString(i));
+                String attrKey = jsonObject.getString("attrKey");
+                String attrVal = jsonObject.getString("attrVal");
+
+                if ("imei".equals(attrKey)) {
+                    deviceInfoModel.returnImei = attrVal;
+                } else if ("upload_index".equals(attrKey)) {
+                    deviceInfoModel.upload_index = attrVal;
+                } else if ("upload_mode".equals(attrKey)) {
+                    deviceInfoModel.upload_mode = attrVal;
+                } else if ("yunpan_password".equals(attrKey)) {
+                    deviceInfoModel.password = attrVal;
+                } else if ("name".equals(attrKey)) {
+                    deviceInfoModel.username = attrVal;
+                }
+            }
+
         } catch (Exception e) {
             Log.e(TAG, "getDeviceInfo: e =" + e);
         }
