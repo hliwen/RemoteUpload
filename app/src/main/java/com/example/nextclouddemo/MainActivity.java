@@ -160,6 +160,9 @@ public class MainActivity extends Activity {
     private String cameraName;
     private String cameraScanerErroMessage;
 
+    private String copySpeed;
+    private int copyTotalNum;
+
 
     private String uuidString;
 
@@ -433,6 +436,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void storeUSBSaveOnePictureComplete(String speed) {
+            copySpeed = speed;
             runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdNum + "\n同步到USB速度:" + speed);
         }
 
@@ -497,6 +501,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void downloadUpanCount(int size) {
+            copyTotalNum = size;
             runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + size);
         }
 
@@ -594,7 +599,7 @@ public class MainActivity extends Activity {
         @Override
         public void updateUploadSpeed(String speed) {
             Log.d(TAG, "updateUploadSpeed: speed =" + speed);
-            saveUploadUploadSpeed(speed);
+            UploadSpeed = speed;
             runOnUiThreadText(hasUploadpictureNumberText, "已上传张数:" + VariableInstance.getInstance().uploadNum + "\n上传服务器速度：" + speed);
             getInfo();
         }
@@ -777,7 +782,7 @@ public class MainActivity extends Activity {
                         editor.putInt("UploadMode", VariableInstance.getInstance().UploadMode);
                         editor.putString("UploadModeMessage", deviceInfoModel.upload_index);
                         editor.apply();
-                        try{
+                        try {
                             VariableInstance.getInstance().UploadMode = Integer.parseInt(deviceInfoModel.upload_mode);
                             if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
                                 VariableInstance.getInstance().uploadSelectIndexList.clear();
@@ -792,7 +797,7 @@ public class MainActivity extends Activity {
                                     }
                                 }
                             }
-                        }catch (Exception e){
+                        } catch (Exception e) {
 
                         }
                     }
@@ -1226,6 +1231,8 @@ public class MainActivity extends Activity {
     private int UpanPictureCount = 0;
     private long UploadUseTime;
 
+    private String UploadSpeed;
+
     private String serverGetInfo() {
         int capacityA = 0;
         int freeSpaceA = 0;
@@ -1270,8 +1277,29 @@ public class MainActivity extends Activity {
             }
         }
 
+        if (UploadSpeed == null)
+            UploadSpeed = "0";
 
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + getUploadploadSpeed() + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";";
+        String info = "4gCcid," + getPhoneNumber() +
+                ";UploadSpeed," + UploadSpeed +
+                ";4gCsq," + getSignalStrength() +
+                ";SdFree," + freeSpace +
+                ";SdFull," + capacity +
+                ";PhotoSum," + UpanPictureCount +
+                ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum +
+                ";UploadMode," + uploadModelString +
+                ";UploadUseTime," + UploadUseTime +
+                ";Version," + appVerison +
+                ";initUSB," + VariableInstance.getInstance().initUSB +
+                ";connectCamera," + VariableInstance.getInstance().connectCamera +
+                ";cameraPictureCount," + cameraPictureCount +
+                ";cameraName," + cameraName +
+                ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) +
+                ";copySpeed," + copySpeed +
+                ";copyTotalNum," + copyTotalNum +
+                ";copyCompleteNum," + VariableInstance.getInstance().downdNum +
+                ";";
+
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
     }
@@ -1548,17 +1576,17 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void saveUploadUploadSpeed(String uploadSpeed) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putString("uploadSpeed", uploadSpeed);
-        editor.apply();
-    }
-
-    private String getUploadploadSpeed() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        String uploadSpeed = sharedPreferences.getString("uploadSpeed", "0");
-        return uploadSpeed;
-    }
+//    private void saveUploadUploadSpeed(String uploadSpeed) {
+//        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+//        editor.putString("uploadSpeed", uploadSpeed);
+//        editor.apply();
+//    }
+//
+//    private String getUploadploadSpeed() {
+//        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+//        String uploadSpeed = sharedPreferences.getString("uploadSpeed", "0");
+//        return uploadSpeed;
+//    }
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
