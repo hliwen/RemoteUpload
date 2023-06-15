@@ -98,7 +98,7 @@ public class Communication {
                     deviceInfoModel.upload_mode = attrVal;
                 } else if ("yunpan_password".equals(attrKey)) {
                     deviceInfoModel.password = attrVal;
-                } else if ("name".equals(attrKey)) {
+                } else if ("monitor_email".equals(attrKey)) {
                     deviceInfoModel.username = attrVal;
                 }
             }
