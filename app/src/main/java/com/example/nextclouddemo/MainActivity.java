@@ -1590,7 +1590,7 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop)
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB)
             canCloseDevice = false;
         else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);

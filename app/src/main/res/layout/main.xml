@@ -73,9 +73,6 @@
                 style="@style/ButtonStyle"
                 android:onClick="onClickHandler"
                 android:text="@string/formatcamera" />
-
-
-
         </LinearLayout>
 
     </ScrollView>

@@ -30,6 +30,7 @@ public class VariableInstance {
     public boolean formarCamera;
     public boolean connectCamera;
     public boolean initUSB;
+    public boolean initingUSB;
 
     public boolean isUploadToday = true;
 

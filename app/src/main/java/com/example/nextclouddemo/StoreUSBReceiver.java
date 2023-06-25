@@ -288,6 +288,7 @@ public class StoreUSBReceiver extends BroadcastReceiver {
                     storeUSBListener.storeUSBDeviceDetached();
                     VariableInstance.getInstance().downdNum = 0;
                     VariableInstance.getInstance().uploadNum = 0;
+                    VariableInstance.getInstance().initingUSB = false;
                     Log.d(TAG, "onReceive: usbFileNameList.clear 2222222222222222  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
                     VariableInstance.getInstance().usbFileNameList.clear();
                 } else {
@@ -422,7 +423,9 @@ public class StoreUSBReceiver extends BroadcastReceiver {
             return false;
         } else {
             VariableInstance.getInstance().initUSB = true;
+            VariableInstance.getInstance().initingUSB = true;
             getUSBPictureCount();
+            VariableInstance.getInstance().initingUSB = false;
             storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
         }
         return true;
