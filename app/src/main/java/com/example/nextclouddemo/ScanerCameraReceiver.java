@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ScanerUSBReceiver extends BroadcastReceiver {
+public class ScanerCameraReceiver extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";
     public static final String CHECK_PERMISSION = "CHECK_PERMISSION";
     private ExecutorService scanerThreadExecutor;
@@ -45,7 +45,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
 
     private String tfCardPictureDir;
     private String tfCardUploadPictureDir;
-    private ScanerUSBListener downloadFlieListener;
+    private ScanerCameraListener downloadFlieListener;
     private ArrayList<SameDayPicutreInfo> pictureInfoList;
     private int cameraTotalPicture;
 
@@ -121,7 +121,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
     }
 
 
-    public ScanerUSBReceiver(Context context, ScanerUSBListener downloadFlieListener) {
+    public ScanerCameraReceiver(Context context, ScanerCameraListener downloadFlieListener) {
         this.downloadFlieListener = downloadFlieListener;
         this.tfCardPictureDir = VariableInstance.getInstance().TFCardPictureDir;
         this.tfCardUploadPictureDir = VariableInstance.getInstance().TFCardUploadPictureDir;
@@ -797,7 +797,7 @@ public class ScanerUSBReceiver extends BroadcastReceiver {
         return false;
     }
 
-    public interface ScanerUSBListener {
+    public interface ScanerCameraListener {
         void addUploadRemoteFile(UploadFileModel uploadFileModel);
 
         void startDownload();

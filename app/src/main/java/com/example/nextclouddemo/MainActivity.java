@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
     private MyHandler mHandler;
     private OwnCloudClient mClient;
     private Communication communication;
-    private ScanerUSBReceiver scanerUSBReceiver;
+    private ScanerCameraReceiver scanerCameraReceiver;
     private StoreUSBReceiver storeUSBReceiver;
     private RemoteOperationUtils operationUtils;
     private CameraHelper mCameraHelper;
@@ -356,7 +356,7 @@ public class MainActivity extends Activity {
 
             runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 
-            if (scanerUSBReceiver == null) registerScanerUSBReceiver();
+            if (scanerCameraReceiver == null) registerScanerCameraReceiver();
 
             if (VariableInstance.getInstance().deviceStyle == 1) {
                 initCellularNetWork();
@@ -398,8 +398,8 @@ public class MainActivity extends Activity {
 
         @Override
         public void storeUSBDeviceDetached() {
-            if (scanerUSBReceiver != null) {
-                scanerUSBReceiver.storeUSBDetached();
+            if (scanerCameraReceiver != null) {
+                scanerCameraReceiver.storeUSBDetached();
                 openDeviceProt(false);
             }
         }
@@ -423,7 +423,7 @@ public class MainActivity extends Activity {
     };
 
 
-    private ScanerUSBReceiver.ScanerUSBListener scanerUSBListener = new ScanerUSBReceiver.ScanerUSBListener() {
+    private ScanerCameraReceiver.ScanerCameraListener scanerCameraListener = new ScanerCameraReceiver.ScanerCameraListener() {
         @Override
         public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
             Log.d(TAG, "downloadOneFileDone: uploading =" + remoteUploading);
@@ -514,32 +514,6 @@ public class MainActivity extends Activity {
     };
 
 
-    private static void delayStartActivity() {
-        DataOutputStream localDataOutputStream = null;
-        try {
-            Runtime runtime = Runtime.getRuntime();
-            Process process = runtime.exec("su");
-            OutputStream localOutputStream = process.getOutputStream();
-            localDataOutputStream = new DataOutputStream(localOutputStream);
-
-            String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
-            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
-            localDataOutputStream.flush();
-        } catch (Exception e) {
-            Log.e(TAG, "installSilent Exception =" + e);
-        } finally {
-            try {
-                if (localDataOutputStream != null) {
-                    localDataOutputStream.close();
-                }
-
-            } catch (IOException e) {
-                Log.e(TAG, "installSilent IOException =" + e);
-            }
-        }
-        Log.e(TAG, "installSilent: end ");
-    }
-
     RemoteOperationUtils.RemoteOperationListener remoteOperationListener = new RemoteOperationUtils.RemoteOperationListener() {
         @Override
         public void allFileUploadComplete(long totalTime) {
@@ -628,13 +602,13 @@ public class MainActivity extends Activity {
     };
 
 
-    private void registerScanerUSBReceiver() {
-        scanerUSBReceiver = new ScanerUSBReceiver(getApplicationContext(), scanerUSBListener);
+    private void registerScanerCameraReceiver() {
+        scanerCameraReceiver = new ScanerCameraReceiver(getApplicationContext(), scanerCameraListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        intentFilter.addAction(ScanerUSBReceiver.CHECK_PERMISSION);
-        registerReceiver(scanerUSBReceiver, intentFilter);
+        intentFilter.addAction(ScanerCameraReceiver.CHECK_PERMISSION);
+        registerReceiver(scanerCameraReceiver, intentFilter);
     }
 
     private void registerStoreUSBReceiver() {
@@ -825,8 +799,8 @@ public class MainActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (scanerUSBReceiver != null) {
-            unregisterReceiver(scanerUSBReceiver);
+        if (scanerCameraReceiver != null) {
+            unregisterReceiver(scanerCameraReceiver);
         }
 
         if (storeUSBReceiver != null) {
@@ -971,14 +945,37 @@ public class MainActivity extends Activity {
 
                 if (storeUSBReceiver != null) storeUSBReceiver.formatStoreUSB();
 
-                if (scanerUSBReceiver != null) {
-                    scanerUSBReceiver.storeUSBDetached();
+                if (scanerCameraReceiver != null) {
+                    scanerCameraReceiver.storeUSBDetached();
                 }
                 formatingUSB = false;
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
                 Log.d(TAG, "send  msg_send_ShutDown 333333333333333333333333");
                 if (isUpdating) return;
-                delayStartActivity();//TODO hu
+
+                DataOutputStream localDataOutputStream = null;
+                try {
+                    Runtime runtime = Runtime.getRuntime();
+                    Process process = runtime.exec("su");
+                    OutputStream localOutputStream = process.getOutputStream();
+                    localDataOutputStream = new DataOutputStream(localOutputStream);
+
+                    String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
+                    localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+                    localDataOutputStream.flush();
+                } catch (Exception e) {
+
+                } finally {
+                    try {
+                        if (localDataOutputStream != null) {
+                            localDataOutputStream.close();
+                        }
+
+                    } catch (IOException e) {
+
+                    }
+                }
+
                 finish();
             }
         }).start();
@@ -996,8 +993,8 @@ public class MainActivity extends Activity {
             public void run() {
                 VariableInstance.getInstance().formarCamera = true;
 
-                if (scanerUSBReceiver != null) {
-                    scanerUSBReceiver.formatCamera();
+                if (scanerCameraReceiver != null) {
+                    scanerCameraReceiver.formatCamera();
                 }
                 formatingCamera = false;
                 Log.d(TAG, "send msg_send_ShutDown 4444444444444444");
