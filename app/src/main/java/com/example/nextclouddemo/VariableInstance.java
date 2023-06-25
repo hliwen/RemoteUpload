@@ -1,5 +1,10 @@
 package com.example.nextclouddemo;
 
+import android.os.Environment;
+import android.util.Log;
+
+import com.example.nextclouddemo.utils.Utils;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -31,7 +36,6 @@ public class VariableInstance {
     public boolean connectCamera;
     public boolean initUSB;
     public boolean initingUSB;
-
     public boolean isUploadToday = true;
 
     public Vector<String> usbFileNameList;
@@ -47,14 +51,17 @@ public class VariableInstance {
         PictureUploadDirName = "CameraUploadPath";
         VideoDirName = "VideoPath";
         LogcatDirName = "MLogcat";
-
         sdCardDirRoot = "/mnt/sdcard" + File.separator;
+
         TFCardPictureDir = sdCardDirRoot + PictureDirName;
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
         TFCardVideoDir = sdCardDirRoot + VideoDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
         usbFileNameList = new Vector<>();
         storeUSBDeviceID = -1;
+
+        Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
+        Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
     }
 
 
@@ -68,5 +75,4 @@ public class VariableInstance {
         }
         return instance;
     }
-
 }

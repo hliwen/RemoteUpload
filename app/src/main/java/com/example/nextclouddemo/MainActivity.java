@@ -14,7 +14,6 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
-import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -30,7 +29,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -49,7 +47,6 @@ import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
-import com.example.nextclouddemo.utils.SilentInstallUtils;
 import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
 import com.github.mjdev.libaums.fs.UsbFile;
@@ -102,30 +99,30 @@ public class MainActivity extends Activity {
 
     private static final int delay_crate_acitivity_time = 10 * 1000;
     private static String TAG = "MainActivitylog";
-    private MyHandler mHandler;
-    private OwnCloudClient mClient;
-    private ScanerUSBReceiver scanerUSBReceiver;
-    private StoreUSBReceiver storeUSBReceiver;
 
-    char mGpioCharB = 'b';
     private String returnImei;
     private String deveceName;
-    private Communication communication;
     private boolean doingInit;
-    private RemoteOperationUtils operationUtils;
-
     private String messageTextString;
-
-    private CameraHelper mCameraHelper;
     private long lastOpenCameraTime;
-
-
     private boolean isUpdating;
-
     private boolean remoteUploading;
     private boolean localDownling;
     private boolean openDeviceProtFlag;
-
+    private int signalStrengthValue;
+    private int appVerison;
+    private int cameraPictureCount;
+    private String cameraName;
+    private String copySpeed;
+    private int copyTotalNum;
+    private String uuidString;
+    private MyHandler mHandler;
+    private OwnCloudClient mClient;
+    private Communication communication;
+    private ScanerUSBReceiver scanerUSBReceiver;
+    private StoreUSBReceiver storeUSBReceiver;
+    private RemoteOperationUtils operationUtils;
+    private CameraHelper mCameraHelper;
     private RelativeLayout surfaceViewParent;
     private TextView messageText;
     private TextView UpanSpaceText;
@@ -149,22 +146,8 @@ public class MainActivity extends Activity {
     private TextView cameraDeviceText;
     private TextView cameraScanerErroMessageText;
     private TextView FormatUSBButton;
-
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
-    private int signalStrengthValue;
-    private int appVerison;
-
-
-    private int cameraPictureCount;
-    private String cameraName;
-    private String cameraScanerErroMessage;
-
-    private String copySpeed;
-    private int copyTotalNum;
-
-
-    private String uuidString;
 
 
     @SuppressLint("SetTextI18n")
@@ -176,10 +159,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.main);
         openDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
-
         UUID uuid = UUID.randomUUID();
         uuidString = uuid.toString();
-
         mHandler.removeMessages(msg_delay_creta_acitivity);
         mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
     }
@@ -215,7 +196,6 @@ public class MainActivity extends Activity {
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
-        openDeviceProt(false);
         openNetworkLed(true);
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -529,7 +509,6 @@ public class MainActivity extends Activity {
 
         @Override
         public void scanErroCode(String erromsg) {
-            cameraScanerErroMessage = erromsg;
             runOnUiThreadText(cameraScanerErroMessageText, "相机名称：" + erromsg);
         }
     };
@@ -1038,8 +1017,7 @@ public class MainActivity extends Activity {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1257,8 +1235,7 @@ public class MainActivity extends Activity {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1267,8 +1244,7 @@ public class MainActivity extends Activity {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1277,28 +1253,9 @@ public class MainActivity extends Activity {
             }
         }
 
-        if (UploadSpeed == null)
-            UploadSpeed = "0";
+        if (UploadSpeed == null) UploadSpeed = "0";
 
-        String info = "4gCcid," + getPhoneNumber() +
-                ";UploadSpeed," + UploadSpeed +
-                ";4gCsq," + getSignalStrength() +
-                ";SdFree," + freeSpace +
-                ";SdFull," + capacity +
-                ";PhotoSum," + UpanPictureCount +
-                ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum +
-                ";UploadMode," + uploadModelString +
-                ";UploadUseTime," + UploadUseTime +
-                ";Version," + appVerison +
-                ";initUSB," + VariableInstance.getInstance().initUSB +
-                ";connectCamera," + VariableInstance.getInstance().connectCamera +
-                ";cameraPictureCount," + cameraPictureCount +
-                ";cameraName," + cameraName +
-                ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) +
-                ";copySpeed," + copySpeed +
-                ";copyTotalNum," + copyTotalNum +
-                ";copyCompleteNum," + VariableInstance.getInstance().downdNum +
-                ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdNum + ";";
 
         Log.e(TAG, "serverGetInfo: info =" + info);
         return info;
@@ -1379,9 +1336,9 @@ public class MainActivity extends Activity {
 
         if (debug) return;
         if (open) {
-            LedControl.writeGpio(mGpioCharB, 2, 1);
+            LedControl.writeGpio('b', 2, 1);
         } else {
-            LedControl.writeGpio(mGpioCharB, 2, 0);
+            LedControl.writeGpio('b', 2, 0);
         }
     }
 
@@ -1389,9 +1346,9 @@ public class MainActivity extends Activity {
         Log.d(TAG, "openNetworkLed: 网络端口 led: " + (open ? "打开" : "关闭"));
         if (debug) return;
         if (open) {
-            LedControl.writeGpio(mGpioCharB, 3, 1);//打开网络
+            LedControl.writeGpio('b', 3, 1);//打开网络
         } else {
-            LedControl.writeGpio(mGpioCharB, 3, 0);//打开网络
+            LedControl.writeGpio('b', 3, 0);//打开网络
         }
     }
 
@@ -1590,8 +1547,7 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB)
-            canCloseDevice = false;
+        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB) canCloseDevice = false;
         else canCloseDevice = true;
         Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
         return canCloseDevice;
