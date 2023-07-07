@@ -1254,7 +1254,7 @@ public class MainActivity extends Activity {
 
         String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdNum + ";";
 
-        Log.e(TAG, "serverGetInfo: info =" + info);
+        Log.e(TAG, "serverGetInfo: 1info =" + info);
         return info;
     }
 
