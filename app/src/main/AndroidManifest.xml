@@ -47,7 +47,6 @@
         android:label="@string/app_name"
         android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:sharedUserId="android.uid.system"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         tools:targetApi="m">
@@ -58,7 +57,6 @@
             android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.MONKEY" />
                 <category android:name="android.intent.category.HOME" />

@@ -1267,14 +1267,21 @@ public class MainActivity extends Activity {
         else return "1";
     }
 
+    @SuppressLint("HardwareIds")
     private String getPhoneNumber() {
         try {
             TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-            @SuppressLint({"HardwareIds", "MissingPermission"}) String number = telephonyManager.getLine1Number();
-            Log.d(TAG, "getPhoneNumber: 11number =" + number);
+            String number = telephonyManager.getLine1Number();
+
+            if (number == null) {
+                number = telephonyManager.getSimSerialNumber();
+            }
+
             if (number == null) {
                 number = "0";
             }
+            Log.d(TAG, "getPhoneNumber: 11number =" + number);
+
             return number;
         } catch (Exception | Error e) {
             Log.e(TAG, "getPhoneNumber: Exception =" + e);
