@@ -5,9 +5,7 @@ import java.util.Objects;
 public class UploadFileModel {
     public String localPath;
 
-
     public UploadFileModel(String localPath) {
-
         this.localPath = localPath;
     }
 

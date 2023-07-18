@@ -51,7 +51,6 @@ import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
 import com.github.mjdev.libaums.fs.UsbFile;
 import com.github.mjdev.libaums.fs.UsbFileInputStream;
-import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
 import com.owncloud.android.lib.common.OwnCloudCredentialsFactory;
 
@@ -117,7 +116,7 @@ public class MainActivity extends Activity {
     private int copyTotalNum;
     private String uuidString;
     private MyHandler mHandler;
-    private OwnCloudClient mClient;
+
     private Communication communication;
     private ScanerCameraReceiver scanerCameraReceiver;
     private StoreUSBReceiver storeUSBReceiver;
@@ -144,7 +143,7 @@ public class MainActivity extends Activity {
     private TextView updateResultText;
     private TextView cameraPictureCountText;
     private TextView cameraDeviceText;
-    private TextView cameraScanerErroMessageText;
+
     private TextView FormatUSBButton;
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
@@ -236,7 +235,7 @@ public class MainActivity extends Activity {
         updateResultText = findViewById(R.id.updateResultText);
         cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
         cameraDeviceText = findViewById(R.id.cameraDeviceText);
-        cameraScanerErroMessageText = findViewById(R.id.cameraScanerErroMessageText);
+
         FormatUSBButton = findViewById(R.id.FormatUSB);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
@@ -427,7 +426,7 @@ public class MainActivity extends Activity {
         @Override
         public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
             Log.d(TAG, "downloadOneFileDone: uploading =" + remoteUploading);
-            operationUtils.addUploadRemoteFile(uploadFileModel);
+            operationUtils.addUploadRemoteFile(uploadFileModel,false);
         }
 
         @Override
@@ -509,7 +508,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void scanErroCode(String erromsg) {
-            runOnUiThreadText(cameraScanerErroMessageText, "相机名称：" + erromsg);
+            Log.e(TAG, "scanErroCode: erromsg =" + erromsg);
         }
     };
 
@@ -543,7 +542,7 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void pictureUploadEnd() {
+        public void pictureUploadEnd(boolean uploadResult) {
             Log.d(TAG, "fileUploadEnd: ");
             remoteUploading = false;
         }
@@ -698,8 +697,6 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-
-
                     ServerUrlModel serverUrlModel = communication.getServerUrl();
                     Log.e(TAG, "initAddress: serverUrlModel =" + serverUrlModel);
                     if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
@@ -756,19 +753,19 @@ public class MainActivity extends Activity {
                     }
 
 
-                    mClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
-                    mClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
-                    operationUtils.mClient = mClient;
+                    VariableInstance.getInstance().ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
+                    VariableInstance.getInstance().ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
 
-                    operationUtils.connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
-                    Log.e(TAG, "initAddress:   operationUtils.connectRemote =" + operationUtils.connectRemote);
-                    updateServerStateUI(operationUtils.connectRemote);
-                    if (operationUtils.connectRemote) {
+
+                    VariableInstance.getInstance().connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
+                    Log.e(TAG, "initAddress:   operationUtils.connectRemote =" + VariableInstance.getInstance().connectRemote);
+                    updateServerStateUI(VariableInstance.getInstance().connectRemote);
+                    if (VariableInstance.getInstance().connectRemote) {
                         mHandler.removeMessages(msg_close_device);
                         Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
                         mHandler.removeMessages(msg_reload_device_info);
-                        operationUtils.startUploadThread();
-                        operationUtils.startVideoWorkThread();
+                        operationUtils.startCameraPictureUploadThread();
+
                     } else {
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
@@ -814,7 +811,7 @@ public class MainActivity extends Activity {
         closeCamera();
         openDeviceProt(false);
         operationUtils.stopUploadThread();
-        operationUtils.stopUploadVideoThread();
+
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
         EventBus.getDefault().unregister(this);
@@ -1121,7 +1118,7 @@ public class MainActivity extends Activity {
         mCameraHelper = new CameraHelper(new CameraHelper.CameraHelperListener() {
             @Override
             public void addPicture(String path) {
-                operationUtils.addVideoFile(path);
+
             }
 
             @Override

@@ -67,7 +67,6 @@
                 android:padding="5dp"
                 android:text="@string/formatusb" />
 
-
             <TextView
                 android:id="@+id/FormatCamera"
                 style="@style/ButtonStyle"
@@ -77,235 +76,226 @@
 
     </ScrollView>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginStart="125dp"
-        android:orientation="vertical">
+ <ScrollView
+     android:layout_width="wrap_content"
+     android:layout_height="wrap_content">
+     <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:layout_marginStart="125dp"
+         android:orientation="vertical">
 
 
-        <TextView
-            android:id="@+id/currentVersionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/currentVersion"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/currentVersionText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="5dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/currentVersion"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/serverVersionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/serverversionT"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/serverVersionText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/serverversionT"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/cameraStateText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/camerastatetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/cameraStateText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/camerastatetext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/isConnectNetworkText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/isconnectnetworktext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/isConnectNetworkText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/isconnectnetworktext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/serverStateText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/serverstatetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/serverStateText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/serverstatetext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/mqttStateText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/mqttstatetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-
-        <TextView
-            android:id="@+id/accessNumberText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/accessnumbertext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/remoteNameText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/remotenametext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/uploadModelText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/uploadmodeltext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/mqttStateText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/mqttstatetext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
 
-        <TextView
-            android:id="@+id/UpanSpaceText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/upanspacetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/accessNumberText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/accessnumbertext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/UpanPictureCountText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/upanpicturecounttext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/remoteNameText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/remotenametext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/cameraPictureCountText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/camera_picture_count"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/cameraDeviceText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/camera_device_name"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/uploadModelText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/uploadmodeltext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
 
-        <TextView
-            android:id="@+id/uploadNumberText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/uploadnumbertext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/UpanSpaceText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/upanspacetext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/uploadUseTimeText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/uploadusetimetext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
+         <TextView
+             android:id="@+id/UpanPictureCountText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/upanpicturecounttext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
+         <TextView
+             android:id="@+id/cameraPictureCountText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/camera_picture_count"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
-        <TextView
-            android:id="@+id/hasUploadpictureNumberText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/hasuploadpicturenumbertext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/hasDownloadPictureNumberText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text="@string/hasdownloadpicturenumbertext"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-
-        <TextView
-            android:id="@+id/updateResultText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/downloadAppProgressText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:text=""
-            android:textColor="#000000"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/cameraScanerErroMessageText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:background="#ffffff"
-            android:onClick="onClickHandler"
-            android:textColor="#000000"
-            android:textSize="11sp"
-            android:text="@string/cameraScanerErroMessageText" />
+         <TextView
+             android:id="@+id/cameraDeviceText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/camera_device_name"
+             android:textColor="#000000"
+             android:textSize="11sp" />
 
 
-    </LinearLayout>
+         <TextView
+             android:id="@+id/uploadNumberText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/uploadnumbertext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
+
+         <TextView
+             android:id="@+id/uploadUseTimeText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/uploadusetimetext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
+
+
+         <TextView
+             android:id="@+id/hasUploadpictureNumberText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/hasuploadpicturenumbertext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
+
+         <TextView
+             android:id="@+id/hasDownloadPictureNumberText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text="@string/hasdownloadpicturenumbertext"
+             android:textColor="#000000"
+             android:textSize="11sp" />
+
+
+         <TextView
+             android:id="@+id/updateResultText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:textColor="#000000"
+             android:textSize="11sp" />
+
+         <TextView
+             android:id="@+id/downloadAppProgressText"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="1dp"
+             android:background="#ffffff"
+             android:onClick="onClickHandler"
+             android:text=""
+             android:textColor="#000000"
+             android:textSize="11sp" />
+     </LinearLayout>
+ </ScrollView>
 
     <ScrollView
         android:layout_width="match_parent"

@@ -4,6 +4,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.example.nextclouddemo.utils.Utils;
+import com.owncloud.android.lib.common.OwnCloudClient;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -42,7 +43,11 @@ public class VariableInstance {
     public int LastPictureCount;
     public boolean isScanerStoreUSB;
     public int storeUSBDeviceID = -1;
+    public boolean connectRemote;
+    public OwnCloudClient ownCloudClient;
 
+    private boolean cameraPictureScanning;
+    private boolean cameraPictureDownloading;
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();

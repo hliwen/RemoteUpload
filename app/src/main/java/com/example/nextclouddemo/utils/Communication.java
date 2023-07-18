@@ -24,14 +24,14 @@ public class Communication {
 
     public ServerUrlModel getServerUrl() {
         ServerUrlModel serverUrlModel = new ServerUrlModel();
-
-        URL url = null;
         try {
-            url = new URL(UrlUtils.serverUri);
+            URL url = new URL(UrlUtils.serverUri);
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
             serverUrlModel.responseCode = ResponseCode;
-            if (ResponseCode != 200) return serverUrlModel;
+            if (ResponseCode != 200) {
+                return serverUrlModel;
+            }
 
             InputStream inputStream = urlcon.getInputStream();
             InputStreamReader isr = new InputStreamReader(inputStream, "UTF-8");
@@ -55,10 +55,10 @@ public class Communication {
         return serverUrlModel;
     }
 
-    public DeviceInfoModel getDeviceInfo(String PhoneImei) {
+    public DeviceInfoModel getDeviceInfo(String phoneImei) {
         DeviceInfoModel deviceInfoModel = new DeviceInfoModel();
         try {
-            URL url = new URL(UrlUtils.deviceInfoPrefix + PhoneImei + UrlUtils.deviceInfoSuffix);
+            URL url = new URL(UrlUtils.deviceInfoPrefix + phoneImei + UrlUtils.deviceInfoSuffix);
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
             deviceInfoModel.responseCode = ResponseCode;
@@ -71,8 +71,8 @@ public class Communication {
 
             StringBuffer buffer = new StringBuffer();
             String line;
-            while ((line = reader.readLine()) != null) {//如果还没有读完
-                buffer.append(line);//一直追加内容
+            while ((line = reader.readLine()) != null) {
+                buffer.append(line);
             }
             String content = buffer.toString();
             Log.d(TAG, "run:getAccout content = " + content);
