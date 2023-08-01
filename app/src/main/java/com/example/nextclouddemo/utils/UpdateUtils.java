@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
 
 public class UpdateUtils {
 
@@ -45,13 +46,13 @@ public class UpdateUtils {
                 if (updateListener != null)
                     updateListener.serverVersion(servierVersion);
 
-                Log.e(TAG, "run: appVerison =" + appVerison + ",servierVersion =" + servierVersion);
+                Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
 
                 if (servierVersion > appVerison) {
                     boolean downloadSucced = startDownloadApp(UrlUtils.appDowloadURL + servierVersion);
                     Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
                     if (downloadSucced) {
-                        downloadSucceed(context, downloadPath);
+                        downloadSucceed(downloadPath);
                     } else {
                         downloadFaild();
                     }
@@ -150,14 +151,15 @@ public class UpdateUtils {
         return downloadSucced;
     }
 
-    private void downloadSucceed(Context context, String filaPath) {
+    private void downloadSucceed(String filaPath) {
         try {
             if (updateListener != null)
                 updateListener.startUpdate();
             execLinuxCommand();
-            boolean installSuccess = SilentInstallUtils.installSilent(filaPath);
-            if (updateListener != null)
-                updateListener.updateResult(installSuccess);
+            boolean installSuccess = installSilent(filaPath);
+            if (updateListener != null) {
+                updateListener.endUpdate(installSuccess);
+            }
             Log.e(TAG, "downloadSucceed: installSuccess =" + installSuccess);
         } catch (Exception e) {
             Log.e(TAG, "downloadSucceed: Exception =" + e);
@@ -184,6 +186,113 @@ public class UpdateUtils {
 
     }
 
+    public static boolean installSilent(String path) {
+        boolean result = false;
+        BufferedReader es = null;
+        DataOutputStream os = null;
+
+        try {
+            Process process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+
+            Log.d(TAG, "installSilent:1111 ");
+
+            String command = "pm install -r " + path + "\n";
+            os.write(command.getBytes(Charset.forName("utf-8")));
+            os.flush();
+            os.writeBytes("exit\n");
+            os.flush();
+            Log.d(TAG, "installSilent:222222 ");
+
+            process.waitFor();
+            es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            StringBuilder builder = new StringBuilder();
+            while ((line = es.readLine()) != null) {
+                builder.append(line);
+            }
+            Log.d(TAG, "install msg is " + builder.toString());
+
+        /* Installation is considered a Failure if the result contains
+            the Failure character, or a success if it is not.
+             */
+            if (!builder.toString().contains("Failure")) {
+                result = true;
+            } else {
+                delayInstall(path);
+                uninstallapk();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "installSilent Exception =" + e);
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+                if (es != null) {
+                    es.close();
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "installSilent IOException =" + e);
+            }
+        }
+        Log.e(TAG, "installSilent: result = " + result);
+        return result;
+    }
+
+    private static void delayInstall(String path) {
+        DataOutputStream localDataOutputStream = null;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process process = runtime.exec("su");
+            OutputStream localOutputStream = process.getOutputStream();
+            localDataOutputStream = new DataOutputStream(localOutputStream);
+
+            String command = "sleep 10; pm install -r " + path + "\n";
+            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            localDataOutputStream.flush();
+        } catch (Exception e) {
+            Log.e(TAG, "installSilent Exception =" + e);
+        } finally {
+            try {
+                if (localDataOutputStream != null) {
+                    localDataOutputStream.close();
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, "installSilent IOException =" + e);
+            }
+        }
+        Log.e(TAG, "installSilent: end ");
+
+    }
+
+    private static void uninstallapk() {
+        Process process = null;
+        DataOutputStream os = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+
+            Log.d(TAG, "installSilent:1111 ");
+
+            String command = "pm uninstall com.example.nextclouddemo" + "\n";
+            os.write(command.getBytes(Charset.forName("utf-8")));
+            os.flush();
+            os.writeBytes("exit\n");
+            os.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
 
     public interface UpdateListener {
         void serverVersion(int version);
@@ -192,6 +301,6 @@ public class UpdateUtils {
 
         void startUpdate();
 
-        void updateResult(boolean succeed);
+        void endUpdate(boolean succeed);
     }
 }

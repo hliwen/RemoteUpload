@@ -17,6 +17,7 @@ import android.net.NetworkRequest;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,16 +25,11 @@ import android.os.Message;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.blankj.utilcode.util.AppUtils;
@@ -71,13 +67,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class MainActivity extends Activity {
-
-    //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
-
     public static final boolean debug = false;
 
-    private static final String Record1 = "Start,Record1;";
-    private static final String Record2 = "Start,Record2;";
     private static final String FormatUSB = "Start,Format;";
     private static final String FormatTF = "Start,FormatTF;";
     private static final String FormatCamera = "Start,FormatCamera;";
@@ -90,23 +81,19 @@ public class MainActivity extends Activity {
     private static final String return2GImei = "return2GImei";
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
-
     private static final String UploadToday = "Set,UploadToday,";
-
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
-    private static final int delay_crate_acitivity_time = 10 * 1000;
+    private static final int delay_crate_acitivity_time = 5 * 1000;
     private static String TAG = "MainActivitylog";
 
     private String returnImei;
     private String deveceName;
     private boolean doingInit;
     private String messageTextString;
-    private long lastOpenCameraTime;
     private boolean isUpdating;
-    private boolean remoteUploading;
-    private boolean localDownling;
+
     private boolean openDeviceProtFlag;
     private int signalStrengthValue;
     private int appVerison;
@@ -118,11 +105,9 @@ public class MainActivity extends Activity {
     private MyHandler mHandler;
 
     private Communication communication;
-    private ScanerCameraReceiver scanerCameraReceiver;
-    private StoreUSBReceiver storeUSBReceiver;
+    private ReceiverCamera receiverCamera;
+    private ReceiverStoreUSB receiverStoreUSB;
     private RemoteOperationUtils operationUtils;
-    private CameraHelper mCameraHelper;
-    private RelativeLayout surfaceViewParent;
     private TextView messageText;
     private TextView UpanSpaceText;
     private TextView accessNumberText;
@@ -148,6 +133,8 @@ public class MainActivity extends Activity {
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
 
+    private boolean sendShutDown;
+    private boolean networkAvailable;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -156,7 +143,7 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main);
-        openDeviceProt(false);
+        openCameraDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
         UUID uuid = UUID.randomUUID();
         uuidString = uuid.toString();
@@ -167,16 +154,24 @@ public class MainActivity extends Activity {
 
     void delayCreate() {
         getUploadToday();
+        VariableInstance.getInstance().isFormaringCamera = false;
+        VariableInstance.getInstance().isConnectCamera = false;
+        VariableInstance.getInstance().isInitUSB = false;
+        VariableInstance.getInstance().initingUSB = false;
+        VariableInstance.getInstance().isConnectedRemote = false;
+        VariableInstance.getInstance().isFormatingUSB = false;
+        VariableInstance.getInstance().uploadRemorePictureNum = 0;
+        VariableInstance.getInstance().downdCameraPicrureNum = 0;
+        VariableInstance.getInstance().LastPictureCount = 0;
+        VariableInstance.getInstance().storeUSBDeviceID = -1;
+        VariableInstance.getInstance().isScanningStoreUSB = false;
+        VariableInstance.getInstance().isDownloadingUSB = false;
+        VariableInstance.getInstance().usbFileNameList.clear();
+
         communication = new Communication();
         updateUtils = new UpdateUtils(updateListener);
         operationUtils = new RemoteOperationUtils(remoteOperationListener);
-        VariableInstance.getInstance().formarCamera = false;
-        VariableInstance.getInstance().downdNum = 0;
-        VariableInstance.getInstance().uploadNum = 0;
-        VariableInstance.getInstance().usbFileNameList.clear();
-        Log.d(TAG, "usbFileNameList.clear 111111111  isScanerStoreUSB =" + VariableInstance.getInstance().isScanerStoreUSB);
-        VariableInstance.getInstance().connectCamera = false;
-        VariableInstance.getInstance().initUSB = false;
+
 
         initView();
 
@@ -185,13 +180,10 @@ public class MainActivity extends Activity {
             requestPermissions(value, 111);
         }
 
-        mHandler.removeMessages(msg_close_device);
-        Log.d(TAG, "  remove msg_close_device 1111111111111");
-        mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-        Log.d(TAG, "  send msg_close_device 2222222222222");
         EventBus.getDefault().register(this);
-        getUploadModel();
 
+        sendCloseDeviceMessage(1);
+        getUploadModel();
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
@@ -199,22 +191,31 @@ public class MainActivity extends Activity {
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+        registerStoreUSBReceiver();
 
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                registerStoreUSBReceiver();
-                if (!debug) openCamera();
+        if (debug) {
+            initCellularNetWork();
+        }
+    }
 
-                if (debug) initCellularNetWork();
-            }
-        }, 3000);
+
+    private void sendCloseDeviceMessage(int position) {
+        Log.e(TAG, "sendCloseDeviceMessage: position =" + position);
+        Message message = new Message();
+        message.what = msg_close_device;
+        message.arg1 = position;
+        mHandler.sendMessageDelayed(message, close_device_timeout);
+    }
+
+    private void removeCloseDeviceMessage(int position) {
+        Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
+        mHandler.removeMessages(msg_close_device);
     }
 
 
     @SuppressLint("SetTextI18n")
     private void initView() {
-        surfaceViewParent = findViewById(R.id.surfaceViewParent);
+
         messageText = findViewById(R.id.messageText);
         accessNumberText = findViewById(R.id.accessNumberText);
         cameraStateText = findViewById(R.id.cameraStateText);
@@ -241,7 +242,7 @@ public class MainActivity extends Activity {
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
         appVerison = appInfo.getVersionCode();
         currentVersionText.setText("当前版本：" + appVerison);
-        Log.d(TAG, "initView: appVerison =" + appVerison);
+        Log.d(TAG, "initView: app当前版本 =" + appVerison);
 
         serverStateText.setText("服务器状态：false");
         remoteNameText.setText("云端名称：");
@@ -275,31 +276,39 @@ public class MainActivity extends Activity {
 
         @Override
         public void startUpdate() {
+            Log.e(TAG, "startUpdate: ..................................");
             isUpdating = true;
             runOnUiThreadText(updateResultText, "开始升级");
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device 3333333333333333");
-            mHandler.removeMessages(msg_send_restart_app);
-            mHandler.sendEmptyMessageDelayed(msg_send_restart_app, 3000);
+            removeCloseDeviceMessage(1);
         }
 
         @Override
-        public void updateResult(boolean succeed) {
+        public void endUpdate(boolean succeed) {
             isUpdating = false;
-            mHandler.removeMessages(msg_send_restart_app);
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device 44444444444444444");
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-            Log.d(TAG, "  send msg_close_device 5555555555555555");
+            removeCloseDeviceMessage(2);
+            sendCloseDeviceMessage(2);
         }
     };
 
-    private StoreUSBReceiver.StoreUSBListener storeUSBListener = new StoreUSBReceiver.StoreUSBListener() {
+    private ReceiverStoreUSB.StoreUSBListener storeUSBListener = new ReceiverStoreUSB.StoreUSBListener() {
         @Override
         public void storeUSBPictureCount(int count) {
             UpanPictureCount = count;
-            if (count != 0) runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
+            if (count != 0) {
+                runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
+            }
+        }
+
+        @Override
+        public void storeUSBDeviceDetached() {
+            openCameraDeviceProt(false);
+        }
+
+        @Override
+        public void storeUSBSaveOnePictureComplete(String speed) {
+            copySpeed = speed;
+            runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdCameraPicrureNum + "\n同步到USB速度:" + speed);
         }
 
         @Override
@@ -310,8 +319,7 @@ public class MainActivity extends Activity {
                 if (wifiConfigurationFile == null) {
                     int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
                     if (style == 0 || style == 1) {
-                        saveDeviceStyle(1);
-                        //蜂窝板
+                        saveDeviceStyle(1); //蜂窝板
                     } else {
                         DeviceModel deviceModel = getDeviceModel();
                         if (deviceModel == null) {
@@ -343,30 +351,28 @@ public class MainActivity extends Activity {
                     }
                 }
             } else {
-                saveDeviceStyle(1);
-                //蜂窝板
+                saveDeviceStyle(1); //蜂窝板
             }
 
-            openDeviceProt(true);
+            openCameraDeviceProt(true);
             getInfo();
 
-            int capacity = storeUSBReceiver.getStoreUSBCapacity();
-            int freeSpace = storeUSBReceiver.getStoreUSBFreeSpace();
+            int capacity = receiverStoreUSB.getStoreUSBCapacity();
+            int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
 
             runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 
-            if (scanerCameraReceiver == null) registerScanerCameraReceiver();
+            if (receiverCamera == null) {
+                registerReceiverCamera();
+            }
 
             if (VariableInstance.getInstance().deviceStyle == 1) {
                 initCellularNetWork();
             } else if (VariableInstance.getInstance().deviceStyle == 2) {
                 registerWifiReceiver();
                 WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if (wifiManager == null) {
-                    Log.e(TAG, "initStoreUSBComplete: wifiManager == null");
-                } else {
+                if (wifiManager != null) {
                     boolean wifiEnable = wifiManager.isWifiEnabled();
-                    Log.e(TAG, "initStoreUSBComplete: wifiEnable =" + wifiEnable);
                     if (wifiEnable) {
                         if (deviceModelConnect.wifi != null) {
                             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
@@ -395,156 +401,128 @@ public class MainActivity extends Activity {
             }
         }
 
-        @Override
-        public void storeUSBDeviceDetached() {
-            if (scanerCameraReceiver != null) {
-                scanerCameraReceiver.storeUSBDetached();
-                openDeviceProt(false);
-            }
-        }
-
-        @Override
-        public void formatStoreUSBException(boolean exception) {
-            runOnUiThreadText(FormatUSBButton, exception ? "格式化USB失败" : "格式化USB成功");
-            if (exception) {
-                sendMessageToMqtt("ZR\r\n");
-            } else {
-                sendMessageToMqtt("ZQ\r\n");
-            }
-        }
-
-        @Override
-        public void storeUSBSaveOnePictureComplete(String speed) {
-            copySpeed = speed;
-            runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdNum + "\n同步到USB速度:" + speed);
-        }
-
     };
 
 
-    private ScanerCameraReceiver.ScanerCameraListener scanerCameraListener = new ScanerCameraReceiver.ScanerCameraListener() {
+    private ReceiverCamera.CameraScanerListener scannerCameraListener = new ReceiverCamera.CameraScanerListener() {
+
         @Override
-        public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
-            Log.d(TAG, "downloadOneFileDone: uploading =" + remoteUploading);
-            operationUtils.addUploadRemoteFile(uploadFileModel,false);
+        public void cameraOperationStart() {
+            VariableInstance.getInstance().isScanningCamera = true;
+
+            if (!VariableInstance.getInstance().isUploadingToRemote) {
+                startDownLed(true);
+            }
+            removeCloseDeviceMessage(3);
         }
 
         @Override
-        public void startDownload() {
-            Log.d(TAG, "startDownload: uploading =" + remoteUploading);
-            localDownling = true;
-            if (!remoteUploading) startDownLed(true);
+        public void cameraOperationEnd(int cameraTotalPicture) {
+            openCameraDeviceProt(false);
 
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device 6666666666666");
-        }
+            VariableInstance.getInstance().isScanningCamera = false;
 
-        @Override
-        public void downloadComplete(int cameraTotalPicture) {
+            if (!VariableInstance.getInstance().isUploadingToRemote) {
+                startDownLed(false);
+            }
 
-            localDownling = false;
-            if (!remoteUploading) startDownLed(false);
-            openDeviceProt(false);
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
             int scanerCount = sharedPreferences.getInt("ScanerCount", 0);
 
-            Log.d(TAG, "downloadComplete: remoteUploading =" + remoteUploading + ",scanerCount =" + scanerCount + ",cameraTotalPicture =" + cameraTotalPicture);
+            Log.d(TAG, "cameraOperationEnd: remoteUploading =" + VariableInstance.getInstance().isUploadingToRemote + ",scanerCount =" + scanerCount + ",cameraTotalPicture =" + cameraTotalPicture);
             if (!isUpdating && cameraTotalPicture == 0 && scanerCount < 5) {
-
                 scanerCount++;
                 SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
                 editor.putInt("ScanerCount", scanerCount);
                 editor.apply();
 
-                openDeviceProt(false);
-                mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 10000);
+                mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 3000);
                 return;
             }
-
 
             SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
             editor.putInt("ScanerCount", 0);
             editor.apply();
 
-
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device 7777777777777");
-            if (!remoteUploading) {
-                mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-                Log.d(TAG, "  send msg_close_device 888888888888888");
+            if (!VariableInstance.getInstance().isUploadingToRemote) {
+                removeCloseDeviceMessage(4);
+                sendCloseDeviceMessage(3);
             }
             getInfo();
         }
 
 
         @Override
-        public void downloadUpanCount(int size) {
-            copyTotalNum = size;
-            runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + size);
-        }
-
-        @Override
         public boolean uploadToUSB(File localFile, String yearMonth) {
-            if (storeUSBReceiver == null) return false;
-            return storeUSBReceiver.uploadToUSB(localFile, yearMonth);
+            if (receiverStoreUSB == null) {
+                return false;
+            }
+            return receiverStoreUSB.uploadToUSB(localFile, yearMonth);
         }
 
         @Override
-        public void cameraUSBDetached() {
-            storeUSBReceiver.getUSBPictureCount();
+        public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
+            operationUtils.addUploadRemoteFile(uploadFileModel, false);
+        }
+
+
+        @Override
+        public void cameraDeviceDetached() {
+            if (receiverStoreUSB != null) {
+                receiverStoreUSB.getUSBPictureCount();
+            }
         }
 
         @Override
-        public void scanCameraComplete(int pictureCont, String deviceName) {
-            Log.e(TAG, "scanCameraComplete: pictureCont =" + pictureCont);
-            runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + pictureCont);
-            runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
+        public void scannerCameraComplete(int needDownloadCount, int cameraTotalPictureCount, String deviceName) {
+            Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
 
-            cameraPictureCount = pictureCont;
+            copyTotalNum = needDownloadCount;
+            cameraPictureCount = cameraTotalPictureCount;
             cameraName = deviceName;
 
+            runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + needDownloadCount);
+            runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + cameraTotalPictureCount);
+            runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
         }
 
-        @Override
-        public void scanErroCode(String erromsg) {
-            Log.e(TAG, "scanErroCode: erromsg =" + erromsg);
-        }
     };
 
 
     RemoteOperationUtils.RemoteOperationListener remoteOperationListener = new RemoteOperationUtils.RemoteOperationListener() {
         @Override
         public void allFileUploadComplete(long totalTime) {
-            Log.d(TAG, "allFileUploadComplete: downling =" + localDownling + ",totalTime =" + totalTime / 1000);
-            remoteUploading = false;
-            if (!localDownling) {
+            Log.d(TAG, "allFileUploadComplete: 所有文件上传完成 totalTime =" + totalTime / 1000 + "s,isScanningCamera =" + VariableInstance.getInstance().isScanningCamera);
+
+            VariableInstance.getInstance().isUploadingToRemote = false;
+
+            if (!VariableInstance.getInstance().isScanningCamera) {
                 restLed();
             }
-            if (totalTime != 0) UploadUseTime = totalTime / 1000;
+            if (totalTime != 0) {
+                UploadUseTime = totalTime / 1000;
+            }
             runOnUiThreadText(uploadUseTimeText, "本次同步到服务器耗时:" + totalTime / 1000 + "s");
 
             getInfo();
 
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device aaaaaaaaaaaaaaa");
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-            Log.d(TAG, "  send msg_close_device bbbbbbbbbbbbbbb");
+            removeCloseDeviceMessage(5);
+            sendCloseDeviceMessage(4);
         }
 
         @Override
         public void pictureUploadStart() {
             Log.d(TAG, "fileUploadStart: ");
-            remoteUploading = true;
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, " remove msg_close_device ccccccccccccccccccccccc");
+            VariableInstance.getInstance().isUploadingToRemote = true;
+            removeCloseDeviceMessage(6);
             startDownLed(false);
         }
 
         @Override
         public void pictureUploadEnd(boolean uploadResult) {
-            Log.d(TAG, "fileUploadEnd: ");
-            remoteUploading = false;
+            Log.d(TAG, "fileUploadEnd: uploadResult =" + uploadResult);
+            VariableInstance.getInstance().isUploadingToRemote = false;
         }
 
 
@@ -552,71 +530,53 @@ public class MainActivity extends Activity {
         public void updateUploadSpeed(String speed) {
             Log.d(TAG, "updateUploadSpeed: speed =" + speed);
             UploadSpeed = speed;
-            runOnUiThreadText(hasUploadpictureNumberText, "已上传张数:" + VariableInstance.getInstance().uploadNum + "\n上传服务器速度：" + speed);
+            runOnUiThreadText(hasUploadpictureNumberText, "已上传张数:" + VariableInstance.getInstance().uploadRemorePictureNum + "\n上传服务器速度：" + speed);
             getInfo();
-        }
-
-
-        @Override
-        public void videoUploadStart() {
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device dddddddddddddddddd");
-            startDownLed(false);
-        }
-
-        @Override
-        public void uploadVideoComplete(boolean succeed) {
-            Log.e(TAG, "uploadVideoComplete: 上传视频结果 " + succeed);
-
-            mHandler.removeMessages(msg_close_device);
-            Log.d(TAG, "  remove msg_close_device eeeeeeeeeeeeeeeeeeeeee");
-            mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-            Log.d(TAG, "  send msg_close_device ffffffffffffffffffff");
-            if (!localDownling && !remoteUploading) {
-                restLed();
-            }
         }
 
         @Override
         public void uploadLogcatComplete() {
             getInfo();
-            UploadEndUploadUseTime(UploadUseTime);
+
+            sendShutDown = true;
+            mHandler.removeMessages(msg_send_ShutDown);
+            mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
+            Log.d(TAG, "send msg_send_ShutDown 1111111111111111");
+            sendMessageToMqtt(UploadEndUploadUseTime + UploadUseTime + ";");
         }
 
         @Override
-        public boolean isDownling() {
-            return localDownling;
+        public boolean canStopPictureUploadThread() {
+            Log.e(TAG, "canStopPictureUploadThread: 是否可以停止上传服务器线程  isScanningCamera= " + VariableInstance.getInstance().isScanningCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB + ",isDownloadingUSB = " + VariableInstance.getInstance().isDownloadingUSB);
+            return (!VariableInstance.getInstance().isScanningCamera && !VariableInstance.getInstance().isScanningStoreUSB && !VariableInstance.getInstance().isDownloadingUSB);
         }
 
-        @Override
-        public boolean isVideoPreviewing() {
-            if (mCameraHelper != null && mCameraHelper.isPreview) return true;
-            return false;
-        }
 
         @Override
         public void startUploadLogcatToUsb() {
-            if (storeUSBReceiver != null) storeUSBReceiver.uploadLogcatToUSB();
+            if (receiverStoreUSB != null) {
+                receiverStoreUSB.uploadLogcatToUSB(LogcatHelper.getInstance().logcatFileSecondPath);
+            }
         }
     };
 
 
-    private void registerScanerCameraReceiver() {
-        scanerCameraReceiver = new ScanerCameraReceiver(getApplicationContext(), scanerCameraListener);
+    private void registerReceiverCamera() {
+        receiverCamera = new ReceiverCamera(getApplicationContext(), scannerCameraListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        intentFilter.addAction(ScanerCameraReceiver.CHECK_PERMISSION);
-        registerReceiver(scanerCameraReceiver, intentFilter);
+        intentFilter.addAction(ReceiverCamera.CHECK_PERMISSION);
+        registerReceiver(receiverCamera, intentFilter);
     }
 
     private void registerStoreUSBReceiver() {
-        storeUSBReceiver = new StoreUSBReceiver(getApplicationContext(), storeUSBListener);
+        receiverStoreUSB = new ReceiverStoreUSB(getApplicationContext(), storeUSBListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        intentFilter.addAction(StoreUSBReceiver.INIT_STORE_USB_PERMISSION);
-        registerReceiver(storeUSBReceiver, intentFilter);
+        intentFilter.addAction(ReceiverStoreUSB.INIT_STORE_USB_PERMISSION);
+        registerReceiver(receiverStoreUSB, intentFilter);
     }
 
 
@@ -631,7 +591,7 @@ public class MainActivity extends Activity {
 
 
     public void initCellularNetWork() {
-        Log.e(TAG, "initNetWork: ");
+        Log.e(TAG, "initCellularNetWork: ");
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder request = new NetworkRequest.Builder();
         request.addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
@@ -657,17 +617,20 @@ public class MainActivity extends Activity {
         networkAvailable = true;
         Log.e(TAG, "Network onAvailable: doingInit =" + doingInit);
         runOnUiThreadText(isConnectNetworkText, "是否连网:true");
-        if (doingInit) return;
+        if (doingInit) {
+            return;
+        }
         doingInit = true;
         updateUtils.networkAvailable(MainActivity.this);
         initAddress();
     }
 
     private void netWorkLost() {
+        Log.e(TAG, "netWorkLost: ");
         networkAvailable = false;
+        doingInit = false;
         runOnUiThreadText(isConnectNetworkText, "是否连网:false");
         runOnUiThreadText(mqttStateText, "mqtt状态:false");
-        doingInit = false;
         operationUtils.stopUploadThread();
         MqttManager.getInstance().release();
         openNetworkLed(false);
@@ -679,17 +642,19 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (textView == null || text == null) return;
+                if (textView == null || text == null) {
+                    return;
+                }
                 textView.setText(text);
             }
         });
     }
 
 
-    private boolean networkAvailable;
-
     private void initAddress() {
-        if (!networkAvailable) return;
+        if (!networkAvailable) {
+            Log.e(TAG, "initAddress 网络不可用");
+        }
 
         getInfo();
 
@@ -700,6 +665,7 @@ public class MainActivity extends Activity {
                     ServerUrlModel serverUrlModel = communication.getServerUrl();
                     Log.e(TAG, "initAddress: serverUrlModel =" + serverUrlModel);
                     if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
+                        Log.e(TAG, "run: initAddress 无法获取服务器地址");
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
                         updateServerStateUI(false);
@@ -707,12 +673,15 @@ public class MainActivity extends Activity {
                     }
 
                     String imei = getPhoneImei(false);
-                    if ("0".equals(imei)) imei = getPhoneImei(true);
+                    if ("0".equals(imei)) {
+                        imei = getPhoneImei(true);
+                    }
 
                     DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
 
 
                     if (serverUrlModel == null || deviceInfoModel.responseCode != 200) {
+                        Log.e(TAG, "run: initAddress 无法获取服务器设备信息");
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
                         updateServerStateUI(false);
@@ -757,23 +726,23 @@ public class MainActivity extends Activity {
                     VariableInstance.getInstance().ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
 
 
-                    VariableInstance.getInstance().connectRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
-                    Log.e(TAG, "initAddress:   operationUtils.connectRemote =" + VariableInstance.getInstance().connectRemote);
-                    updateServerStateUI(VariableInstance.getInstance().connectRemote);
-                    if (VariableInstance.getInstance().connectRemote) {
-                        mHandler.removeMessages(msg_close_device);
-                        Log.d(TAG, " remmove msg_close_device gggggggggggggggggg");
+                    VariableInstance.getInstance().isConnectedRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
+                    Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().isConnectedRemote);
+                    updateServerStateUI(VariableInstance.getInstance().isConnectedRemote);
+                    if (VariableInstance.getInstance().isConnectedRemote) {
+                        removeCloseDeviceMessage(9);
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startCameraPictureUploadThread();
 
                     } else {
+                        Log.e(TAG, "initAddress:   配置远程服务器失败，延时10s后继续访问尝试 ");
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
                     }
 
 
                 } catch (Exception e) {
-                    Log.e(TAG, "run:Exception111 = " + e);
+                    Log.e(TAG, "initAddress:远程连接出现异常 = " + e);
                     updateServerStateUI(false);
                     doingInit = false;
                 }
@@ -784,8 +753,9 @@ public class MainActivity extends Activity {
 
 
     private void initMqtt() {
-
-        if (phoneImei == null) phoneImei = uuidString;
+        if (phoneImei == null) {
+            phoneImei = uuidString;
+        }
 
         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + phoneImei, "/camera/v1/device/" + returnImei + "/android");
 
@@ -796,20 +766,19 @@ public class MainActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (scanerCameraReceiver != null) {
-            unregisterReceiver(scanerCameraReceiver);
+        if (receiverCamera != null) {
+            unregisterReceiver(receiverCamera);
         }
-
-        if (storeUSBReceiver != null) {
-            unregisterReceiver(storeUSBReceiver);
+        if (receiverStoreUSB != null) {
+            unregisterReceiver(receiverStoreUSB);
         }
         if (mWifiReceiver != null) {
             unregisterReceiver(mWifiReceiver);
         }
 
         mHandler.removeCallbacksAndMessages(null);
-        closeCamera();
-        openDeviceProt(false);
+
+        openCameraDeviceProt(false);
         operationUtils.stopUploadThread();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -828,14 +797,12 @@ public class MainActivity extends Activity {
     @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void receiveMqttMessage(String message) {
-//        Log.e(TAG, "receiveMqttMessage: message =" + message);
         if (message == null) return;
 
         mqttStateText.setText("mqtt状态:true");
         if (message.contains(UploadMode3)) {
             UploadMode3(message);
             getInfo();
-
             return;
         }
 
@@ -852,14 +819,7 @@ public class MainActivity extends Activity {
         }
 
         switch (message) {
-            case Record1:
-                openCamera();
-                sendMessageToMqtt("ZQ\r\n");
-                break;
-            case Record2:
-                openCamera();
-                sendMessageToMqtt("ZQ\r\n");
-                break;
+
             case FormatUSB:
                 formatUSB();
                 sendMessageToMqtt("ZQ\r\n");
@@ -895,25 +855,15 @@ public class MainActivity extends Activity {
                 AppShutdownAck();
                 break;
 
-            case "connectionLost":
+            case "mqttConnectionLost":
                 mqttStateText.setText("mqtt状态:false");
                 break;
-            case "deliveryComplete":
+            case "mqttDeliveryComplete":
                 mqttStateText.setText("mqtt状态:true");
                 break;
         }
     }
 
-
-    private boolean sendShutDown;
-
-    private void UploadEndUploadUseTime(long useTime) {
-        sendShutDown = true;
-        mHandler.removeMessages(msg_send_ShutDown);
-        mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-        Log.d(TAG, "send msg_send_ShutDown 1111111111111111");
-        sendMessageToMqtt(UploadEndUploadUseTime + useTime + ";");
-    }
 
     private void AppShutdownAck() {
         if (sendShutDown) {
@@ -924,31 +874,45 @@ public class MainActivity extends Activity {
         }
     }
 
-    private boolean formatingUSB;
 
     private void formatUSB() {
-        if (formatingUSB) return;
-        formatingUSB = true;
-        Log.e(TAG, "formatUSB: ");
+        if (VariableInstance.getInstance().isFormatingUSB) {
+            Log.d(TAG, "正在格式化USB，无需重复操作");
+            return;
+        }
+        Log.e(TAG, "formatUSB: start .......................................");
+        VariableInstance.getInstance().isFormatingUSB = true;
         runOnUiThreadText(FormatUSBButton, "开始删除USB图片");
         new Thread(new Runnable() {
             @Override
             public void run() {
-
                 Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
                 Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().TFCardVideoDir);
-                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+//                Utils.resetDir(VariableInstance.getInstance().LogcatDir);//TODO hu
+                VariableInstance.getInstance().usbFileNameList.clear();
 
-                if (storeUSBReceiver != null) storeUSBReceiver.formatStoreUSB();
+                operationUtils.stopUploadThread();
 
-                if (scanerCameraReceiver != null) {
-                    scanerCameraReceiver.storeUSBDetached();
+                if (receiverStoreUSB != null) {
+                    boolean exception = receiverStoreUSB.formatStoreUSB();
+                    runOnUiThreadText(FormatUSBButton, exception ? "格式化USB失败" : "格式化USB成功");
+
+                    Log.e(TAG, "formatUSB: " + (exception ? "格式化USB失败" : "格式化USB成功"));
+
+                    if (exception) {
+                        sendMessageToMqtt("ZR\r\n");
+                    } else {
+                        sendMessageToMqtt("ZQ\r\n");
+                    }
                 }
-                formatingUSB = false;
-                mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-                Log.d(TAG, "send  msg_send_ShutDown 333333333333333333333333");
-                if (isUpdating) return;
+
+                if (receiverCamera != null) {
+                    receiverCamera.storeUSBDetached();
+                }
+                VariableInstance.getInstance().isFormatingUSB = false;
+                if (isUpdating) {
+                    return;
+                }
 
                 DataOutputStream localDataOutputStream = null;
                 try {
@@ -979,26 +943,23 @@ public class MainActivity extends Activity {
     }
 
 
-    private boolean formatingCamera;
-
     private void formatCamera() {
-        if (formatingCamera) return;
-        formatingCamera = true;
-        Log.e(TAG, "formatCamera: ");
+        if (VariableInstance.getInstance().isFormaringCamera) {
+            return;
+        }
+        Log.e(TAG, "formatCamera: start .........................................");
+        VariableInstance.getInstance().isFormaringCamera = true;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                VariableInstance.getInstance().formarCamera = true;
-
-                if (scanerCameraReceiver != null) {
-                    scanerCameraReceiver.formatCamera();
+                VariableInstance.getInstance().isFormaringCamera = true;
+                if (receiverCamera != null) {
+                    receiverCamera.formatCamera();
                 }
-                formatingCamera = false;
                 Log.d(TAG, "send msg_send_ShutDown 4444444444444444");
                 mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-
-                openDeviceProt(false);
-                openDeviceProt(true);
+                openCameraDeviceProt(false);
+                openCameraDeviceProt(true);
             }
         }).start();
     }
@@ -1093,88 +1054,16 @@ public class MainActivity extends Activity {
         uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        closeCamera();
-    }
-
-    private void closeCamera() {
-        Log.d(TAG, "closeCamera: ");
-        if (mCameraHelper != null) mCameraHelper.closeCamera();
-        mCameraHelper = null;
-        surfaceViewParent.removeAllViews();
-    }
-
-    private void openCamera() {
-        if (System.currentTimeMillis() - lastOpenCameraTime < 2000) {
-            Log.d(TAG, "openCamera: 点击录制过于频繁");
-            return;
-        }
-        lastOpenCameraTime = System.currentTimeMillis();
-
-        closeCamera();
-
-        mCameraHelper = new CameraHelper(new CameraHelper.CameraHelperListener() {
-            @Override
-            public void addPicture(String path) {
-
-            }
-
-            @Override
-            public void finishPreview() {
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        closeCamera();
-                    }
-                }, 100);
-            }
-        });
-
-        surfaceViewParent.removeAllViews();
-        SurfaceView surfaceView = new SurfaceView(MainActivity.this);
-        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
-        surfaceView.setLayoutParams(layoutParams);
-        surfaceViewParent.addView(surfaceView);
-        SurfaceHolder mSurfaceHolder = surfaceView.getHolder();
-        mSurfaceHolder.setKeepScreenOn(true);
-
-
-        mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(@NonNull SurfaceHolder holder) {
-
-            }
-
-            @Override
-            public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
-                if (mCameraHelper != null) {
-                    mCameraHelper.openCamera(holder, MainActivity.this);
-                    mCameraHelper.onStartPreview(width, height);
-                }
-            }
-
-            @Override
-            public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
-            }
-        });
-    }
-
 
     @SuppressLint("SetTextI18n")
     public void onClickHandler(View button) {
         if (button.getId() == R.id.rescaner) {
-            openDeviceProt(false);
-            openDeviceProt(true);
+            openCameraDeviceProt(false);
+            openCameraDeviceProt(true);
         } else if (button.getId() == R.id.guanji) {
             Utils.closeAndroid();
         } else if (button.getId() == R.id.aaa) {
             startActivity(new Intent(MainActivity.this, GpioActivity.class));
-        } else if (button.getId() == R.id.openPreview) {
-            openCamera();
-        } else if (button.getId() == R.id.closePreview) {
-            closeCamera();
         } else if (button.getId() == R.id.clearView) {
             messageTextString = "";
             messageText.setText(messageTextString);
@@ -1202,7 +1091,6 @@ public class MainActivity extends Activity {
     private int freeSpace = 0;
     private int UpanPictureCount = 0;
     private long UploadUseTime;
-
     private String UploadSpeed;
 
     private String serverGetInfo() {
@@ -1210,14 +1098,20 @@ public class MainActivity extends Activity {
         int freeSpaceA = 0;
         int PhotoSumA = 0;
 
-        if (storeUSBReceiver != null) {
-            capacityA = storeUSBReceiver.getStoreUSBCapacity();
-            if (capacityA != 0) capacity = capacityA;
-            freeSpaceA = storeUSBReceiver.getStoreUSBFreeSpace();
-            if (freeSpaceA != 0) freeSpace = freeSpaceA;
+        if (receiverStoreUSB != null) {
+            capacityA = receiverStoreUSB.getStoreUSBCapacity();
+            if (capacityA != 0) {
+                capacity = capacityA;
+            }
+            freeSpaceA = receiverStoreUSB.getStoreUSBFreeSpace();
+            if (freeSpaceA != 0) {
+                freeSpace = freeSpaceA;
+            }
 
             PhotoSumA = VariableInstance.getInstance().LastPictureCount;
-            if (PhotoSumA != 0) UpanPictureCount = PhotoSumA;
+            if (PhotoSumA != 0) {
+                UpanPictureCount = PhotoSumA;
+            }
         }
 
         String uploadModelString;
@@ -1247,21 +1141,28 @@ public class MainActivity extends Activity {
             }
         }
 
-        if (UploadSpeed == null) UploadSpeed = "0";
+        if (UploadSpeed == null) {
+            UploadSpeed = "0";
+        }
 
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().initUSB + ";connectCamera," + VariableInstance.getInstance().connectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdNum + ";";
-
-        Log.e(TAG, "serverGetInfo: 1info =" + info);
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().isInitUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdCameraPicrureNum + ";";
         return info;
     }
 
     private String getSignalStrength() {
-        if (signalStrengthValue > 0) return "0";
-        else if (signalStrengthValue > -55) return "4";
-        else if (signalStrengthValue > -70) return "3";
-        else if (signalStrengthValue > -85) return "2";
-        else if (signalStrengthValue > -100) return "1";
-        else return "1";
+        if (signalStrengthValue > 0) {
+            return "0";
+        } else if (signalStrengthValue > -55) {
+            return "4";
+        } else if (signalStrengthValue > -70) {
+            return "3";
+        } else if (signalStrengthValue > -85) {
+            return "2";
+        } else if (signalStrengthValue > -100) {
+            return "1";
+        } else {
+            return "1";
+        }
     }
 
     @SuppressLint("HardwareIds")
@@ -1277,7 +1178,7 @@ public class MainActivity extends Activity {
             if (number == null) {
                 number = "0";
             }
-            Log.d(TAG, "getPhoneNumber: 11number =" + number);
+            Log.d(TAG, "getPhoneNumber: 卡号 =" + number);
 
             return number;
         } catch (Exception | Error e) {
@@ -1328,8 +1229,8 @@ public class MainActivity extends Activity {
     }
 
 
-    private void openDeviceProt(boolean open) {
-        Log.e(TAG, "openDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
+    private void openCameraDeviceProt(boolean open) {
+        Log.e(TAG, "openCameraDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
         if (openDeviceProtFlag == true && open) return;
 
         openDeviceProtFlag = open;
@@ -1534,23 +1435,22 @@ public class MainActivity extends Activity {
         }
     }
 
-//    private void saveUploadUploadSpeed(String uploadSpeed) {
-//        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-//        editor.putString("uploadSpeed", uploadSpeed);
-//        editor.apply();
-//    }
-//
-//    private String getUploadploadSpeed() {
-//        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-//        String uploadSpeed = sharedPreferences.getString("uploadSpeed", "0");
-//        return uploadSpeed;
-//    }
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (remoteUploading || localDownling || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB) canCloseDevice = false;
-        else canCloseDevice = true;
-        Log.e(TAG, "canCloseDevice: canCloseDevice =" + canCloseDevice);
+        if (VariableInstance.getInstance().isUploadingToRemote ||
+                VariableInstance.getInstance().isScanningCamera ||
+                VariableInstance.getInstance().isScanningStoreUSB ||
+                VariableInstance.getInstance().isDownloadingUSB ||
+                !operationUtils.pictureIsThreadStop ||
+                VariableInstance.getInstance().initingUSB ||
+                isUpdating
+        ) {
+            canCloseDevice = false;
+        } else {
+            canCloseDevice = true;
+        }
+        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 =" + canCloseDevice);
         return canCloseDevice;
     }
 
@@ -1714,7 +1614,6 @@ public class MainActivity extends Activity {
     private static final int msg_reload_device_info = 1;
     private static final int msg_close_device = 2;
     private static final int msg_send_ShutDown = 3;
-    private static final int msg_send_restart_app = 4;
 
     private static final int msg_wifi_disconnected = 5;
     private static final int msg_wifi_connected = 6;
@@ -1743,19 +1642,13 @@ public class MainActivity extends Activity {
                         activity.operationUtils.startUploadLocatThread();
                     } else {
 
-                        activity.mHandler.removeMessages(msg_close_device);
-                        activity.mHandler.sendEmptyMessageDelayed(msg_close_device, close_device_timeout);
-
-                        Log.d(TAG, "  remove msg_close_device hhhhhhhhhhhhhhhhhhhh");
-                        Log.d(TAG, "  send msg_close_device iiiiiiiiiiiiiiiiiiiii");
+                        activity.removeCloseDeviceMessage(10);
+                        activity.sendCloseDeviceMessage(6);
                     }
                     break;
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
                     Utils.closeAndroid();
-                    break;
-                case msg_send_restart_app:
-                    activity.updateUtils.execLinuxCommand();
                     break;
                 case msg_wifi_disconnected:
                     activity.netWorkLost();
@@ -1767,7 +1660,7 @@ public class MainActivity extends Activity {
                     activity.delayCreate();
                     break;
                 case msg_delay_open_device_prot:
-                    activity.openDeviceProt(true);
+                    activity.openCameraDeviceProt(true);
                     break;
 
             }

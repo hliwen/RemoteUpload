@@ -16,7 +16,6 @@ public class MyApplication extends Application {
 
         Utils.init(this);
         LogcatHelper.getInstance().start();
-        FirstLogcatHelper.getInstance().start();
     }
 
     @Override

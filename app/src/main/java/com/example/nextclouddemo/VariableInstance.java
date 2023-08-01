@@ -1,8 +1,5 @@
 package com.example.nextclouddemo;
 
-import android.os.Environment;
-import android.util.Log;
-
 import com.example.nextclouddemo.utils.Utils;
 import com.owncloud.android.lib.common.OwnCloudClient;
 
@@ -12,61 +9,59 @@ import java.util.Vector;
 
 public class VariableInstance {
     private static VariableInstance instance = null;
-    public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
-    public ArrayList<Integer> uploadSelectIndexList;
-
-    //0 是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-    public int deviceStyle;
-
-    public int uploadNum = 0;
-    public int downdNum = 0;
-
     public String sdCardDirRoot;
-
-    public String PictureDirName;
-    public String PictureUploadDirName;
-    public String VideoDirName;
-    public String LogcatDirName;
     public String wifiConfigurationFileName;
-
+    public String PictureDirName;
     public String TFCardPictureDir;
+    public String PictureUploadDirName;
     public String TFCardUploadPictureDir;
-    public String TFCardVideoDir;
+    public String LogcatDirName;
     public String LogcatDir;
-    public boolean formarCamera;
-    public boolean connectCamera;
-    public boolean initUSB;
+
+    public OwnCloudClient ownCloudClient;
+    public boolean isFormaringCamera;
+    public boolean isFormatingUSB;
+    public boolean isConnectCamera;
+    public boolean isInitUSB;
     public boolean initingUSB;
+    public boolean isConnectedRemote;
     public boolean isUploadToday = true;
 
+
+
+    public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
+    public ArrayList<Integer> uploadSelectIndexList;
+    public int deviceStyle;//0 是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
+
+    public int uploadRemorePictureNum = 0;//已上传张数
+    public int downdCameraPicrureNum = 0;//从相机同步到U盘的张数
     public Vector<String> usbFileNameList;
     public int LastPictureCount;
-    public boolean isScanerStoreUSB;
-    public int storeUSBDeviceID = -1;
-    public boolean connectRemote;
-    public OwnCloudClient ownCloudClient;
+    public int storeUSBDeviceID = -1;//U盘设备号
+    public boolean isScanningStoreUSB;//正在扫描U盘
+    public boolean isDownloadingUSB;//正在下载相机的照片到U盘
+    public boolean isScanningCamera;//正在扫描相机
+    public boolean isUploadingToRemote;//正在上传照片到远程服务器
 
-    private boolean cameraPictureScanning;
-    private boolean cameraPictureDownloading;
+
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();
         PictureDirName = "CameraPath";
         wifiConfigurationFileName = "wifiConfiguration";
         PictureUploadDirName = "CameraUploadPath";
-        VideoDirName = "VideoPath";
         LogcatDirName = "MLogcat";
         sdCardDirRoot = "/mnt/sdcard" + File.separator;
 
         TFCardPictureDir = sdCardDirRoot + PictureDirName;
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
-        TFCardVideoDir = sdCardDirRoot + VideoDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
         usbFileNameList = new Vector<>();
         storeUSBDeviceID = -1;
 
-        Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
-        Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+        Utils.makeDir(TFCardPictureDir);
+        Utils.makeDir(TFCardUploadPictureDir);
+        Utils.makeDir(LogcatDirName);
     }
 
 

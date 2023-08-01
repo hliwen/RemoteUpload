@@ -1,6 +1,7 @@
 package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,16 +14,22 @@ import java.util.Date;
 public class LogcatHelper {
     private static LogcatHelper INSTANCE = null;
 
-    private LogDumper mLogDumper = null;
+    public LogDumper mLogDumperFirst = null;
+    public LogDumper mLogDumperSecond = null;
     private int mPId;
 
-    public String logcatFilePath;
+    public String logcatFileFirstPath;
+    public String logcatFileSecondPath;
+
+    private LogcatHelper() {
+        init();
+        mPId = android.os.Process.myPid();
+    }
 
     /**
      * 初始化目录
      */
     public void init() {
-
         File file = new File(VariableInstance.getInstance().LogcatDir);
         if (!file.exists()) {
             file.mkdirs();
@@ -36,21 +43,38 @@ public class LogcatHelper {
         return INSTANCE;
     }
 
-    private LogcatHelper() {
-        init();
-        mPId = android.os.Process.myPid();
-    }
 
     public void start() {
-        if (mLogDumper == null)
-            mLogDumper = new LogDumper(String.valueOf(mPId), VariableInstance.getInstance().LogcatDir);
-        mLogDumper.start();
+
+        String first = "logcat" + getFileName() + "_AAA.txt";
+        String second = "logcat" + getFileName() + ".txt";
+
+        logcatFileFirstPath = VariableInstance.getInstance().LogcatDir + "/" + first;
+        logcatFileSecondPath = VariableInstance.getInstance().LogcatDir + "/" + second;
+
+        if (mLogDumperFirst == null) {
+            mLogDumperFirst = new LogDumper(String.valueOf(mPId), logcatFileFirstPath);
+        }
+
+        if (mLogDumperSecond == null) {
+            mLogDumperSecond = new LogDumper(String.valueOf(mPId), logcatFileSecondPath);
+        }
+
+        mLogDumperFirst.start();
+        mLogDumperSecond.start();
     }
 
-    public void stop() {
-        if (mLogDumper != null) {
-            mLogDumper.stopLogs();
-            mLogDumper = null;
+    public void stopFirst() {
+        if (mLogDumperFirst != null) {
+            mLogDumperFirst.stopLogs();
+            mLogDumperFirst = null;
+        }
+    }
+
+    public void stopSecond() {
+        if (mLogDumperSecond != null) {
+            mLogDumperSecond.stopLogs();
+            mLogDumperSecond = null;
         }
     }
 
@@ -62,14 +86,13 @@ public class LogcatHelper {
         private String mPID;
         private FileOutputStream out = null;
 
-        public LogDumper(String pid, String dir) {
+        public LogDumper(String pid, String filePath) {
             mPID = pid;
             try {
-                File file = new File(dir, "logcat" + getFileName() + ".txt");
-                logcatFilePath = file.getAbsolutePath();
+                File file = new File(filePath);
                 out = new FileOutputStream(file);
             } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
+
             }
             /**
              *

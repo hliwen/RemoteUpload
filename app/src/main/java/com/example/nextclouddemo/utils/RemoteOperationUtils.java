@@ -2,7 +2,6 @@ package com.example.nextclouddemo.utils;
 
 import android.annotation.SuppressLint;
 
-import com.example.nextclouddemo.FirstLogcatHelper;
 import com.example.nextclouddemo.LogcatHelper;
 import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.model.UploadFileModel;
@@ -34,40 +33,33 @@ public class RemoteOperationUtils {
     private Thread pictureWorkThread;
     public boolean pictureIsThreadStop;
     private static final String cameraDir = "CameraPicture";
-    private static final String videoDir = "VideoPicture";
     private static final String logcatDir = "Locat";
     private String userNameDir;
     private String remoteLogcatDir;
     private String remoteCameraDir;
     private String remoteCameraMonthDayDir;
-    private String remoteVideoDir;
-    private String remoteVideoMonthDayDir;
-    private String remoteVideoTodayDir;
     private RemoteOperationListener remoteOperationListener;
     public volatile BlockingQueue<UploadFileModel> pictureFileListCache = new LinkedBlockingQueue<>(20000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
         this.remoteOperationListener = remoteOperationListener;
         this.pictureIsThreadStop = true;
-        VariableInstance.getInstance().uploadNum = 0;
+        VariableInstance.getInstance().uploadRemorePictureNum = 0;
     }
 
     public boolean initRemoteDir(String userName) {
 
         String yearMonthFileDir = Utils.getyyyyMMString();
-        String monthDayVideoFileDir = Utils.getMMddString();
+
 
         userNameDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR;
 
         remoteLogcatDir = userNameDir + logcatDir + FileUtils.PATH_SEPARATOR;
         remoteCameraDir = userNameDir + cameraDir + FileUtils.PATH_SEPARATOR;
-        remoteVideoDir = userNameDir + videoDir + FileUtils.PATH_SEPARATOR;
 
         remoteCameraMonthDayDir = remoteCameraDir + yearMonthFileDir + FileUtils.PATH_SEPARATOR;
-        remoteVideoMonthDayDir = remoteVideoDir + yearMonthFileDir + FileUtils.PATH_SEPARATOR;
-        remoteVideoTodayDir = remoteVideoMonthDayDir + monthDayVideoFileDir + FileUtils.PATH_SEPARATOR;
 
-        Log.d(TAG, "initRemoteDir: " + "\n userNameDir =" + userNameDir + "\n remoteLogcatDir =" + remoteLogcatDir + "\n remoteCameraDir =" + remoteCameraDir + "\n remoteCameraMonthDayDir =" + remoteCameraMonthDayDir + "\n remoteVideoDir =" + remoteVideoDir + "\n remoteVideoMonthDayDir =" + remoteVideoMonthDayDir + "\n remoteVideoTodayDir =" + remoteVideoTodayDir);
+        Log.d(TAG, "initRemoteDir: " + "\n userNameDir =" + userNameDir + "\n remoteLogcatDir =" + remoteLogcatDir + "\n remoteCameraDir =" + remoteCameraDir + "\n remoteCameraMonthDayDir =" + remoteCameraMonthDayDir);
 
         int result = checkFileExit(FileUtils.PATH_SEPARATOR, userNameDir);
 
@@ -83,42 +75,36 @@ public class RemoteOperationUtils {
                 return false;
             }
             boolean exictP = false;
-            boolean exictV = false;
             boolean exictL = false;
             for (Object obj : remoteOperationResult.getData()) {
                 RemoteFile remoteFile = (RemoteFile) obj;
                 if (remoteFile.getRemotePath().contains(cameraDir)) {
                     exictP = true;
-                } else if (remoteFile.getRemotePath().contains(videoDir)) {
-                    exictV = true;
                 } else if (remoteFile.getRemotePath().contains(logcatDir)) {
                     exictL = true;
                 }
             }
 
             boolean checkCameraPath = checkResult(exictP, remoteCameraDir, remoteCameraMonthDayDir);
-            if (!checkCameraPath) return false;
-
-            boolean checkVideoPath = checkResult(exictV, remoteVideoDir, remoteVideoMonthDayDir);
-
-            createFilefolder(remoteVideoTodayDir);
-
-            if (!checkVideoPath) return false;
-
-            if (!exictL) createFilefolder(remoteLogcatDir);
+            if (!checkCameraPath) {
+                return false;
+            }
+            if (!exictL) {
+                createFilefolder(remoteLogcatDir);
+            }
         } else {
             boolean createResult = createFilefolder(userNameDir);
-            if (!createResult) return false;
+            if (!createResult) {
+                return false;
+            }
             createResult = createFilefolder(remoteCameraDir);
-            if (!createResult) return false;
+            if (!createResult) {
+                return false;
+            }
             createResult = createFilefolder(remoteCameraMonthDayDir);
-            if (!createResult) return false;
-            createResult = createFilefolder(remoteVideoDir);
-            if (!createResult) return false;
-            createResult = createFilefolder(remoteVideoMonthDayDir);
-            if (!createResult) return false;
-            createResult = createFilefolder(remoteVideoTodayDir);
-            if (!createResult) return false;
+            if (!createResult) {
+                return false;
+            }
         }
         return true;
     }
@@ -180,7 +166,7 @@ public class RemoteOperationUtils {
         if (!pictureFileListCache.contains(uploadFileModel)) {
             pictureFileListCache.add(uploadFileModel);
         }
-        if (VariableInstance.getInstance().ownCloudClient != null && VariableInstance.getInstance().connectRemote) {
+        if (VariableInstance.getInstance().ownCloudClient != null && VariableInstance.getInstance().isConnectedRemote) {
             startUploadFirstLocatThread();
             startCameraPictureUploadThread();
         }
@@ -197,9 +183,15 @@ public class RemoteOperationUtils {
             @Override
             public void run() {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
+
+                    if (VariableInstance.getInstance().isFormatingUSB || VariableInstance.getInstance().isFormaringCamera) {
+                        Log.e(TAG,"startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
+                        return;
+                    }
+
                     UploadFileModel fileModel = null;
                     try {
-                        Log.e(TAG, "run: fileListCache.size =" + pictureFileListCache.size());
+                        Log.e(TAG, "run: 缓存需要上传到服务器的照片数量，fileListCache.size =" + pictureFileListCache.size());
                         List<UploadFileModel> list = new ArrayList<>(pictureFileListCache);
                         Collections.sort(list, new MyOrder());
                         pictureFileListCache = new LinkedBlockingQueue<>(list);
@@ -238,8 +230,8 @@ public class RemoteOperationUtils {
         pictureWorkThread.start();
     }
 
-    boolean canStopPictureUploadThread() {//TODO hu
-        return !remoteOperationListener.isDownling();
+    boolean canStopPictureUploadThread() {
+        return remoteOperationListener.canStopPictureUploadThread();
     }
 
     public void stopUploadThread() {
@@ -274,7 +266,7 @@ public class RemoteOperationUtils {
             return;
         }
 
-        if (VariableInstance.getInstance().ownCloudClient == null || !VariableInstance.getInstance().connectRemote) {
+        if (VariableInstance.getInstance().ownCloudClient == null || !VariableInstance.getInstance().isConnectedRemote) {
             addUploadRemoteFile(fileModel, true);
             return;
         }
@@ -330,7 +322,7 @@ public class RemoteOperationUtils {
         Log.d(TAG, "uploadImageFileToRemote: isSuccess =" + isSuccess);
         remoteOperationListener.pictureUploadEnd(isSuccess);
         if (isSuccess) {
-            VariableInstance.getInstance().uploadNum++;
+            VariableInstance.getInstance().uploadRemorePictureNum++;
             long totalTime = (System.currentTimeMillis() - startTime) / 1000;
             Log.e(TAG, "uploadImageFileToRemote: " + totalTime + ",fileSize =" + fileSize);
             if (totalTime != 0) {
@@ -352,18 +344,19 @@ public class RemoteOperationUtils {
             public void run() {
                 try {
 
-                    if (FirstLogcatHelper.getInstance().mLogDumper == null) {
+                    if (LogcatHelper.getInstance().mLogDumperSecond == null) {
                         return;
                     }
                     if (VariableInstance.getInstance().ownCloudClient == null) {
                         return;
                     }
 
-                    LogcatHelper.getInstance().stop();
+                    LogcatHelper.getInstance().stopSecond();
                     Thread.sleep(1000);
                     remoteOperationListener.startUploadLogcatToUsb();
 
-                    File file = new File(LogcatHelper.getInstance().logcatFilePath);
+                    File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
+
                     if (file == null || !file.exists()) {
                         return;
                     }
@@ -385,7 +378,7 @@ public class RemoteOperationUtils {
                 } catch (Exception e) {
 
                 }
-                Log.e(TAG, "run: asdfadsfad uploadLogcatComplete");
+                Log.e(TAG, "run:  uploadLogcatComplete");
                 remoteOperationListener.uploadLogcatComplete();
             }
         }).start();
@@ -397,17 +390,17 @@ public class RemoteOperationUtils {
             @Override
             public void run() {
                 try {
-                    if (FirstLogcatHelper.getInstance().mLogDumper == null) {
+                    if (LogcatHelper.getInstance().mLogDumperFirst == null) {
                         return;
                     }
                     if (VariableInstance.getInstance().ownCloudClient == null) {
                         return;
                     }
 
-                    FirstLogcatHelper.getInstance().stop();
+                    LogcatHelper.getInstance().stopFirst();
                     Thread.sleep(1000);
 
-                    File file = new File(FirstLogcatHelper.getInstance().logcatFilePath);
+                    File file = new File(LogcatHelper.getInstance().logcatFileFirstPath);
                     if (file == null || !file.exists()) return;
 
                     String remotePath = remoteLogcatDir + file.getName();
@@ -445,17 +438,14 @@ public class RemoteOperationUtils {
 
         void pictureUploadEnd(boolean uploadResult);
 
-        void videoUploadStart();
 
         void updateUploadSpeed(String speed);
 
-        void uploadVideoComplete(boolean succeed);
 
         void uploadLogcatComplete();
 
-        boolean isDownling();
+        boolean canStopPictureUploadThread();
 
-        boolean isVideoPreviewing();
 
         void startUploadLogcatToUsb();
     }
