@@ -16,11 +16,7 @@ import android.mtp.MtpObjectInfo;
 import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.Utils;
-import com.github.mjdev.libaums.UsbMassStorageDevice;
-import com.github.mjdev.libaums.fs.FileSystem;
-import com.github.mjdev.libaums.fs.UsbFile;
-import com.github.mjdev.libaums.fs.UsbFileInputStream;
-import com.github.mjdev.libaums.partition.Partition;
+
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,6 +28,12 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import me.jahnen.libaums.core.UsbMassStorageDevice;
+import me.jahnen.libaums.core.fs.FileSystem;
+import me.jahnen.libaums.core.fs.UsbFile;
+import me.jahnen.libaums.core.fs.UsbFileInputStream;
+import me.jahnen.libaums.core.partition.Partition;
 
 public class ReceiverCamera extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";

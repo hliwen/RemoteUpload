@@ -30,7 +30,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import androidx.annotation.RequiresApi;
 
 import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
@@ -45,8 +44,7 @@ import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
 import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
-import com.github.mjdev.libaums.fs.UsbFile;
-import com.github.mjdev.libaums.fs.UsbFileInputStream;
+
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
 import com.owncloud.android.lib.common.OwnCloudCredentialsFactory;
 
@@ -65,6 +63,9 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.UUID;
+
+import me.jahnen.libaums.core.fs.UsbFile;
+import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
 public class MainActivity extends Activity {
     public static final boolean debug = false;
@@ -256,7 +257,7 @@ public class MainActivity extends Activity {
 
 
     PhoneStateListener MyPhoneListener = new PhoneStateListener() {
-        @RequiresApi(api = Build.VERSION_CODES.M)
+
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             int asu = signalStrength.getGsmSignalStrength();
             signalStrengthValue = -113 + 2 * asu;
@@ -936,7 +937,6 @@ public class MainActivity extends Activity {
 
                     }
                 }
-
                 finish();
             }
         }).start();

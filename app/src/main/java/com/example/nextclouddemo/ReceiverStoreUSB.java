@@ -11,11 +11,7 @@ import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 
 import com.example.nextclouddemo.utils.Log;
-import com.github.mjdev.libaums.UsbMassStorageDevice;
-import com.github.mjdev.libaums.fs.FileSystem;
-import com.github.mjdev.libaums.fs.UsbFile;
-import com.github.mjdev.libaums.fs.UsbFileOutputStream;
-import com.github.mjdev.libaums.partition.Partition;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +20,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import me.jahnen.libaums.core.UsbMassStorageDevice;
+import me.jahnen.libaums.core.fs.FileSystem;
+import me.jahnen.libaums.core.fs.UsbFile;
+import me.jahnen.libaums.core.fs.UsbFileOutputStream;
+import me.jahnen.libaums.core.partition.Partition;
 
 public class ReceiverStoreUSB extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";
