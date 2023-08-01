@@ -123,7 +123,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         requestPerminssCount = 0;
         usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         pictureInfoList = new ArrayList<>();
-        Utils.makeDir(VariableInstance.getInstance().PictureDirName);
+        Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
     }
 
@@ -479,7 +479,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Log.d(TAG, "downloadMTPCameraPictureToTFCard: pictureInfo =" + pictureInfo + ",needUpload =" + needUpload);
         try {
-            String pictureSaveLocalPath = VariableInstance.getInstance().PictureDirName + File.separator + pictureInfo.pictureName;
+            String pictureSaveLocalPath = VariableInstance.getInstance().TFCardPictureDir + File.separator + pictureInfo.pictureName;
             File pictureSaveFile = new File(pictureSaveLocalPath);
             if (pictureSaveFile != null && pictureSaveFile.exists()) {
                 pictureSaveFile.delete();
@@ -700,7 +700,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         File pictureSaveLocalFile = null;
 
         try {
-            pictureSavePath = VariableInstance.getInstance().PictureDirName + File.separator + pictureInfo.pictureName;
+            pictureSavePath = VariableInstance.getInstance().TFCardPictureDir + File.separator + pictureInfo.pictureName;
             pictureSaveLocalFile = new File(pictureSavePath);
 
             if (pictureSaveLocalFile.exists()) {
