@@ -937,6 +937,11 @@ public class MainActivity extends Activity {
 
                     }
                 }
+
+                if (receiverStoreUSB != null) {
+                    receiverStoreUSB.USBDissConnect(receiverStoreUSB.mUsbDevice);
+                }
+
                 finish();
             }
         }).start();
@@ -1438,14 +1443,7 @@ public class MainActivity extends Activity {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (VariableInstance.getInstance().isUploadingToRemote ||
-                VariableInstance.getInstance().isScanningCamera ||
-                VariableInstance.getInstance().isScanningStoreUSB ||
-                VariableInstance.getInstance().isDownloadingUSB ||
-                !operationUtils.pictureIsThreadStop ||
-                VariableInstance.getInstance().initingUSB ||
-                isUpdating
-        ) {
+        if (VariableInstance.getInstance().isUploadingToRemote || VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isScanningStoreUSB || VariableInstance.getInstance().isDownloadingUSB || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB || isUpdating) {
             canCloseDevice = false;
         } else {
             canCloseDevice = true;

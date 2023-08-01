@@ -39,6 +39,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     private UsbFile storeUSBPictureDirUsbFile;
     private UsbFile storeUSBWifiConfigurationFile;
 
+    public UsbDevice mUsbDevice;
+
 
     public ReceiverStoreUSB(Context context, StoreUSBListener storeUSBListener) {
         this.storeUSBListener = storeUSBListener;
@@ -72,11 +74,12 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
             Log.e(TAG, "存储U盘设备接入");
+            mUsbDevice = usbDevice;
             initStoreUSBDevice();
         }
     }
 
-    private void USBDissConnect(UsbDevice usbDevice) {
+    public void USBDissConnect(UsbDevice usbDevice) {
         if (usbDevice == null) {
             return;
         }
@@ -98,6 +101,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             storeUSBLogcatDirUsbFile = null;
             storeUSBPictureDirUsbFile = null;
             storeUSBWifiConfigurationFile = null;
+            mUsbDevice = null;
 
             VariableInstance.getInstance().storeUSBDeviceID = -1;
             VariableInstance.getInstance().isScanningStoreUSB = false;
@@ -109,6 +113,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             VariableInstance.getInstance().usbFileNameList.clear();
 
             storeUSBListener.storeUSBDeviceDetached();
+
         } else {
             getUSBPictureCount();
         }
@@ -126,6 +131,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         stopStoreUSBInitThreadExecutor();
 
         storeUSBFs = null;
+        mUsbDevice = null;
         storeUSBLogcatDirUsbFile = null;
         storeUSBPictureDirUsbFile = null;
         storeUSBWifiConfigurationFile = null;
