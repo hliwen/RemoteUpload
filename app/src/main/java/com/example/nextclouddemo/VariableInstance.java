@@ -12,10 +12,10 @@ public class VariableInstance {
     public String sdCardDirRoot;
     public String wifiConfigurationFileName;
     public String PictureDirName;
-    public String TFCardPictureDir;
     public String PictureUploadDirName;
-    public String TFCardUploadPictureDir;
     public String LogcatDirName;
+    public String TFCardPictureDir;
+    public String TFCardUploadPictureDir;
     public String LogcatDir;
 
     public OwnCloudClient ownCloudClient;
@@ -26,7 +26,6 @@ public class VariableInstance {
     public boolean initingUSB;
     public boolean isConnectedRemote;
     public boolean isUploadToday = true;
-
 
 
     public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
@@ -42,7 +41,6 @@ public class VariableInstance {
     public boolean isDownloadingUSB;//正在下载相机的照片到U盘
     public boolean isScanningCamera;//正在扫描相机
     public boolean isUploadingToRemote;//正在上传照片到远程服务器
-
 
 
     private VariableInstance() {

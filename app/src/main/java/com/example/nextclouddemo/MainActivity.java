@@ -17,7 +17,6 @@ import android.net.NetworkRequest;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,6 +27,7 @@ import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 
 
@@ -67,7 +67,9 @@ import java.util.UUID;
 import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
-public class MainActivity extends Activity {
+import com.example.nextclouddemo.R;
+
+public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
 
     private static final String FormatUSB = "Start,Format;";
@@ -130,26 +132,69 @@ public class MainActivity extends Activity {
     private TextView cameraPictureCountText;
     private TextView cameraDeviceText;
 
-    private TextView FormatUSBButton;
+    private Button guanjiBt;
+    private Button rescanerBt;
+    private Button openProtActivityBt;
+    private Button clearViewBt;
+    private Button formatUSBt;
+    private Button formatCameraBt;
+
+
     private UpdateUtils updateUtils;
     private WifiReceiver mWifiReceiver;
 
     private boolean sendShutDown;
     private boolean networkAvailable;
 
-    @SuppressLint("SetTextI18n")
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.main);
+        setContentView(R.layout.main_acitivity);
         openCameraDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
         UUID uuid = UUID.randomUUID();
         uuidString = uuid.toString();
         mHandler.removeMessages(msg_delay_creta_acitivity);
         mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
+
+        messageText = findViewById(R.id.messageText);
+        accessNumberText = findViewById(R.id.accessNumberText);
+        cameraStateText = findViewById(R.id.cameraStateText);
+        isConnectNetworkText = findViewById(R.id.isConnectNetworkText);
+        UpanSpaceText = findViewById(R.id.UpanSpaceText);
+        UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
+        uploadNumberText = findViewById(R.id.uploadNumberText);
+        uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
+        hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
+        mqttStateText = findViewById(R.id.mqttStateText);
+        uploadModelText = findViewById(R.id.uploadModelText);
+        remoteNameText = findViewById(R.id.remoteNameText);
+        hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
+        serverStateText = findViewById(R.id.serverStateText);
+        currentVersionText = findViewById(R.id.currentVersionText);
+        serverVersionText = findViewById(R.id.serverVersionText);
+        downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
+        updateResultText = findViewById(R.id.updateResultText);
+        cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
+        cameraDeviceText = findViewById(R.id.cameraDeviceText);
+
+
+        guanjiBt = findViewById(R.id.guanjiBt);
+        rescanerBt = findViewById(R.id.rescanerBt);
+        openProtActivityBt = findViewById(R.id.openProtActivityBt);
+        clearViewBt = findViewById(R.id.clearViewBt);
+        formatUSBt = findViewById(R.id.formatUSBt);
+        formatCameraBt = findViewById(R.id.formatCameraBt);
+
+        guanjiBt.setOnClickListener(this);
+        rescanerBt.setOnClickListener(this);
+        openProtActivityBt.setOnClickListener(this);
+        clearViewBt.setOnClickListener(this);
+        formatUSBt.setOnClickListener(this);
+        formatCameraBt.setOnClickListener(this);
     }
 
 
@@ -217,28 +262,6 @@ public class MainActivity extends Activity {
     @SuppressLint("SetTextI18n")
     private void initView() {
 
-        messageText = findViewById(R.id.messageText);
-        accessNumberText = findViewById(R.id.accessNumberText);
-        cameraStateText = findViewById(R.id.cameraStateText);
-        isConnectNetworkText = findViewById(R.id.isConnectNetworkText);
-        UpanSpaceText = findViewById(R.id.UpanSpaceText);
-        UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
-        uploadNumberText = findViewById(R.id.uploadNumberText);
-        uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
-        hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
-        mqttStateText = findViewById(R.id.mqttStateText);
-        uploadModelText = findViewById(R.id.uploadModelText);
-        remoteNameText = findViewById(R.id.remoteNameText);
-        hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
-        serverStateText = findViewById(R.id.serverStateText);
-        currentVersionText = findViewById(R.id.currentVersionText);
-        serverVersionText = findViewById(R.id.serverVersionText);
-        downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
-        updateResultText = findViewById(R.id.updateResultText);
-        cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
-        cameraDeviceText = findViewById(R.id.cameraDeviceText);
-
-        FormatUSBButton = findViewById(R.id.FormatUSB);
 
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
         appVerison = appInfo.getVersionCode();
@@ -883,7 +906,7 @@ public class MainActivity extends Activity {
         }
         Log.e(TAG, "formatUSB: start .......................................");
         VariableInstance.getInstance().isFormatingUSB = true;
-        runOnUiThreadText(FormatUSBButton, "开始删除USB图片");
+        runOnUiThreadText(formatUSBt, "开始删除USB图片");
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -896,7 +919,7 @@ public class MainActivity extends Activity {
 
                 if (receiverStoreUSB != null) {
                     boolean exception = receiverStoreUSB.formatStoreUSB();
-                    runOnUiThreadText(FormatUSBButton, exception ? "格式化USB失败" : "格式化USB成功");
+                    runOnUiThreadText(formatUSBt, exception ? "格式化USB失败" : "格式化USB成功");
 
                     Log.e(TAG, "formatUSB: " + (exception ? "格式化USB失败" : "格式化USB成功"));
 
@@ -1060,30 +1083,7 @@ public class MainActivity extends Activity {
     }
 
 
-    @SuppressLint("SetTextI18n")
-    public void onClickHandler(View button) {
-        if (button.getId() == R.id.rescaner) {
-            openCameraDeviceProt(false);
-            openCameraDeviceProt(true);
-        } else if (button.getId() == R.id.guanji) {
-            Utils.closeAndroid();
-        } else if (button.getId() == R.id.aaa) {
-            startActivity(new Intent(MainActivity.this, GpioActivity.class));
-        } else if (button.getId() == R.id.clearView) {
-            messageTextString = "";
-            messageText.setText(messageTextString);
-        } else if (button.getId() == R.id.remoteNameText) {
-            remoteNameText.setText("云端名称:" + deveceName);
-        } else if (button.getId() == R.id.uploadNumberText) {
-            uploadNumberText.setText("本次从相机同步到U盘数量:");
-        } else if (button.getId() == R.id.cameraStateText) {
-            cameraStateText.setText("相机状态:" + openDeviceProtFlag);
-        } else if (button.getId() == R.id.FormatUSB) {
-            formatUSB();
-        } else if (button.getId() == R.id.FormatCamera) {
-            formatCamera();
-        }
-    }
+
 
     private void updateServerStateUI(boolean succeed) {
         runOnUiThreadText(serverStateText, "服务器状态：" + succeed);
@@ -1274,6 +1274,25 @@ public class MainActivity extends Activity {
         if (debug) return;
         LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_NONE);
         LedControl.nativeEnableLed(LedControl.LED_RED_BRIGHTNESS_PATH, LedControl.LED_OFF);
+    }
+
+    @Override
+    public void onClick(View view) {
+        if (view.getId() == R.id.rescanerBt) {
+            openCameraDeviceProt(false);
+            openCameraDeviceProt(true);
+        } else if (view.getId() == R.id.guanjiBt) {
+            Utils.closeAndroid();
+        } else if (view.getId() == R.id.openProtActivityBt) {
+            startActivity(new Intent(MainActivity.this, GpioActivity.class));
+        } else if (view.getId() == R.id.clearViewBt) {
+            messageTextString = "";
+            messageText.setText(messageTextString);
+        } else if (view.getId() == R.id.formatUSBt) {
+            formatUSB();
+        } else if (view.getId() == R.id.formatCameraBt) {
+            formatCamera();
+        }
     }
 
 

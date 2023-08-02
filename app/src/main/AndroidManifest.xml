@@ -54,21 +54,23 @@
         <activity
             android:name="com.example.nextclouddemo.MainActivity"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenSize|smallestScreenSize"
-            android:launchMode="singleInstance">
+            android:launchMode="singleInstance"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name="com.example.gpiotest.GpioActivity"
-            android:exported="true">
+            android:exported="true" />
 
-        </activity>
 
         <receiver
             android:name=".BootReceiver"
-            android:enabled="true">
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.media.VOLUME_CHANGED_ACTION" />

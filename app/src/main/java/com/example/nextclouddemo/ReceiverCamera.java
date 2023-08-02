@@ -671,9 +671,6 @@ public class ReceiverCamera extends BroadcastReceiver {
                     pictureInfoList.add(sameDayPicutreInfo);
                 }
 
-
-                Log.e(TAG, "readPicFileFromUSBFile: pictureInfoList =" + pictureInfoList.size() + ",  isScanerStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB);
-
                 if (!VariableInstance.getInstance().usbFileNameList.contains(fileName)) {
                     if (rowFormatFile(FileEnd)) {
                         PictureInfo pictureInfo = new PictureInfo(false, fileName, createDate, 0, fileSystem, usbFileItem, false);

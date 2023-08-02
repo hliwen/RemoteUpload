@@ -94,19 +94,8 @@ public class LogcatHelper {
             } catch (FileNotFoundException e) {
 
             }
-            /**
-             *
-             * 日志等级：*:v , *:d , *:w , *:e , *:f , *:s
-             *
-             * 显示当前mPID程序的 E和W等级的日志.
-             *
-             * */
-            // cmds = "logcat *:e *:w | grep \"(" + mPID + ")\"";
-//            cmds = "logcat  | grep \"(" + mPID + ")\"";//打印所有日志信息
-            cmds = "logcat  -s MainActivitylog | *:e | grep \"(" + mPID + ")\"";//打印所有日志信息
-//             cmds = "logcat -s way";//打印标签过滤信息
-//            cmds = "logcat *:e *:i | grep \"(" + mPID + ")\"";
 
+            cmds = "logcat  -s MainActivitylog | *:e | grep \"(" + mPID + ")\"";
         }
 
         public void stopLogs() {

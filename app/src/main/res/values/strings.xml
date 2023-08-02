@@ -31,13 +31,13 @@
     <string name="start">start</string>
     <string name="closeDevice">关机</string>
     <string name="rescaner">重新扫描</string>
-    <string name="opengpioview">打开端口控制界面</string>
+    <string name="opengpioview">端口界面</string>
     <string name="openpreview_view">打开预览界面</string>
     <string name="closepreview_view">关闭预览界面</string>
     <string name="clear_screen">清屏</string>
-    <string name="formatusb">FormatUSB</string>
+    <string name="formatusb">格式化USB</string>
     <string name="formattf">FormatTF</string>
-    <string name="formatcamera">FormatCamera</string>
+    <string name="formatcamera">格式化相机</string>
     <string name="uploadusetimetext">本次同步到服务器耗时</string>
     <string name="uploadnumbertext">本次从相机同步到U盘数量</string>
     <string name="camerastatetext">相机状态</string>

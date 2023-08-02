@@ -1,63 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:visibility="visible">
+    android:layout_height="match_parent">
 
 
-    <ScrollView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-
-        <LinearLayout
-            android:id="@+id/line1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/guanji"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/closeDevice" />
-
-            <TextView
-                android:id="@+id/rescaner"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/rescaner" />
-
-            <TextView
-                android:id="@+id/aaa"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/opengpioview" />
 
 
-            <TextView
-                android:id="@+id/clearView"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/clear_screen" />
-
-            <TextView
-                android:id="@+id/FormatUSB"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:onClick="onClickHandler"
-                android:padding="5dp"
-                android:text="@string/formatusb" />
-
-            <TextView
-                android:id="@+id/FormatCamera"
-                style="@style/ButtonStyle"
-                android:onClick="onClickHandler"
-                android:text="@string/formatcamera" />
-        </LinearLayout>
-
-    </ScrollView>
 
     <ScrollView
         android:layout_width="wrap_content"
@@ -280,6 +228,51 @@
                 android:textSize="11sp" />
         </LinearLayout>
     </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/line1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/guanjiBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/closeDevice" />
+
+        <Button
+            android:id="@+id/rescanerBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/rescaner" />
+
+        <Button
+            android:id="@+id/openProtActivityBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/opengpioview" />
+
+
+        <Button
+            android:id="@+id/clearViewBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/clear_screen" />
+
+        <Button
+            android:id="@+id/formatUSBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:text="@string/formatusb" />
+
+        <Button
+            android:id="@+id/formatCameraBt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/formatcamera" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
