@@ -1,6 +1,7 @@
 package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class LogcatHelper {
+    private static final String TAG = "MainActivitylog";
     private static LogcatHelper INSTANCE = null;
 
     public LogDumper mLogDumperFirst = null;
@@ -46,8 +48,10 @@ public class LogcatHelper {
 
     public void start() {
 
-        String first = "logcat" + getFileName() + "_AAA.txt";
-        String second = "logcat" + getFileName() + ".txt";
+        String logcatName = getFileName();
+
+        String first = "logcat" + logcatName + "_AAA.txt";
+        String second = "logcat" + logcatName + ".txt";
 
         logcatFileFirstPath = VariableInstance.getInstance().LogcatDir + "/" + first;
         logcatFileSecondPath = VariableInstance.getInstance().LogcatDir + "/" + second;
@@ -66,6 +70,12 @@ public class LogcatHelper {
 
     public void stopFirst() {
         if (mLogDumperFirst != null) {
+            try {
+                for (String error : VariableInstance.getInstance().errorLogNameList) {
+                    Log.d(TAG, "stopSecond: error = " + error);
+                }
+            } catch (Exception e) {
+            }
             mLogDumperFirst.stopLogs();
             mLogDumperFirst = null;
         }
@@ -73,6 +83,14 @@ public class LogcatHelper {
 
     public void stopSecond() {
         if (mLogDumperSecond != null) {
+
+            try {
+                for (String error : VariableInstance.getInstance().errorLogNameList) {
+                    Log.d(TAG, "stopSecond: error = " + error);
+                }
+            } catch (Exception e) {
+            }
+
             mLogDumperSecond.stopLogs();
             mLogDumperSecond = null;
         }

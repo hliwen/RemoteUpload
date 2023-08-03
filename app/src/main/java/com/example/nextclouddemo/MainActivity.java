@@ -138,6 +138,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private Button clearViewBt;
     private Button formatUSBt;
     private Button formatCameraBt;
+    private Button catErrorLogcat;
 
 
     private UpdateUtils updateUtils;
@@ -188,6 +189,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         clearViewBt = findViewById(R.id.clearViewBt);
         formatUSBt = findViewById(R.id.formatUSBt);
         formatCameraBt = findViewById(R.id.formatCameraBt);
+        catErrorLogcat = findViewById(R.id.catErrorLogcat);
 
         guanjiBt.setOnClickListener(this);
         rescanerBt.setOnClickListener(this);
@@ -195,6 +197,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         clearViewBt.setOnClickListener(this);
         formatUSBt.setOnClickListener(this);
         formatCameraBt.setOnClickListener(this);
+        catErrorLogcat.setOnClickListener(this);
     }
 
 
@@ -462,6 +465,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 editor.apply();
 
                 mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 3000);
+
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.获取相机图片张数为0可能是无法获取照片信息);
                 return;
             }
 
@@ -632,6 +637,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 super.onLost(network);
                 Log.e(TAG, "Network  onLost: ");
                 netWorkLost();
+
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.网络断开);
             }
         });
     }
@@ -709,6 +716,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
                         updateServerStateUI(false);
+                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法获取服务器设备信息);
                         return;
                     }
 
@@ -760,6 +768,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                     } else {
                         Log.e(TAG, "initAddress:   配置远程服务器失败，延时10s后继续访问尝试 ");
+                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.配置远程服务器失败延时10s后继续访问尝试);
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
                     }
@@ -767,6 +776,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                 } catch (Exception e) {
                     Log.e(TAG, "initAddress:远程连接出现异常 = " + e);
+                    VariableInstance.getInstance().errorLogNameList.add(ErrorName.远程连接出现异常 + ":" + e.toString());
                     updateServerStateUI(false);
                     doingInit = false;
                 }
@@ -962,7 +972,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
 
                 if (receiverStoreUSB != null) {
-                    receiverStoreUSB.USBDissConnect(receiverStoreUSB.mUsbDevice);
+                    receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                 }
 
                 finish();
@@ -1081,8 +1091,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
         uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
-
-
 
 
     private void updateServerStateUI(boolean succeed) {
@@ -1227,6 +1235,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         if (!"0".equals(imei)) {
             runOnUiThreadText(accessNumberText, "入网号:" + imei);
+        } else {
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法获取设备IEMI);
         }
 
         phoneImei = imei;
@@ -1292,6 +1302,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
             formatUSB();
         } else if (view.getId() == R.id.formatCameraBt) {
             formatCamera();
+        } else if (view.getId() == R.id.catErrorLogcat) {
+            messageTextString = "";
+            try {
+                for (String error : VariableInstance.getInstance().errorLogNameList) {
+                    messageTextString = messageTextString + "\n" + error + "\n";
+                    messageText.setText(messageTextString);
+                }
+            } catch (Exception e) {
+            }
         }
     }
 

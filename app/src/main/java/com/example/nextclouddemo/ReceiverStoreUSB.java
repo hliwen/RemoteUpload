@@ -53,13 +53,13 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         String action = intent.getAction();
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED:
-                USBConnect(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
+                usbConnect(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
                 break;
             case UsbManager.ACTION_USB_DEVICE_DETACHED:
-                USBDissConnect(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
+                usbDissConnect(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
                 break;
             case INIT_STORE_USB_PERMISSION:
-                Log.d(TAG, "StoreUSBReceiver onReceive: CHECK_UPLOAD_PERMISSION");
+                Log.d(TAG, "StoreUSBReceiver onReceive: INIT_STORE_USB_PERMISSION");
                 initStoreUSBDevice();
                 break;
             default:
@@ -68,18 +68,18 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     }
 
 
-    private void USBConnect(UsbDevice usbDevice) {
+    private void usbConnect(UsbDevice usbDevice) {
         if (usbDevice == null) {
             return;
         }
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
-            Log.e(TAG, "存储U盘设备接入");
+            Log.d(TAG, "存储U盘设备接入");
             mUsbDevice = usbDevice;
             initStoreUSBDevice();
         }
     }
 
-    public void USBDissConnect(UsbDevice usbDevice) {
+    public void usbDissConnect(UsbDevice usbDevice) {
         if (usbDevice == null) {
             return;
         }
@@ -95,7 +95,6 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
 
             stopStoreUSBInitThreadExecutor();
-
             formatException = false;
             storeUSBFs = null;
             storeUSBLogcatDirUsbFile = null;
@@ -226,11 +225,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             device.init();
         } catch (Exception e) {
             Log.e(TAG, "initDevice : device.init 设备初始化错误 " + e);
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB初始化错误);
             return false;
         }
 
         if (device.getPartitions().size() <= 0) {
             Log.e(TAG, "initDevice: " + "device.getPartitions().size() error, 无法获取到设备分区");
+
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB无法获取到设备分区);
             return false;
         }
         Partition partition = device.getPartitions().get(0);
@@ -270,6 +272,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         Log.d(TAG, "usbDeviceScaner: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB无法获取到设备ID);
             return false;
         } else {
             VariableInstance.getInstance().isInitUSB = true;
@@ -472,6 +475,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         if (storeUSBPictureDirUsbFile == null || storeUSBFs == null) {
             Log.e(TAG, "uploadToUSB: 上传文件到U盘出错，U盘未初始化");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB未初始化上传到USB出错);
             return false;
         }
         Log.d(TAG, "uploadToUSB: localFile =" + localFile);
@@ -522,6 +526,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
             } else {
                 Log.e(TAG, "uploadToUSB: 上传U盘出错 Exception =" + e);
+                String error = ErrorName.上传图片到USB出错 + ":" + e.toString();
+                VariableInstance.getInstance().errorLogNameList.add(error);
             }
         } finally {
             try {

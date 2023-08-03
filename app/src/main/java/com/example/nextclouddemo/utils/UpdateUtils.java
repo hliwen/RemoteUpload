@@ -6,6 +6,7 @@ import android.text.TextUtils;
 
 import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.LogUtils;
+import com.example.nextclouddemo.ErrorName;
 import com.example.nextclouddemo.VariableInstance;
 
 import org.json.JSONArray;
@@ -54,7 +55,7 @@ public class UpdateUtils {
                     if (downloadSucced) {
                         downloadSucceed(downloadPath);
                     } else {
-                        downloadFaild();
+                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
                     }
                 }
             }
@@ -77,8 +78,10 @@ public class UpdateUtils {
             int ResponseCode = urlcon.getResponseCode();
 
             Log.e(TAG, "getServiceVersion: ResponseCode =" + ResponseCode);
-            if (ResponseCode != 200)
+            if (ResponseCode != 200){
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法访问升级链接);
                 return 0;
+            }
 
             InputStream inputStream = urlcon.getInputStream();
             InputStreamReader isr = new InputStreamReader(inputStream, "UTF-8");
@@ -182,9 +185,7 @@ public class UpdateUtils {
         }
     }
 
-    private void downloadFaild() {
 
-    }
 
     public static boolean installSilent(String path) {
         boolean result = false;

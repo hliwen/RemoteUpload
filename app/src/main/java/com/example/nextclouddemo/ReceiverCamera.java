@@ -41,8 +41,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     private CameraScanerListener downloadFlieListener;
     private ExecutorService scanerThreadExecutor;
     private UsbManager usbManager;
-    private UsbDevice usbScanerDevice;
-    private int usbScanerDeviceID;
+    private int cameraDeviceID;
     private int cameraTotalPicture;
     private int requestPerminssCount;
 
@@ -141,7 +140,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 break;
             case CHECK_PERMISSION:
                 Log.e(TAG, "onReceive:CHECK_PERMISSION");
-                checkConnectedDevice(this.usbScanerDevice);
+                checkConnectedDevice(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
                 break;
             default:
                 break;
@@ -149,25 +148,20 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private void usbConnect(UsbDevice usbDevice, Context context) {
-        Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED 接收到相机挂载");
-        if (usbDevice == null) {
-            Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED 接收到相机挂载,usbDevice == null,无效挂载");
+        Log.e(TAG, "onReceive: ACTION_USB_DEVICE_ATTACHED");
+        if (usbDevice == null || usbDevice.getDeviceId() == -1 || VariableInstance.getInstance().storeUSBDeviceID == -1) {
+            return;
         }
 
         if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
             return;
         }
-        usbScanerDeviceID = usbDevice.getDeviceId();
-        if (usbScanerDeviceID == -1) {
-            Log.e(TAG, "onReceive:接收到相机挂载，无效挂载 return deviceID = -1");
-            return;
-        }
-        this.usbScanerDevice = usbDevice;
         try {
             UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
             if (usbManager.hasPermission(usbDevice)) {
                 checkConnectedDevice(usbDevice);
             } else {
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
                 Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权");
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
@@ -189,11 +183,10 @@ public class ReceiverCamera extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 设备断开异常 e =" + e);
         }
-        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",usbScanerDeviceID =" + usbScanerDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
-        if (usbDevice.getDeviceId() != VariableInstance.getInstance().storeUSBDeviceID && usbScanerDeviceID == usbDevice.getDeviceId()) {
+        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",usbScanerDeviceID =" + cameraDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        if (usbDevice.getDeviceId() != VariableInstance.getInstance().storeUSBDeviceID && cameraDeviceID == usbDevice.getDeviceId()) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 相机断开");
-            usbScanerDeviceID = -1;
-            usbScanerDevice = null;
+            cameraDeviceID = -1;
             pictureInfoList.clear();
             downloadFlieListener.cameraDeviceDetached();
             stopScanerThread(4);
@@ -226,7 +219,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         }
     }
 
-    private void checkConnectedDevice(UsbDevice device) {
+    private void checkConnectedDevice(UsbDevice device) {  /*  cameraDeviceID = usbDevice.getDeviceId();*/
         Log.e(TAG, "checkConnectedDevice:  ");
 
         stopScanerThread(3);
@@ -251,11 +244,14 @@ public class ReceiverCamera extends BroadcastReceiver {
                     try {
                         if (!usbManager.hasPermission(device)) {
                             Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取");
+                            VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
+
                             requestPerminssCount++;
                             @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(CHECK_PERMISSION), 0);
                             usbManager.requestPermission(device, pendingIntent);
                             if (requestPerminssCount < 10) {
                                 Log.e(TAG, "checkConnectedDevice: 连续申请10次权限都无法扫描相机，没有后续操作");
+                                VariableInstance.getInstance().errorLogNameList.add(ErrorName.连续申请10次权限都无法扫描相机没有后续操作);
                                 return;
                             }
                         }
@@ -306,6 +302,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         UsbDeviceConnection usbDeviceConnection = usbManager.openDevice(usbDevice);
         if (usbDeviceConnection == null) {
             Log.e(TAG, "mtpDeviceScaner: usbDeviceConnection == null 打开相机失败，结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.打开相机失败结束扫描);
             return;
         }
 
@@ -313,17 +310,20 @@ public class ReceiverCamera extends BroadcastReceiver {
         MtpDevice mtpDevice = new MtpDevice(usbDevice);
         if (mtpDevice == null) {
             Log.e(TAG, "mtpDeviceScaner 数码相机打开失败 mtpDevice == null 初始usb设备为mtp设备失败，结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.创建mtp模式失败结束扫描);
             return;
         }
 
         if (!mtpDevice.open(usbDeviceConnection)) {
             Log.e(TAG, "mtpDeviceScaner 数码相机打开失败 mtpDevice.open 打开Mtp失败 结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.打开mtp模式失败结束扫描);
             return;
         }
 
         int[] storageIds = mtpDevice.getStorageIds();
-        if (storageIds == null) {
+        if (storageIds == null || storageIds.length == 0) {
             Log.e(TAG, "mtpDeviceScaner: 数码相机存储卷不可用 storageIds == null 结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.mtp模式获取分区失败结束扫描);
             return;
         }
 
@@ -338,7 +338,6 @@ public class ReceiverCamera extends BroadcastReceiver {
             if (pictureHandlesItem != null) {
                 Log.e(TAG, "mtpDeviceScaner: 当前盘符全部文件总数，pictureHandlesItem.lenght =" + pictureHandlesItem.length);
                 for (int i : pictureHandlesItem) {
-
                     while (VariableInstance.getInstance().isScanningStoreUSB) {
                         Log.e(TAG, "mtpDeviceScaner: 正在扫描U盘，暂停相机扫描");
                         try {
@@ -487,7 +486,11 @@ public class ReceiverCamera extends BroadcastReceiver {
                 pictureSaveFile.delete();
             }
 
-            mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
+            boolean importResult = mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
+
+            if (!importResult) {
+                Log.e(TAG, "downloadMTPCameraPictureToTFCard: 导出相机照片失败");
+            }
 
             if (pictureSaveFile != null && pictureSaveFile.exists()) {
 
@@ -511,6 +514,8 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
         } catch (Exception e) {
             Log.e(TAG, "downloadMTPCameraPictureToTFCard: 图片复制出错 e =" + e);
+            String error = ErrorName.mtp导出相机照片失败 + ":" + e.toString();
+            VariableInstance.getInstance().errorLogNameList.add(error);
         }
         Log.e(TAG, "downloadMTPCameraPictureToTFCard: end");
     }
@@ -525,17 +530,20 @@ public class ReceiverCamera extends BroadcastReceiver {
         UsbMassStorageDevice device = getUsbMass(usbDevice);
         if (device == null) {
             Log.e(TAG, "usbDeviceScaner: device == null 结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.USB模式创建访问相机模式失败);
             return;
         }
         try {
             device.init();
         } catch (Exception e) {
             Log.e(TAG, "usbDeviceScaner: 结束扫描 device.init() error:" + e);
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.USB模式初始化访问相机失败);
             return;
         }
 
         if (device.getPartitions().size() <= 0) {
             Log.e(TAG, "usbDeviceScaner: " + "device.getPartitions().size() error 结束扫描");
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.USB模式获取分区失败结束扫描);
             return;
         }
         Partition partition = device.getPartitions().get(0);
@@ -760,6 +768,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 }
             }
         } catch (Exception e) {
+            VariableInstance.getInstance().errorLogNameList.add(e.toString());
             Log.e(TAG, "downloadUSBCameraPictureToTFCard : 222222222222 Exception =" + e);
         } finally {
             try {

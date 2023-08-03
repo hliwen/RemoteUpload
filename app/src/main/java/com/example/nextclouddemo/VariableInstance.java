@@ -35,6 +35,8 @@ public class VariableInstance {
     public int uploadRemorePictureNum = 0;//已上传张数
     public int downdCameraPicrureNum = 0;//从相机同步到U盘的张数
     public Vector<String> usbFileNameList;
+
+    public Vector<String> errorLogNameList;
     public int LastPictureCount;
     public int storeUSBDeviceID = -1;//U盘设备号
     public boolean isScanningStoreUSB;//正在扫描U盘
@@ -55,6 +57,7 @@ public class VariableInstance {
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
         usbFileNameList = new Vector<>();
+        errorLogNameList = new Vector<>();
         storeUSBDeviceID = -1;
 
         Utils.makeDir(TFCardPictureDir);

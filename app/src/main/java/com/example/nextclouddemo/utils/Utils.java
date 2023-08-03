@@ -25,26 +25,6 @@ public class Utils {
     private static final String TAG = "MainActivitylog";
 
 
-    public static String getTotalMemory(File path) {
-        // 获得一个磁盘状态对象
-        StatFs stat = new StatFs(path.getPath());
-        long blockSize = stat.getBlockSizeLong();
-        long totalBlocks = stat.getBlockCount();    // 获得扇区的总数
-        // 总空间
-        String totalMemory = "" + (totalBlocks * blockSize / (1024 * 1024));
-        android.util.Log.e(TAG, "adfafdd getTotalMemory: totalMemory =" + totalMemory);
-        return totalMemory;
-    }
-
-    public static String getRemainMemory(File path) {
-        // 获得一个磁盘状态对象
-        StatFs stat = new StatFs(path.getPath());
-        long blockSize = stat.getBlockSizeLong();
-        long availableBlocks = stat.getAvailableBlocksLong();
-        String availableMemory = "" + (availableBlocks * blockSize / (1024 * 1024));
-        android.util.Log.e(TAG, "adfafdd getMemoryInfo:  availableMemory =" + availableMemory);
-        return availableMemory;
-    }
 
     public static void resetDir(String dir) {
         File dirFlie = new File(dir);
@@ -95,34 +75,6 @@ public class Utils {
     }
 
 
-
-
-    public static String getMMddString() {
-        try {
-            return getDateFormat("MMdd").format(new Date());
-        } catch (Exception e) {
-
-        }
-        return System.currentTimeMillis() + "";
-    }
-
-    public static String getMMddHHmmString() {
-        try {
-            return getDateFormat("MMdd-HHmm").format(new Date());
-        } catch (Exception e) {
-
-        }
-        return System.currentTimeMillis() + "";
-    }
-
-    public static String getyyMMddtring() {
-        try {
-            return getDateFormat("yyMMdd").format(new Date());
-        } catch (Exception e) {
-
-        }
-        return System.currentTimeMillis() + "";
-    }
 
     public static int getyyMMddtringInt(long time) {
         try {

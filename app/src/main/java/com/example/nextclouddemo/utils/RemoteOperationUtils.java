@@ -2,6 +2,7 @@ package com.example.nextclouddemo.utils;
 
 import android.annotation.SuppressLint;
 
+import com.example.nextclouddemo.ErrorName;
 import com.example.nextclouddemo.LogcatHelper;
 import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.model.UploadFileModel;
@@ -51,7 +52,6 @@ public class RemoteOperationUtils {
 
         String yearMonthFileDir = Utils.getyyyyMMString();
 
-
         userNameDir = FileUtils.PATH_SEPARATOR + userName + FileUtils.PATH_SEPARATOR;
 
         remoteLogcatDir = userNameDir + logcatDir + FileUtils.PATH_SEPARATOR;
@@ -64,6 +64,7 @@ public class RemoteOperationUtils {
         int result = checkFileExit(FileUtils.PATH_SEPARATOR, userNameDir);
 
         if (result == requestFailure) {
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.远程创建客户名称路径出错);
             return false;
         }
 
@@ -72,6 +73,7 @@ public class RemoteOperationUtils {
             RemoteOperationResult remoteOperationResult = refreshOperation.execute(VariableInstance.getInstance().ownCloudClient);
             if (remoteOperationResult == null || !remoteOperationResult.isSuccess()) {
                 Log.e(TAG, "initRemoteDir 获取文件列表失败: " + result);
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.获取远程文件列表失败);
                 return false;
             }
             boolean exictP = false;
@@ -87,6 +89,7 @@ public class RemoteOperationUtils {
 
             boolean checkCameraPath = checkResult(exictP, remoteCameraDir, remoteCameraMonthDayDir);
             if (!checkCameraPath) {
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.创建获取远程日期文件列表失败);
                 return false;
             }
             if (!exictL) {
@@ -95,14 +98,17 @@ public class RemoteOperationUtils {
         } else {
             boolean createResult = createFilefolder(userNameDir);
             if (!createResult) {
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.远程创建客户名称路径出错);
                 return false;
             }
             createResult = createFilefolder(remoteCameraDir);
             if (!createResult) {
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.创建获取远程主文件列表失败);
                 return false;
             }
             createResult = createFilefolder(remoteCameraMonthDayDir);
             if (!createResult) {
+                VariableInstance.getInstance().errorLogNameList.add(ErrorName.创建获取远程日期文件列表失败);
                 return false;
             }
         }
@@ -145,8 +151,11 @@ public class RemoteOperationUtils {
                 break;
             }
         }
-        if (exict) return fileExist;
-        else return noExist;
+        if (exict) {
+            return fileExist;
+        } else {
+            return noExist;
+        }
     }
 
     public boolean createFilefolder(String flieFolder) {
@@ -185,7 +194,7 @@ public class RemoteOperationUtils {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
 
                     if (VariableInstance.getInstance().isFormatingUSB || VariableInstance.getInstance().isFormaringCamera) {
-                        Log.e(TAG,"startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
+                        Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
                         return;
                     }
 

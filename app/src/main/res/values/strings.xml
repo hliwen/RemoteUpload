@@ -56,6 +56,7 @@
     <string name="camera_picture_count">相机照片总数：</string>
     <string name="camera_device_name">相机名称：</string>
     <string name="cameraScanerErroMessageText">相机扫描异常信息</string>
+    <string name="catErrorLog">查看异常</string>
 
 
 </resources>
