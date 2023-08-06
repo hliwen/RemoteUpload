@@ -350,8 +350,6 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                         }
                     }
-
-
                     MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
 
                     if (mtpObjectInfo == null) {

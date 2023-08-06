@@ -1,5 +1,7 @@
 package com.example.nextclouddemo;
 
+import android.os.Environment;
+
 import com.example.nextclouddemo.utils.Utils;
 import com.owncloud.android.lib.common.OwnCloudClient;
 
@@ -51,7 +53,8 @@ public class VariableInstance {
         wifiConfigurationFileName = "wifiConfiguration";
         PictureUploadDirName = "CameraUploadPath";
         LogcatDirName = "MLogcat";
-        sdCardDirRoot = "/mnt/sdcard" + File.separator;
+//        sdCardDirRoot = "/mnt/sdcard" + File.separator;
+        sdCardDirRoot = Environment.getExternalStorageDirectory() + File.separator;
 
         TFCardPictureDir = sdCardDirRoot + PictureDirName;
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
