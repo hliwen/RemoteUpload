@@ -90,7 +90,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int delay_crate_acitivity_time = 5 * 1000;
     private static String TAG = "MainActivitylog";
-
     private String returnImei;
     private String deveceName;
     private boolean doingInit;
@@ -202,6 +201,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     void delayCreate() {
+
         getUploadToday();
         VariableInstance.getInstance().isFormaringCamera = false;
         VariableInstance.getInstance().isConnectCamera = false;
@@ -819,6 +819,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
         EventBus.getDefault().unregister(this);
         MqttManager.getInstance().release();
+
+        Log.e(TAG, "onDestroy: .................................................");
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -914,20 +916,33 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Log.d(TAG, "正在格式化USB，无需重复操作");
             return;
         }
-        Log.e(TAG, "formatUSB: start .......................................");
-        VariableInstance.getInstance().isFormatingUSB = true;
-        runOnUiThreadText(formatUSBt, "开始删除USB图片");
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-//                Utils.resetDir(VariableInstance.getInstance().LogcatDir);//TODO hu
+
+
+                while (VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isDownloadingUSB || VariableInstance.getInstance().isScanningStoreUSB) {
+
+                    try {
+                        Log.e(TAG, "run: 等待格式化");
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                }
+
+                openCameraDeviceProt(false);
+                Log.e(TAG, "formatUSB: start .......................................");
+                VariableInstance.getInstance().isFormatingUSB = true;
+                runOnUiThreadText(formatUSBt, "开始删除USB图片");
+
                 VariableInstance.getInstance().usbFileNameList.clear();
 
                 operationUtils.stopUploadThread();
 
                 if (receiverStoreUSB != null) {
+
                     boolean exception = receiverStoreUSB.formatStoreUSB();
                     runOnUiThreadText(formatUSBt, exception ? "格式化USB失败" : "格式化USB成功");
 
@@ -939,6 +954,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         sendMessageToMqtt("ZQ\r\n");
                     }
                 }
+
+                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
 
                 if (receiverCamera != null) {
                     receiverCamera.storeUSBDetached();
@@ -1010,7 +1029,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null)
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1136,7 +1156,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1145,7 +1166,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {

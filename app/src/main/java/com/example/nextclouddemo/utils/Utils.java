@@ -6,10 +6,12 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Environment;
 import android.os.StatFs;
+import android.text.format.Formatter;
 
+import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
-import com.example.nextclouddemo.utils.Log;
 
 import androidx.core.content.PermissionChecker;
 
@@ -25,6 +27,23 @@ public class Utils {
     private static final String TAG = "MainActivitylog";
 
 
+    /*** 获得SD卡总大小** @return*/
+    public static String getSDTotalSize() {
+        File path = Environment.getExternalStorageDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long totalBlocks = stat.getBlockCount();
+        return Formatter.formatFileSize(MyApplication.getContext(), blockSize * totalBlocks);
+    }
+
+    /*** 获得sd卡剩余容量，即可用大小** @return*/
+    public static long getSDAvailableSize() {
+        File path = Environment.getExternalStorageDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSize();
+        long availableBlocks = stat.getAvailableBlocks();
+        return blockSize * availableBlocks;
+    }
 
     public static void resetDir(String dir) {
         File dirFlie = new File(dir);
@@ -69,10 +88,12 @@ public class Utils {
         try {
             return getDateFormat("yyyyMM").format(new Date());
         } catch (Exception e) {
-
         }
         return System.currentTimeMillis() + "";
     }
+
+
+
 
 
 
@@ -107,13 +128,9 @@ public class Utils {
 
     public static final String[] PERMISSIONS = {
 
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE,
 
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-    };
+            Manifest.permission.READ_PHONE_STATE, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION,};
 
     @SuppressLint("WrongConstant")
     public static String[] haveNoPermissions(Context mActivity) {
@@ -131,15 +148,11 @@ public class Utils {
 
 
     public static void deleteAllFiles(File dir) {
-        if (dir == null || !dir.exists() || !dir.isDirectory())
-            return;
-        if (dir.listFiles() != null)
-            for (File file : dir.listFiles()) {
-                if (file.isFile())
-                    file.delete(); // 删除所有文件
-                else if (file.isDirectory())
-                    deleteAllFiles(file); // 递规的方式删除文件夹
-            }
+        if (dir == null || !dir.exists() || !dir.isDirectory()) return;
+        if (dir.listFiles() != null) for (File file : dir.listFiles()) {
+            if (file.isFile()) file.delete(); // 删除所有文件
+            else if (file.isDirectory()) deleteAllFiles(file); // 递规的方式删除文件夹
+        }
         dir.delete();// 删除目录本身
     }
 

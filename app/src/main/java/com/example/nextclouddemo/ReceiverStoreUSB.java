@@ -347,6 +347,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     }
 
     public boolean formatStoreUSB() {
+        Log.e(TAG, "formatStoreUSB:start .................... ");
         formatException = false;
         if (storeUSBPictureDirUsbFile != null) {
             try {
@@ -384,10 +385,12 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         formatStoreUSB(file);
                     } else {
                         if (file.getLength() == 0) {
+                            Log.e(TAG, "formatStoreUSB: file.getLength() == 0");
                             continue;
                         }
                         try {
                             file.delete();
+                            Log.e(TAG, "formatStoreUSB: " + file.getName());
                         } catch (Exception e) {
                             Log.e(TAG, "formatStoreUSB: 1删除文件异常Exception e:" + e);
                         }
@@ -396,6 +399,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             } else {
                 if (usbFile.getLength() != 0) {
                     try {
+                        Log.e(TAG, "formatStoreUSB: " + usbFile.getName());
                         usbFile.delete();
                     } catch (Exception e) {
                         Log.e(TAG, "formatStoreUSB: 2删除文件异常Exception e:" + e);
@@ -502,14 +506,24 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 yearMonthUsbFile = storeUSBPictureDirUsbFile.createDirectory(yearMonth);
             }
 
+            if (VariableInstance.getInstance().isFormatingUSB) {
+                return false;
+            }
             UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
+            Log.e(TAG, "uploadToUSB.................................: name =" + localFile.getName());
             os = new UsbFileOutputStream(create);
             is = new FileInputStream(localFile);
             fileSize = is.available();
             int bytesRead;
             byte[] buffer = new byte[storeUSBFs.getChunkSize()];
+
+
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
+                if (VariableInstance.getInstance().isFormatingUSB) {
+                    create.delete();
+                    break;
+                }
             }
             VariableInstance.getInstance().downdCameraPicrureNum++;
             VariableInstance.getInstance().LastPictureCount++;
@@ -541,6 +555,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             } catch (Exception e) {
             }
         }
+
         VariableInstance.getInstance().isDownloadingUSB = false;
         Log.d(TAG, "uploadToUSB:完成 ");
         return true;

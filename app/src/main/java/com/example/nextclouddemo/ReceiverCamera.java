@@ -47,6 +47,8 @@ public class ReceiverCamera extends BroadcastReceiver {
 
     private ArrayList<SameDayPicutreInfo> pictureInfoList;
 
+    long minMemory = 1024 * 1024 * 500;
+
     class SameDayPicutreInfo {
         public int yearMonthDay;
         public ArrayList<PictureInfo> rowPictureInfos;
@@ -183,7 +185,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 设备断开异常 e =" + e);
         }
-        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",usbScanerDeviceID =" + cameraDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",cameraDeviceID =" + cameraDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (usbDevice.getDeviceId() != VariableInstance.getInstance().storeUSBDeviceID && cameraDeviceID == usbDevice.getDeviceId()) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 相机断开");
             cameraDeviceID = -1;
@@ -319,6 +321,8 @@ public class ReceiverCamera extends BroadcastReceiver {
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.打开mtp模式失败结束扫描);
             return;
         }
+
+        cameraDeviceID = usbDevice.getDeviceId();
 
         int[] storageIds = mtpDevice.getStorageIds();
         if (storageIds == null || storageIds.length == 0) {
@@ -486,6 +490,15 @@ public class ReceiverCamera extends BroadcastReceiver {
                 pictureSaveFile.delete();
             }
 
+            if (cameraDeviceID == -1) {
+                Log.e(TAG, "downloadMTPCameraPictureToTFCard: 相机已断开，停止下载");
+                stopScanerThread(5);
+                return;
+            }
+
+
+            checkSDAvailableSize();
+
             boolean importResult = mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
             if (!importResult) {
@@ -520,12 +533,26 @@ public class ReceiverCamera extends BroadcastReceiver {
         Log.e(TAG, "downloadMTPCameraPictureToTFCard: end");
     }
 
+
+    private void checkSDAvailableSize() {
+        if (Utils.getSDAvailableSize() < minMemory) {
+            Log.e(TAG, "checkSDAvailableSize: 手机内部存储过小，需要删除部分文件 ");
+            Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+            Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+            Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+
+        }
+    }
+
+
     private void usbDeviceScaner(UsbDevice usbDevice) {
         Log.d(TAG, "usbDeviceScaner start");
         if (usbDevice == null) {
             Log.e(TAG, "usbDeviceScaner: USB设备为空 结束扫描");
             return;
         }
+
+        cameraDeviceID = usbDevice.getDeviceId();
 
         UsbMassStorageDevice device = getUsbMass(usbDevice);
         if (device == null) {
@@ -700,6 +727,13 @@ public class ReceiverCamera extends BroadcastReceiver {
             Log.e(TAG, "downloadUSBCameraPictureToTFCard: 正在格式化相机，不做处理");
             return;
         }
+        if (cameraDeviceID == -1) {
+            Log.e(TAG, "downloadUSBCameraPictureToTFCard: 相机已断开，停止下载");
+            stopScanerThread(6);
+            return;
+        }
+
+        checkSDAvailableSize();
 
         FileOutputStream out = null;
         InputStream in = null;
@@ -808,7 +842,8 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
+            return true;
         return false;
     }
 

@@ -172,6 +172,9 @@ public class RemoteOperationUtils {
 
     public void addUploadRemoteFile(UploadFileModel uploadFileModel, boolean uploadFaild) {
         Log.e(TAG, "addUploadRemoteFile: uploadFaild =" + uploadFaild + ",fileListCache =" + pictureFileListCache.size() + ",uploadFileModel =" + uploadFileModel);
+
+        if (uploadFileModel == null)
+            return;
         if (!pictureFileListCache.contains(uploadFileModel)) {
             pictureFileListCache.add(uploadFileModel);
         }
