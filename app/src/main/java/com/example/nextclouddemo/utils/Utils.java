@@ -12,6 +12,7 @@ import android.text.format.Formatter;
 
 import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
+import com.example.nextclouddemo.model.UploadFileModel;
 
 import androidx.core.content.PermissionChecker;
 
@@ -19,13 +20,33 @@ import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Utils {
     private static final String TAG = "MainActivitylog";
+    private static final long minMemory = 1024 * 1024 * 500;
 
+    public static void checkSDAvailableSize() {
+        if (Utils.getSDAvailableSize() < minMemory) {
+            Log.e(TAG, "checkSDAvailableSize: 手机内部存储过小，需要删除部分文件 ");
+            File localTpmFlie = new File(VariableInstance.getInstance().TFCardUploadPictureDir);
+            if (localTpmFlie != null && localTpmFlie.exists()) {
+                File[] files = localTpmFlie.listFiles();
+                if (files != null) {
+                    // 按文件名进行排序由小到大
+                    Arrays.sort(files, (file1, file2) -> file1.getName().compareTo(file2.getName()));
+                    for (int i = 0; i < 5; i++) {
+                        if (files.length - i > 0) {
+                            files[i].delete();
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /*** 获得SD卡总大小** @return*/
     public static String getSDTotalSize() {
@@ -91,10 +112,6 @@ public class Utils {
         }
         return System.currentTimeMillis() + "";
     }
-
-
-
-
 
 
     public static int getyyMMddtringInt(long time) {

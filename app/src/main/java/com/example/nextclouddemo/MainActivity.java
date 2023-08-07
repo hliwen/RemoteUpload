@@ -30,7 +30,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
-
 import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
 import com.example.gpiotest.LedControl;
@@ -44,7 +43,6 @@ import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
 import com.example.nextclouddemo.utils.UpdateUtils;
 import com.example.nextclouddemo.utils.Utils;
-
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
 import com.owncloud.android.lib.common.OwnCloudCredentialsFactory;
 
@@ -66,8 +64,6 @@ import java.util.UUID;
 
 import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
-
-import com.example.nextclouddemo.R;
 
 public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
@@ -233,6 +229,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         sendCloseDeviceMessage(1);
         getUploadModel();
+
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
@@ -1029,8 +1026,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1156,8 +1152,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1166,8 +1161,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1706,6 +1700,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
+                    Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
                     Utils.closeAndroid();
                     break;
                 case msg_wifi_disconnected:

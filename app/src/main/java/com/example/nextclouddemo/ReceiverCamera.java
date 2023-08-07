@@ -47,7 +47,6 @@ public class ReceiverCamera extends BroadcastReceiver {
 
     private ArrayList<SameDayPicutreInfo> pictureInfoList;
 
-    long minMemory = 1024 * 1024 * 500;
 
     class SameDayPicutreInfo {
         public int yearMonthDay;
@@ -495,8 +494,6 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
 
 
-            checkSDAvailableSize();
-
             boolean importResult = mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
             if (!importResult) {
@@ -511,6 +508,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                 if (uploadSucceed) {
                     if (needUpload) {
+                        Utils.checkSDAvailableSize();
                         String pictureSaveUploadLocalPath = VariableInstance.getInstance().TFCardUploadPictureDir + File.separator + pictureInfo.pictureName;
                         File pictureUploadSaveFile = new File(pictureSaveUploadLocalPath);
                         if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) {
@@ -529,17 +527,6 @@ public class ReceiverCamera extends BroadcastReceiver {
             VariableInstance.getInstance().errorLogNameList.add(error);
         }
         Log.e(TAG, "downloadMTPCameraPictureToTFCard: end");
-    }
-
-
-    private void checkSDAvailableSize() {
-        if (Utils.getSDAvailableSize() < minMemory) {
-            Log.e(TAG, "checkSDAvailableSize: 手机内部存储过小，需要删除部分文件 ");
-            Utils.resetDir(VariableInstance.getInstance().LogcatDir);
-            Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-            Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-
-        }
     }
 
 
@@ -731,7 +718,6 @@ public class ReceiverCamera extends BroadcastReceiver {
             return;
         }
 
-        checkSDAvailableSize();
 
         FileOutputStream out = null;
         InputStream in = null;
@@ -779,6 +765,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                 if (uploadSucceed) {
                     if (needUpload) {
+                        Utils.checkSDAvailableSize();
                         String pictureSaveUploadLocalPath = VariableInstance.getInstance().TFCardUploadPictureDir + File.separator + pictureInfo.pictureName;
                         File pictureUploadSaveFile = new File(pictureSaveUploadLocalPath);
                         if (pictureUploadSaveFile.exists()) {
@@ -840,8 +827,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
         return false;
     }
 
