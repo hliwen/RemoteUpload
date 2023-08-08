@@ -44,24 +44,47 @@ public class UpdateUtils {
                 int appVerison = appInfo.getVersionCode();
                 int servierVersion = getServiceVersion();
 
-                if (updateListener != null)
-                    updateListener.serverVersion(servierVersion);
+                if (updateListener != null) updateListener.serverVersion(servierVersion);
 
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
 
                 if (servierVersion > appVerison) {
-                    boolean downloadSucced = startDownloadApp(UrlUtils.appDowloadURL + servierVersion);
-                    Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
-                    if (downloadSucced) {
-                        downloadSucceed(downloadPath);
-                    } else {
-                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
-                    }
+                    startDownloadApk(servierVersion);
                 }
             }
         }).start();
+    }
+
+    public void checkBetaApk(Context context) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                AppUtils.AppInfo appInfo = AppUtils.getAppInfo(context.getPackageName());
+
+                int appVerison = appInfo.getVersionCode();
+                int servierVersion = getServiceVersion();
+
+                if (updateListener != null) updateListener.serverVersion(servierVersion);
+
+                Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
+
+                if (servierVersion > appVerison) {
+                    startDownloadApk(servierVersion);
+                }
+            }
+        }).start();
+    }
 
 
+    void startDownloadApk(int servierVersion) {
+        String downloadURL = VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appDowloadURL_Beta : UrlUtils.appDowloadURL;
+        boolean downloadSucced = startDownloadApp(downloadURL + servierVersion);
+        Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
+        if (downloadSucced) {
+            downloadSucceed(downloadPath);
+        } else {
+            VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
+        }
     }
 
     public void networkLost() {
@@ -73,12 +96,12 @@ public class UpdateUtils {
 
         int servierVersion = 0;
         try {
-            URL url = new URL(UrlUtils.appVersionURL);
+            URL url = new URL(VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appVersionURL_Beta : UrlUtils.appVersionURL);
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
 
             Log.e(TAG, "getServiceVersion: ResponseCode =" + ResponseCode);
-            if (ResponseCode != 200){
+            if (ResponseCode != 200) {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法访问升级链接);
                 return 0;
             }
@@ -133,8 +156,7 @@ public class UpdateUtils {
                     downloadFileOutputStream.write(buffer, 0, lenght);
                     curentLength += lenght;
 
-                    if (updateListener != null)
-                        updateListener.downloadProgress((int) (curentLength / 1024));
+                    if (updateListener != null) updateListener.downloadProgress((int) (curentLength / 1024));
 
                 }
                 downloadFileOutputStream.flush();
@@ -156,8 +178,7 @@ public class UpdateUtils {
 
     private void downloadSucceed(String filaPath) {
         try {
-            if (updateListener != null)
-                updateListener.startUpdate();
+            if (updateListener != null) updateListener.startUpdate();
             execLinuxCommand();
             boolean installSuccess = installSilent(filaPath);
             if (updateListener != null) {
@@ -184,7 +205,6 @@ public class UpdateUtils {
 
         }
     }
-
 
 
     public static boolean installSilent(String path) {

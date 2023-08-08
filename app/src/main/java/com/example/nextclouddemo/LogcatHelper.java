@@ -83,7 +83,6 @@ public class LogcatHelper {
 
     public void stopSecond() {
         if (mLogDumperSecond != null) {
-
             try {
                 for (String error : VariableInstance.getInstance().errorLogNameList) {
                     Log.d(TAG, "stopSecond: error = " + error);

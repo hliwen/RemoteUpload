@@ -38,6 +38,7 @@ import me.jahnen.libaums.core.partition.Partition;
 public class ReceiverCamera extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";
     public static final String CHECK_PERMISSION = "CHECK_PERMISSION";
+    private static final int FormatDay = 14;
     private CameraScanerListener downloadFlieListener;
     private ExecutorService scanerThreadExecutor;
     private UsbManager usbManager;
@@ -272,7 +273,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                             case UsbConstants.USB_CLASS_STILL_IMAGE:
                                 downloadFlieListener.cameraOperationStart();
                                 mtpDeviceScaner(device);
-                                VariableInstance.getInstance().isFormaringCamera = false;
+                                VariableInstance.getInstance().isFormaringCamera.formatState = 0;
                                 downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
                                 break;
                             case UsbConstants.USB_CLASS_MASS_STORAGE:
@@ -282,7 +283,8 @@ public class ReceiverCamera extends BroadcastReceiver {
                                 }
                                 downloadFlieListener.cameraOperationStart();
                                 usbDeviceScaner(device);
-                                VariableInstance.getInstance().isFormaringCamera = false;
+                                VariableInstance.getInstance().isFormaringCamera.formatState = 0;
+                                ;
                                 downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
                                 break;
                             default:
@@ -364,15 +366,29 @@ public class ReceiverCamera extends BroadcastReceiver {
                         continue;
                     }
 
-                    cameraTotalPicture++;
-
-                    if (VariableInstance.getInstance().isFormaringCamera) {
-                        boolean delectResult = mtpDevice.deleteObject(i);
-                        if (!delectResult) {
-                            Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
+                    if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+                        if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
+                            boolean delectResult = mtpDevice.deleteObject(i);
+                            if (!delectResult) {
+                                Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
+                            }
+                            continue;
+                        } else if (VariableInstance.getInstance().isFormaringCamera.formatState == 2) {
+                            int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
+                            if (systemTime == 900101) {
+                                continue;
+                            }
+                            if (systemTime - yymmdd > FormatDay) {
+                                boolean delectResult = mtpDevice.deleteObject(i);
+                                if (!delectResult) {
+                                    Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
+                                }
+                            }
+                            continue;
                         }
-                        continue;
+
                     }
+                    cameraTotalPicture++;
 
                     SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
                     int index = pictureInfoList.indexOf(sameDayPicutreInfo);
@@ -474,7 +490,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
     private void downloadMTPCameraPictureToTFCard(MtpDevice mtpDevice, PictureInfo pictureInfo, boolean needUpload) {
 
-        if (VariableInstance.getInstance().isFormaringCamera) {
+        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
             Log.e(TAG, "downloadMTPCameraPictureToTFCard: 正在格式化相机，不做处理");
             return;
         }
@@ -673,13 +689,38 @@ public class ReceiverCamera extends BroadcastReceiver {
                 if (!pictureFormatFile(FileEnd)) continue;
                 cameraTotalPicture++;
 
-                if (VariableInstance.getInstance().isFormaringCamera) {
+                if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                     try {
                         usbFile.delete();
                     } catch (IOException e) {
                         Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
                     }
                     continue;
+                }
+
+
+                if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+                    if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
+                        try {
+                            usbFile.delete();
+                        } catch (IOException e) {
+                            Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
+                        }
+                        continue;
+                    } else if (VariableInstance.getInstance().isFormaringCamera.formatState == 2) {
+                        int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
+                        if (systemTime == 900101) {
+                            continue;
+                        }
+                        if (systemTime - yymmdd > FormatDay) {
+                            try {
+                                usbFile.delete();
+                            } catch (IOException e) {
+                                Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
+                            }
+                        }
+                        continue;
+                    }
                 }
 
                 SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
@@ -708,7 +749,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     private void downloadUSBCameraPictureToTFCard(PictureInfo pictureInfo, boolean needUpload) {
         Log.d(TAG, "downloadUSBCameraPictureToTFCard: pictureInfo =" + pictureInfo + ",needUpload =" + needUpload);
 
-        if (VariableInstance.getInstance().isFormaringCamera) {
+        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
             Log.e(TAG, "downloadUSBCameraPictureToTFCard: 正在格式化相机，不做处理");
             return;
         }

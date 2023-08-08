@@ -308,14 +308,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     }
 
     private void getStoreUSBPictureCount(UsbFile usbFile) {
-        if (VariableInstance.getInstance().isFormatingUSB) {
+        if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
             Log.e(TAG, "getStoreUSBPictureCount: 11 正在格式化，不需要扫描");
             return;
         }
         try {
             UsbFile[] usbFileList = usbFile.listFiles();
             for (UsbFile usbFileItem : usbFileList) {
-                if (VariableInstance.getInstance().isFormatingUSB) {
+                if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                     Log.e(TAG, "getStoreUSBPictureCount: 22 正在格式化，不需要扫描");
                     return;
                 }
@@ -473,7 +473,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     }
 
     public boolean uploadToUSB(File localFile, String yearMonth) {
-        if (VariableInstance.getInstance().isFormatingUSB) {
+        if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
             Log.e(TAG, "uploadLogcatToUSB: 正在格式化，不需要上传到U盘");
             return false;
         }
@@ -513,7 +513,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 yearMonthUsbFile = storeUSBPictureDirUsbFile.createDirectory(yearMonth);
             }
 
-            if (VariableInstance.getInstance().isFormatingUSB) {
+            if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                 return false;
             }
             UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
@@ -527,7 +527,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
-                if (VariableInstance.getInstance().isFormatingUSB) {
+                if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                     create.delete();
                     break;
                 }

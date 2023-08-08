@@ -81,6 +81,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
     private static final String UploadToday = "Set,UploadToday,";
+    private static final String Set_FormatUdisk_All = "Set,FormatUdisk,All";
+    private static final String Set_FormatUdisk_2weeks = "Set,FormatUdisk,2weeks";
+    private static final String Set_FormatCamera_All = "Set,FormatCamera,All";
+    private static final String Set_FormatCamera_2weeks = "Set,FormatCamera,2weeks";
+    private static final String Set_Powoff = "Set,Powoff";
+    private static final String Set_UploadLocat = "Set,UploadLocat";
+    private static final String Set_WakeCamer = "Set,WakeCamer";
+    private static final String Set_ResetApk = "Set,ResetApk";
+    private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk";
+    private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk";
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
@@ -200,12 +210,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
     void delayCreate() {
 
         getUploadToday();
-        VariableInstance.getInstance().isFormaringCamera = false;
+        VariableInstance.getInstance().isFormaringCamera.formatState = 0;
         VariableInstance.getInstance().isConnectCamera = false;
         VariableInstance.getInstance().isInitUSB = false;
         VariableInstance.getInstance().initingUSB = false;
         VariableInstance.getInstance().isConnectedRemote = false;
-        VariableInstance.getInstance().isFormatingUSB = false;
+        VariableInstance.getInstance().isFormatingUSB.formatState = 0;
         VariableInstance.getInstance().uploadRemorePictureNum = 0;
         VariableInstance.getInstance().downdCameraPicrureNum = 0;
         VariableInstance.getInstance().LastPictureCount = 0;
@@ -310,6 +320,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void endUpdate(boolean succeed) {
             isUpdating = false;
+            VariableInstance.getInstance().isUpdatingBetaApk = false;
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
             removeCloseDeviceMessage(2);
             sendCloseDeviceMessage(2);
@@ -923,16 +934,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
         switch (message) {
 
             case FormatUSB:
-                formatUSB();
-                sendMessageToMqtt("ZQ\r\n");
-                break;
             case FormatTF:
-                formatUSB();
-                sendMessageToMqtt("ZQ\r\n");
+            case Set_FormatUdisk_All:
+                formatUSB(true);
                 break;
             case FormatCamera:
-                formatCamera();
-                sendMessageToMqtt("ZQ\r\n");
+            case Set_FormatCamera_All:
+                formatCamera(true);
+                break;
+            case Set_FormatUdisk_2weeks:
+                formatUSB(false);
+                break;
+            case Set_FormatCamera_2weeks:
+                formatCamera(false);
                 break;
             case Upload:
                 break;
@@ -963,9 +977,51 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case "mqttDeliveryComplete":
                 mqttStateText.setText("mqtt状态:true");
                 break;
+            case Set_Powoff: {
+                if (!isUpdating) {
+                    Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+                    Utils.closeAndroid();
+                }
+            }
+            break;
+            case Set_UploadLocat:
+                operationUtils.startUploadLocatThread(false);
+                break;
+            case Set_WakeCamer:
+                break;
+            case Set_ResetApk: {
+                if (!isUpdating) {
+                    restartAPK();
+                    if (receiverStoreUSB != null) {
+                        receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
+                    }
+                    finish();
+                }
+            }
+            break;
+            case Set_UpdateBetaApk:
+                updateBetaApk();
+                break;
+            case Set_UpdateFormalApk:
+                break;
         }
     }
 
+
+    private void updateBetaApk() {
+        if (isUpdating) {
+            return;
+        }
+        if (VariableInstance.getInstance().isUpdatingBetaApk) {
+            return;
+        }
+        VariableInstance.getInstance().isUpdatingBetaApk = true;
+
+        if (networkAvailable) {
+            updateUtils.checkBetaApk(MainActivity.this);
+        }
+    }
 
     private void AppShutdownAck() {
         if (sendShutDown) {
@@ -977,8 +1033,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void formatUSB() {
-        if (VariableInstance.getInstance().isFormatingUSB) {
+    private void formatUSB(boolean all) {
+        if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
             Log.d(TAG, "正在格式化USB，无需重复操作");
             return;
         }
@@ -1000,7 +1056,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                 openCameraDeviceProt(false);
                 Log.e(TAG, "formatUSB: start .......................................");
-                VariableInstance.getInstance().isFormatingUSB = true;
+                VariableInstance.getInstance().isFormatingUSB.formatState = all ? 1 : 2;
                 runOnUiThreadText(formatUSBt, "开始删除USB图片");
 
                 VariableInstance.getInstance().usbFileNameList.clear();
@@ -1028,54 +1084,54 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (receiverCamera != null) {
                     receiverCamera.storeUSBDetached();
                 }
-                VariableInstance.getInstance().isFormatingUSB = false;
+                VariableInstance.getInstance().isFormatingUSB.formatState = 0;
                 if (isUpdating) {
                     return;
                 }
-
-                DataOutputStream localDataOutputStream = null;
-                try {
-                    Runtime runtime = Runtime.getRuntime();
-                    Process process = runtime.exec("su");
-                    OutputStream localOutputStream = process.getOutputStream();
-                    localDataOutputStream = new DataOutputStream(localOutputStream);
-
-                    String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
-                    localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
-                    localDataOutputStream.flush();
-                } catch (Exception e) {
-
-                } finally {
-                    try {
-                        if (localDataOutputStream != null) {
-                            localDataOutputStream.close();
-                        }
-
-                    } catch (IOException e) {
-
-                    }
-                }
-
+                restartAPK();
                 if (receiverStoreUSB != null) {
                     receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                 }
-
                 finish();
             }
         }).start();
     }
 
+    private void restartAPK() {
+        DataOutputStream localDataOutputStream = null;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process process = runtime.exec("su");
+            OutputStream localOutputStream = process.getOutputStream();
+            localDataOutputStream = new DataOutputStream(localOutputStream);
 
-    private void formatCamera() {
-        if (VariableInstance.getInstance().isFormaringCamera) {
+            String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
+            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            localDataOutputStream.flush();
+        } catch (Exception e) {
+
+        } finally {
+            try {
+                if (localDataOutputStream != null) {
+                    localDataOutputStream.close();
+                }
+
+            } catch (IOException e) {
+
+            }
+        }
+    }
+
+    private void formatCamera(boolean all) {
+        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
             return;
         }
-        Log.e(TAG, "formatCamera: start .........................................");
-        VariableInstance.getInstance().isFormaringCamera = true;
+        Log.e(TAG, "formatCamera: start ......................................... delect all =" + all);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
-                VariableInstance.getInstance().isFormaringCamera = true;
+                VariableInstance.getInstance().isFormaringCamera.formatState = all ? 1 : 2;
                 if (receiverCamera != null) {
                     receiverCamera.formatCamera();
                 }
@@ -1384,9 +1440,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             messageTextString = "";
             messageText.setText(messageTextString);
         } else if (view.getId() == R.id.formatUSBt) {
-            formatUSB();
+            formatUSB(true);
         } else if (view.getId() == R.id.formatCameraBt) {
-            formatCamera();
+            formatCamera(true);
         } else if (view.getId() == R.id.catErrorLogcat) {
             messageTextString = "";
             try {
@@ -1760,7 +1816,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_close_device:
                     if (activity.canCloseDevice()) {
-                        activity.operationUtils.startUploadLocatThread();
+                        activity.operationUtils.startUploadLocatThread(true);
                     } else {
 
                         activity.removeCloseDeviceMessage(10);

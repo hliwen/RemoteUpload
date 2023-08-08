@@ -173,8 +173,7 @@ public class RemoteOperationUtils {
     public void addUploadRemoteFile(UploadFileModel uploadFileModel, boolean uploadFaild) {
         Log.e(TAG, "addUploadRemoteFile: uploadFaild =" + uploadFaild + ",fileListCache =" + pictureFileListCache.size() + ",uploadFileModel =" + uploadFileModel);
 
-        if (uploadFileModel == null)
-            return;
+        if (uploadFileModel == null) return;
         if (!pictureFileListCache.contains(uploadFileModel)) {
             pictureFileListCache.add(uploadFileModel);
         }
@@ -196,7 +195,7 @@ public class RemoteOperationUtils {
             public void run() {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
 
-                    if (VariableInstance.getInstance().isFormatingUSB || VariableInstance.getInstance().isFormaringCamera) {
+                    if (VariableInstance.getInstance().isFormatingUSB.formatState != 0 || VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                         Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
                         return;
                     }
@@ -349,7 +348,7 @@ public class RemoteOperationUtils {
 
     }
 
-    public void startUploadLocatThread() {
+    public void startUploadLocatThread(boolean delect) {
         Log.e(TAG, "startUploadLocatThread: ");
         new Thread(new Runnable() {
             @Override
@@ -363,9 +362,11 @@ public class RemoteOperationUtils {
                         return;
                     }
 
-                    LogcatHelper.getInstance().stopSecond();
-                    Thread.sleep(1000);
-                    remoteOperationListener.startUploadLogcatToUsb();
+                    if (delect) {
+                        LogcatHelper.getInstance().stopSecond();
+                        Thread.sleep(1000);
+                        remoteOperationListener.startUploadLogcatToUsb();
+                    }
 
                     File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
 
@@ -384,14 +385,19 @@ public class RemoteOperationUtils {
                     UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
-                    if (result.isSuccess()) {
+                    Log.e(TAG, "run: startUploadLocatThread result = " + result);
+
+                    if (delect) {
                         file.delete();
                     }
                 } catch (Exception e) {
 
                 }
-                Log.e(TAG, "run:  uploadLogcatComplete");
-                remoteOperationListener.uploadLogcatComplete();
+                if (delect) {
+                    Log.e(TAG, "run:  uploadLogcatComplete");
+                    remoteOperationListener.uploadLogcatComplete();
+                }
+
             }
         }).start();
     }

@@ -21,8 +21,13 @@ public class VariableInstance {
     public String LogcatDir;
 
     public OwnCloudClient ownCloudClient;
-    public boolean isFormaringCamera;
-    public boolean isFormatingUSB;
+
+   public class FormatState {
+        public int formatState;//0:不需要格式化，1：格式化全部 2：格式化两周前
+    }
+
+    public FormatState isFormaringCamera;
+    public FormatState isFormatingUSB;
     public boolean isConnectCamera;
     public boolean isInitUSB;
     public boolean initingUSB;
@@ -45,6 +50,7 @@ public class VariableInstance {
     public boolean isDownloadingUSB;//正在下载相机的照片到U盘
     public boolean isScanningCamera;//正在扫描相机
     public boolean isUploadingToRemote;//正在上传照片到远程服务器
+    public boolean isUpdatingBetaApk;//正在升级测试版APK
 
 
     private VariableInstance() {
@@ -62,6 +68,9 @@ public class VariableInstance {
         usbFileNameList = new Vector<>();
         errorLogNameList = new Vector<>();
         storeUSBDeviceID = -1;
+
+        isFormaringCamera = new FormatState();
+        isFormatingUSB = new FormatState();
 
         Utils.makeDir(TFCardPictureDir);
         Utils.makeDir(TFCardUploadPictureDir);
