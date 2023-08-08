@@ -142,6 +142,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private boolean sendShutDown;
     private boolean networkAvailable;
 
+    boolean hasinitCellularNetWork;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -334,6 +335,69 @@ public class MainActivity extends Activity implements View.OnClickListener {
             copySpeed = speed;
             runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdCameraPicrureNum + "\n同步到USB速度:" + speed);
         }
+
+        @Override
+        public void initStoreUSBFailed() {
+            if (VariableInstance.getInstance().storeUSBDeviceID != 1) {
+                return;
+            }
+            Log.e(TAG, "initStoreUSBFailed: U盘初始化失败，仍然连接mqtt通信");
+            String imei = getPhoneImei(true);
+            DeviceModel deviceModelConnect = null;
+            if ("0".equals(imei)) {
+                int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
+                if (style == 0 || style == 1) {
+                    saveDeviceStyle(1); //蜂窝板
+                } else {
+                    DeviceModel deviceModel = getDeviceModel();
+                    if (deviceModel == null) {
+                        saveDeviceStyle(1);
+                        //蜂窝板
+                    } else {
+                        //wifi版
+                        deviceModelConnect = deviceModel;
+                        saveDeviceStyle(2);
+                    }
+                }
+            } else {
+                saveDeviceStyle(1); //蜂窝板
+            }
+
+            if (VariableInstance.getInstance().deviceStyle == 1) {
+                initCellularNetWork();
+            } else if (VariableInstance.getInstance().deviceStyle == 2) {
+                registerWifiReceiver();
+                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                if (wifiManager != null) {
+                    boolean wifiEnable = wifiManager.isWifiEnabled();
+                    if (wifiEnable) {
+                        if (deviceModelConnect.wifi != null) {
+                            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
+                                Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                                networkConnect();
+                                return;
+                            }
+                            if (deviceModelConnect.pass == null) {
+                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                            } else {
+                                if (deviceModelConnect.pass.length() == 0) {
+                                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                                } else {
+                                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
+                                }
+                            }
+                        } else {
+                            Log.e(TAG, "initStoreUSBComplete: 当前配置的WiFi文件有错");
+                        }
+                    } else {
+                        wifiManager.setWifiEnabled(true);
+                    }
+                }
+
+            }
+        }
+
 
         @Override
         public void initStoreUSBComplete(UsbFile wifiConfigurationFile) {
@@ -617,7 +681,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     public void initCellularNetWork() {
-        Log.e(TAG, "initCellularNetWork: ");
+
+        if (hasinitCellularNetWork) {
+            return;
+        }
+        hasinitCellularNetWork = true;
+
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest.Builder request = new NetworkRequest.Builder();
         request.addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);

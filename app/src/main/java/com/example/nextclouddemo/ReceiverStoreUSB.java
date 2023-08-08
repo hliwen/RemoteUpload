@@ -166,6 +166,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备个数:usbDevices.size = " + usbDevices.size());
+                boolean initStoreUSBSucceed = false;
                 for (UsbDevice usbDevice : usbDevices) {
                     if (usbDevice == null) {
                         Log.e(TAG, "initStoreUSBDevice usbDevice == null ");
@@ -190,12 +191,18 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
                             Log.e(TAG, "initStoreUSBDevice: 当前设设备为U盘");
                             UsbMassStorageDevice device = getUsbMass(usbDevice);
-                            boolean initSucceed = initDevice(device, usbDevice);
-                            Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initSucceed);
-                            if (initSucceed) {
+                            initStoreUSBSucceed = initDevice(device, usbDevice);
+                            Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initStoreUSBSucceed);
+                            if (initStoreUSBSucceed) {
                                 return;
                             }
                         }
+                    }
+                }
+
+                if (!initStoreUSBSucceed) {
+                    if (storeUSBListener != null) {
+                        storeUSBListener.initStoreUSBFailed();
                     }
                 }
             }
@@ -587,6 +594,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         void storeUSBDeviceDetached();
 
         void storeUSBSaveOnePictureComplete(String speed);
+
+        void initStoreUSBFailed();
 
     }
 
