@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.hardware.usb.UsbManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -53,6 +54,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -154,6 +156,90 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     boolean hasinitCellularNetWork;
 
+    private static final String apkServerPackageName = "com.remoteupload.apkserver";
+
+
+    private boolean isAppInstalled(Context context, String packageName) {
+        try {
+            context.getPackageManager().getApplicationInfo(packageName, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    private void copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
+        File file = new File(localPath);
+        if (file.exists()) {
+            return;
+        }
+        try {
+            InputStream is = context.getResources().getAssets().open(ASSETS_NAME);
+            FileOutputStream fos = new FileOutputStream(localPath);
+            byte[] buffer = new byte[2048];
+            int count = 0;
+            while ((count = is.read(buffer)) > 0) {
+                fos.write(buffer, 0, count);
+            }
+            fos.close();
+            is.close();
+        } catch (Exception e) {
+
+        }
+    }
+
+    private void installAPKServer() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String apkServerPath = "/storage/emulated/0/Download/apkServer.apk";
+                copyAPKServer(apkServerPath, "apkServer.apk", MainActivity.this);
+                File file = new File(apkServerPath);
+                if (file.exists()) {
+                    BufferedReader es = null;
+                    DataOutputStream os = null;
+                    try {
+                        Process process = Runtime.getRuntime().exec("su");
+                        os = new DataOutputStream(process.getOutputStream());
+                        String command = "pm install -r " + apkServerPath + "\n";
+                        os.write(command.getBytes(Charset.forName("utf-8")));
+                        os.flush();
+                        os.writeBytes("exit\n");
+                        os.flush();
+
+                        process.waitFor();
+                        es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+                        String line;
+                        StringBuilder builder = new StringBuilder();
+                        while ((line = es.readLine()) != null) {
+                            builder.append(line);
+                        }
+                        if (!builder.toString().contains("Failure")) {
+                            Log.e(TAG, "run: 安装服务apk成功");
+                        } else {
+                            Log.e(TAG, "run: 安装服务apk失败");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "run: 安装服务apk失败：" + e);
+                    } finally {
+                        try {
+                            if (os != null) {
+                                os.close();
+                            }
+                            if (es != null) {
+                                es.close();
+                            }
+                        } catch (IOException e) {
+                            Log.e(TAG, "run: 安装服务apk失败：" + e);
+                        }
+                    }
+                }
+            }
+        }).start();
+    }
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -165,7 +251,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
         UUID uuid = UUID.randomUUID();
         uuidString = uuid.toString();
         mHandler.removeMessages(msg_delay_creta_acitivity);
-        mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
+
+
+        if (isAppInstalled(MainActivity.this, apkServerPackageName)) {
+            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
+        } else {
+            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, 40000);
+            installAPKServer();
+        }
+
 
         messageText = findViewById(R.id.messageText);
         accessNumberText = findViewById(R.id.accessNumberText);
