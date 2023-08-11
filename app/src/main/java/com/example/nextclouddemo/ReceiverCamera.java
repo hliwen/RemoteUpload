@@ -284,7 +284,6 @@ public class ReceiverCamera extends BroadcastReceiver {
                                 downloadFlieListener.cameraOperationStart();
                                 usbDeviceScaner(device);
                                 VariableInstance.getInstance().isFormaringCamera.formatState = 0;
-                                ;
                                 downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
                                 break;
                             default:
