@@ -89,7 +89,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_FormatCamera_2weeks = "Set,FormatCamera,2weeks";
     private static final String Set_Powoff = "Set,Powoff";
     private static final String Set_UploadLocat = "Set,UploadLocat";
-    private static final String Set_WakeCamer = "Set,WakeCamer";
+    private static final String Set_WakeCamera = "Set,WakeCamera";
     private static final String Set_ResetApk = "Set,ResetApk";
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk";
@@ -634,8 +634,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 editor.apply();
 
                 mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 3000);
-
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.获取相机图片张数为0可能是无法获取照片信息);
+                sendSet_WakeCamera();
                 return;
             }
 
@@ -758,6 +758,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     };
 
+
+    public void sendSet_WakeCamera(){
+        sendMessageToMqtt(Set_WakeCamera+ ";");
+    }
 
     private void registerReceiverCamera() {
         receiverCamera = new ReceiverCamera(getApplicationContext(), scannerCameraListener);
@@ -1084,8 +1088,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             break;
             case Set_UploadLocat:
                 operationUtils.startUploadLocatThread(false);
-                break;
-            case Set_WakeCamer:
                 break;
             case Set_ResetApk: {
                 if (!isUpdating) {
