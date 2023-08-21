@@ -57,6 +57,7 @@
     <string name="camera_device_name">相机名称：</string>
     <string name="cameraScanerErroMessageText">相机扫描异常信息</string>
     <string name="catErrorLog">查看异常</string>
+    <string name="phone_number">卡号：</string>
 
 
 </resources>

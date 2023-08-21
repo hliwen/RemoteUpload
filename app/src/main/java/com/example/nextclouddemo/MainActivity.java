@@ -132,6 +132,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private TextView remoteNameText;
     private TextView hasDownloadPictureNumberText;
     private TextView serverStateText;
+    private TextView phoneNumberText;
+
     private TextView currentVersionText;
     private TextView serverVersionText;
     private TextView downloadAppProgressText;
@@ -275,6 +277,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         remoteNameText = findViewById(R.id.remoteNameText);
         hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
         serverStateText = findViewById(R.id.serverStateText);
+        phoneNumberText = findViewById(R.id.phoneNumberText);
         currentVersionText = findViewById(R.id.currentVersionText);
         serverVersionText = findViewById(R.id.serverVersionText);
         downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
@@ -1427,6 +1430,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 number = "0";
             }
             Log.d(TAG, "getPhoneNumber: 卡号 =" + number);
+
+            runOnUiThreadText(phoneNumberText, "卡号:" + number);
 
             return number;
         } catch (Exception | Error e) {
