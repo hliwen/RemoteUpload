@@ -759,8 +759,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     };
 
 
-    public void sendSet_WakeCamera(){
-        sendMessageToMqtt(Set_WakeCamera+ ";");
+    public void sendSet_WakeCamera() {
+        sendMessageToMqtt(Set_WakeCamera + ";");
     }
 
     private void registerReceiverCamera() {
@@ -1398,6 +1398,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             UploadSpeed = "0";
         }
 
+        if (copySpeed == null)
+            copySpeed = "0";
         String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().isInitUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdCameraPicrureNum + ";";
         return info;
     }
