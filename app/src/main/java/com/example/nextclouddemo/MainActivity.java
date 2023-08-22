@@ -969,6 +969,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             phoneImei = uuidString;
         }
 
+        Log.e(TAG, "initMqtt: returnImei =" + returnImei + ",phoneImei =" + phoneImei);
+
         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + phoneImei, "/camera/v1/device/" + returnImei + "/android");
 
         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
@@ -998,6 +1000,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         EventBus.getDefault().unregister(this);
         MqttManager.getInstance().release();
 
+        hasinitCellularNetWork = false;
+        networkAvailable = false;
         Log.e(TAG, "onDestroy: .................................................");
     }
 
@@ -1191,6 +1195,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (receiverStoreUSB != null) {
                     receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                 }
+                MqttManager.getInstance().release();
                 finish();
             }
         }).start();
