@@ -1099,7 +1099,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (receiverStoreUSB != null) {
                         receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                     }
-                    finishAffinity();
+                    try {
+                        android.os.Process.killProcess(android.os.Process.myPid());   //获取PID
+                    }catch (Exception e){}
+                    finish();
                     System.exit(0);
                 }
             }
@@ -1198,7 +1201,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                 }
                 MqttManager.getInstance().release();
-                finishAffinity();
+                try {
+                    android.os.Process.killProcess(android.os.Process.myPid());   //获取PID
+                }catch (Exception e){}
+                finish();
                 System.exit(0);
             }
         }).start();
