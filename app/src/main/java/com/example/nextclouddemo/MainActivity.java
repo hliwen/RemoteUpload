@@ -1099,7 +1099,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (receiverStoreUSB != null) {
                         receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                     }
-                    finish();
+                    finishAffinity();
+                    System.exit(0);
                 }
             }
             break;
@@ -1192,11 +1193,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     return;
                 }
                 restartAPK();
+                restartDevice();
                 if (receiverStoreUSB != null) {
                     receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                 }
                 MqttManager.getInstance().release();
-                finish();
+                finishAffinity();
+                System.exit(0);
             }
         }).start();
     }
@@ -1223,6 +1226,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
             } catch (IOException e) {
 
             }
+        }
+    }
+
+    private void restartDevice() {
+        try {
+            Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
+            proc.waitFor();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 

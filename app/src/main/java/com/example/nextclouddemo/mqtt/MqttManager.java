@@ -222,7 +222,7 @@ public class MqttManager {
          */
         @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-            Log.e("MqttManager", "MqttManager messageArrived topic : ");
+            Log.e("MqttManager", "MqttManager messageArrived topic : message =" + message);
             if (message == null || message.toString() == null)
                 return;
             EventBus.getDefault().post(message.toString());
