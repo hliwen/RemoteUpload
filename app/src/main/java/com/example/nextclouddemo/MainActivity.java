@@ -83,16 +83,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
     private static final String UploadToday = "Set,UploadToday,";
-    private static final String Set_FormatUdisk_All = "Set,FormatUdisk,All";
-    private static final String Set_FormatUdisk_2weeks = "Set,FormatUdisk,2weeks";
-    private static final String Set_FormatCamera_All = "Set,FormatCamera,All";
-    private static final String Set_FormatCamera_2weeks = "Set,FormatCamera,2weeks";
-    private static final String Set_Powoff = "Set,Powoff";
-    private static final String Set_UploadLocat = "Set,UploadLocat";
-    private static final String Set_WakeCamera = "Set,WakeCamera";
-    private static final String Set_ResetApk = "Set,ResetApk";
-    private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk";
-    private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk";
+    private static final String Set_FormatUdisk_All = "Set,FormatUdisk,All;";
+    private static final String Set_FormatUdisk_2weeks = "Set,FormatUdisk,2weeks;";
+    private static final String Set_FormatCamera_All = "Set,FormatCamera,All;";
+    private static final String Set_FormatCamera_2weeks = "Set,FormatCamera,2weeks;";
+    private static final String Set_Powoff = "Set,Powoff;";
+    private static final String Set_UploadLocat = "Set,UploadLocat;";
+    private static final String Set_WakeCamera = "Set,WakeCamera;";
+    private static final String Set_ResetApk = "Set,ResetApk;";
+    private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
+    private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
@@ -760,7 +760,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     public void sendSet_WakeCamera() {
-        sendMessageToMqtt(Set_WakeCamera + ";");
+        sendMessageToMqtt(Set_WakeCamera );
     }
 
     private void registerReceiverCamera() {
