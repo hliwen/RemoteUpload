@@ -68,9 +68,9 @@ public class UpdateUtils {
 
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
 
-                if (servierVersion > appVerison) {
+//                if (servierVersion > appVerison) {
                     startDownloadApk(servierVersion);
-                }
+//                }
             }
         }).start();
     }

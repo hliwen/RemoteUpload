@@ -760,7 +760,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     public void sendSet_WakeCamera() {
-        sendMessageToMqtt(Set_WakeCamera );
+        sendMessageToMqtt(Set_WakeCamera);
     }
 
     private void registerReceiverCamera() {
@@ -1095,15 +1095,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 break;
             case Set_ResetApk: {
                 if (!isUpdating) {
-                    restartAPK();
                     if (receiverStoreUSB != null) {
                         receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
                     }
-                    try {
-                        android.os.Process.killProcess(android.os.Process.myPid());   //获取PID
-                    }catch (Exception e){}
-                    finish();
-                    System.exit(0);
+                    restartDevice();
                 }
             }
             break;
@@ -1195,45 +1190,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (isUpdating) {
                     return;
                 }
-                restartAPK();
                 restartDevice();
-                if (receiverStoreUSB != null) {
-                    receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
-                }
-                MqttManager.getInstance().release();
-                try {
-                    android.os.Process.killProcess(android.os.Process.myPid());   //获取PID
-                }catch (Exception e){}
-                finish();
-                System.exit(0);
             }
         }).start();
     }
 
-    private void restartAPK() {
-        DataOutputStream localDataOutputStream = null;
-        try {
-            Runtime runtime = Runtime.getRuntime();
-            Process process = runtime.exec("su");
-            OutputStream localOutputStream = process.getOutputStream();
-            localDataOutputStream = new DataOutputStream(localOutputStream);
-
-            String command = "sleep 5 && am start -W -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
-            localDataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
-            localDataOutputStream.flush();
-        } catch (Exception e) {
-
-        } finally {
-            try {
-                if (localDataOutputStream != null) {
-                    localDataOutputStream.close();
-                }
-
-            } catch (IOException e) {
-
-            }
-        }
-    }
 
     private void restartDevice() {
         try {
