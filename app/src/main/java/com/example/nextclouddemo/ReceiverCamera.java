@@ -757,8 +757,8 @@ public class ReceiverCamera extends BroadcastReceiver {
         } else {
             if (VariableInstance.getInstance().copyReferenceDate == null) {//没有格式化过
                 if (VariableInstance.getInstance().cyclicDeletion) {
-                    if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
-                        if (VariableInstance.getInstance().usbFileNameList.get(0).compareTo(fileName) < 0) {
+                    if (VariableInstance.getInstance().usbFileNameList.size() > VariableInstance.getInstance().MAX_NUM / 2) {
+                        if (VariableInstance.getInstance().usbFileNameList.get(VariableInstance.getInstance().usbFileNameList.size() - 1).compareTo(fileName) < 0) {
                             return true;
                         }
                     } else {
@@ -769,8 +769,8 @@ public class ReceiverCamera extends BroadcastReceiver {
                 }
             } else {//格式化的已格式化日期为主
                 if (VariableInstance.getInstance().cyclicDeletion) {
-                    if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
-                        if (VariableInstance.getInstance().usbFileNameList.get(0).compareTo(fileName) < 0) {
+                    if (VariableInstance.getInstance().usbFileNameList.size() > VariableInstance.getInstance().MAX_NUM / 2) {
+                        if (VariableInstance.getInstance().usbFileNameList.get(VariableInstance.getInstance().usbFileNameList.size() - 1).compareTo(fileName) < 0) {
                             return true;
                         }
                     } else {
