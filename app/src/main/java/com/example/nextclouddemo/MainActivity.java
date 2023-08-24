@@ -1414,7 +1414,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 number = telephonyManager.getSimSerialNumber();
             }
 
-            if (number == null) {
+            if (number == null || number.length() == 0) {
                 number = "0";
             }
             Log.d(TAG, "getPhoneNumber: 卡号 =" + number);

@@ -364,7 +364,10 @@ public class RemoteOperationUtils {
 
                     if (delect) {
                         LogcatHelper.getInstance().stopSecond();
-                        Thread.sleep(1000);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (Exception e) {
+                        }
                         remoteOperationListener.startUploadLogcatToUsb();
                     }
 
@@ -374,14 +377,19 @@ public class RemoteOperationUtils {
                         return;
                     }
 
+
                     String remotePath = remoteLogcatDir + file.getName();
-                    if (remotePath.startsWith("logcat1970")) {
+
+                    if (remotePath.trim().contains("logcat1970")) {
+                        Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
                         remotePath = remoteCameraDir + "logcat" + date + ".txt";
                     }
-                    Long timeStampLong = file.lastModified() / 1000;
+                    Long timeStampLong = System.currentTimeMillis() / 1000;
                     String timeStamp = timeStampLong.toString();
+
+
                     UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
@@ -422,7 +430,8 @@ public class RemoteOperationUtils {
                     if (file == null || !file.exists()) return;
 
                     String remotePath = remoteLogcatDir + file.getName();
-                    if (remotePath.startsWith("logcat1970")) {
+                    if (remotePath.contains("logcat1970")) {
+                        Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
                         remotePath = remoteCameraDir + "logcat" + date + "AAA.txt";
