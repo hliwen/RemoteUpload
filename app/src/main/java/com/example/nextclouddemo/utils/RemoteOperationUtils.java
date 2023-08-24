@@ -331,7 +331,7 @@ public class RemoteOperationUtils {
             return;
         }
         boolean isSuccess = result.isSuccess();
-        Log.d(TAG, "uploadImageFileToRemote: isSuccess =" + isSuccess);
+        Log.d(TAG, "uploadImageFileToRemote: isSuccess =" + isSuccess + ",result = " + result.getLogMessage());
         remoteOperationListener.pictureUploadEnd(isSuccess);
         if (isSuccess) {
             VariableInstance.getInstance().uploadRemorePictureNum++;
@@ -344,13 +344,36 @@ public class RemoteOperationUtils {
                 file.delete();
             }
         } else {
+
+
+            if (uploadFaildPath == null) {
+                uploadFaildCount = 0;
+                uploadFaildPath = fileModel.localPath;
+            }
+
+            if (fileModel.localPath.equals(uploadFaildPath)) {
+                uploadFaildCount++;
+            }
+
             RemoveFileRemoteOperation remoteOperation = new RemoveFileRemoteOperation(remotePath);
             remoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
-            addUploadRemoteFile(fileModel, true);
+            if (uploadFaildCount > 5) {
+                uploadFaildPath = null;
+                uploadFaildCount = 0;
+
+                if (file.exists()) {
+                    file.delete();
+                }
+            } else {
+                addUploadRemoteFile(fileModel, true);
+            }
         }
 
     }
+
+    private String uploadFaildPath;
+    private int uploadFaildCount;
 
     public void startUploadLocatThread(boolean delect) {
         Log.e(TAG, "startUploadLocatThread: ");
