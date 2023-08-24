@@ -52,6 +52,8 @@ public class VariableInstance {
     public boolean isUploadingToRemote;//正在上传照片到远程服务器
     public boolean isUpdatingBetaApk;//正在升级测试版APK
 
+    public boolean cyclicDeletion=true;
+
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();

@@ -10,14 +10,21 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 
+import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.RemoteOperationUtils;
 
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -289,6 +296,9 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         return true;
     }
 
+
+    public Vector<String> picturePathList;
+
     public void getUSBPictureCount() {
         if (storeUSBPictureDirUsbFile == null) {
             Log.e(TAG, "getUSBPictureCount:  storeUSBPictureDirUsbFile == null");
@@ -299,13 +309,24 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             return;
         }
 
+        if (picturePathList == null) {
+            picturePathList = new Vector<>();
+        }
+        picturePathList.clear();
         VariableInstance.getInstance().usbFileNameList.clear();
         VariableInstance.getInstance().isScanningStoreUSB = true;
         getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
+        if (VariableInstance.getInstance().cyclicDeletion) {
+            cyclicDeletion();
+        } else {
+            VariableInstance.getInstance().usbFileNameList.addAll(picturePathList);
+        }
+
         VariableInstance.getInstance().isScanningStoreUSB = false;
         storeUSBListener.storeUSBPictureCount(VariableInstance.getInstance().usbFileNameList.size());
         VariableInstance.getInstance().LastPictureCount = VariableInstance.getInstance().usbFileNameList.size();
     }
+
 
     private void getStoreUSBPictureCount(UsbFile usbFile) {
         if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
@@ -325,12 +346,58 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     String name = usbFileItem.getName();
                     String FileEnd = name.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
                     if (pictureFormatFile(FileEnd)) {
-                        VariableInstance.getInstance().usbFileNameList.add(name);
+                        picturePathList.add(name);
                     }
                 }
             }
         } catch (Exception e) {
 
+        }
+    }
+
+
+    private void cyclicDeletion() {
+        if (picturePathList.size() > 800) {
+            Collections.sort(picturePathList, new MyOrder());
+            Vector<String> delectPicturePathList = new Vector<>();
+
+            for (int i = 0; i < picturePathList.size(); i++) {
+                if (i < 800) {
+                    VariableInstance.getInstance().usbFileNameList.add(picturePathList.get(i));
+                } else {
+                    delectPicturePathList.add(picturePathList.get(i));
+                }
+            }
+            delectUSBPicture(storeUSBPictureDirUsbFile, delectPicturePathList);
+        } else {
+            VariableInstance.getInstance().usbFileNameList.addAll(picturePathList);
+        }
+    }
+
+
+    private void delectUSBPicture(UsbFile usbFile, Vector<String> delectPicturePathList) {
+
+        try {
+            UsbFile[] usbFileList = usbFile.listFiles();
+            for (UsbFile usbFileItem : usbFileList) {
+                if (usbFileItem.isDirectory()) {
+                    delectUSBPicture(usbFileItem, delectPicturePathList);
+                } else {
+                    String name = usbFileItem.getName();
+                    if (delectPicturePathList.contains(name)) {
+                        usbFileItem.delete();
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
+    }
+
+    public class MyOrder implements Comparator<String> {
+        @Override
+        public int compare(String o1, String o2) {
+            return o2.compareTo(o1);
         }
     }
 
