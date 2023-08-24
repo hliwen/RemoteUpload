@@ -314,17 +314,23 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
         picturePathList.clear();
         VariableInstance.getInstance().usbFileNameList.clear();
+
+
         VariableInstance.getInstance().isScanningStoreUSB = true;
         getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
-        if (VariableInstance.getInstance().cyclicDeletion) {
+        Collections.sort(picturePathList, new MyOrder());
+
+        if (VariableInstance.getInstance().cyclicDeletion && !VariableInstance.getInstance().syncAllCameraPicture) {
             cyclicDeletion();
         } else {
             VariableInstance.getInstance().usbFileNameList.addAll(picturePathList);
         }
-
         VariableInstance.getInstance().isScanningStoreUSB = false;
-        storeUSBListener.storeUSBPictureCount(VariableInstance.getInstance().usbFileNameList.size());
-        VariableInstance.getInstance().LastPictureCount = VariableInstance.getInstance().usbFileNameList.size();
+        int usbTotalPictureSize = VariableInstance.getInstance().usbFileNameList.size();
+
+
+        storeUSBListener.storeUSBPictureCount(usbTotalPictureSize);
+        VariableInstance.getInstance().LastPictureCount = usbTotalPictureSize;
     }
 
 
@@ -361,20 +367,18 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
 
     private void cyclicDeletion() {
-        if (picturePathList.size() > 800) {
-            Collections.sort(picturePathList, new MyOrder());
-            Vector<String> delectPicturePathList = new Vector<>();
 
-            for (int i = 0; i < picturePathList.size(); i++) {
-                if (i < 800) {
-                    VariableInstance.getInstance().usbFileNameList.add(picturePathList.get(i));
-                } else {
-                    delectPicturePathList.add(picturePathList.get(i));
-                }
+        Vector<String> delectPicturePathList = new Vector<>();
+
+        for (int i = 0; i < picturePathList.size(); i++) {
+            if (i < VariableInstance.getInstance().MAX_NUM) {
+                VariableInstance.getInstance().usbFileNameList.add(picturePathList.get(i));
+            } else {
+                delectPicturePathList.add(picturePathList.get(i));
             }
+        }
+        if (delectPicturePathList.size() > 0) {
             delectUSBPicture(storeUSBPictureDirUsbFile, delectPicturePathList);
-        } else {
-            VariableInstance.getInstance().usbFileNameList.addAll(picturePathList);
         }
     }
 

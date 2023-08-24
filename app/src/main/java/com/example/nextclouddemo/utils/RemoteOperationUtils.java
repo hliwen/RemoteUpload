@@ -10,6 +10,7 @@ import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.CreateFolderRemoteOperation;
 import com.owncloud.android.lib.resources.files.FileUtils;
 import com.owncloud.android.lib.resources.files.ReadFolderRemoteOperation;
+import com.owncloud.android.lib.resources.files.RemoveFileRemoteOperation;
 import com.owncloud.android.lib.resources.files.UploadFileRemoteOperation;
 import com.owncloud.android.lib.resources.files.model.RemoteFile;
 
@@ -343,6 +344,9 @@ public class RemoteOperationUtils {
                 file.delete();
             }
         } else {
+            RemoveFileRemoteOperation remoteOperation = new RemoveFileRemoteOperation(remotePath);
+            remoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
+
             addUploadRemoteFile(fileModel, true);
         }
 

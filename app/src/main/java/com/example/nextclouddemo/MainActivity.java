@@ -58,7 +58,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -604,6 +603,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void cameraOperationStart() {
+            getCopyReferenceDate();
             VariableInstance.getInstance().isScanningCamera = true;
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
@@ -1161,7 +1161,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 VariableInstance.getInstance().isFormatingUSB.formatState = all ? 1 : 2;
                 runOnUiThreadText(formatUSBt, "开始删除USB图片");
 
+                if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
+                    VariableInstance.getInstance().copyReferenceDate = VariableInstance.getInstance().usbFileNameList.get(0);
+                    saveCopyReferenceDate(VariableInstance.getInstance().copyReferenceDate);
+                }
+
+
                 VariableInstance.getInstance().usbFileNameList.clear();
+
 
                 operationUtils.stopUploadThread();
 
@@ -1382,8 +1389,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             UploadSpeed = "0";
         }
 
-        if (copySpeed == null)
-            copySpeed = "0";
+        if (copySpeed == null) copySpeed = "0";
         String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().isInitUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdCameraPicrureNum + ";";
         return info;
     }
@@ -1615,6 +1621,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
         deviceModel.pass = pass;
         deviceModel.SN = SN;
         return deviceModel;
+    }
+
+
+    private void saveCopyReferenceDate(String copyReferenceDate) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putString("copyReferenceDate", copyReferenceDate);
+        editor.apply();
+    }
+
+    private void getCopyReferenceDate() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        VariableInstance.getInstance().copyReferenceDate = sharedPreferences.getString("copyReferenceDate", null);
     }
 
     private void saveDeviceStyle(int style) {

@@ -397,7 +397,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                         pictureInfoList.add(sameDayPicutreInfo);
                     }
 
-                    if (!VariableInstance.getInstance().usbFileNameList.contains(pictureName)) {
+                    if (needDownloadCameraPictureToUSB(pictureName)) {
                         if (rowFormatFile(FileEnd)) {
                             PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
                             sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
@@ -731,7 +731,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                     pictureInfoList.add(sameDayPicutreInfo);
                 }
 
-                if (!VariableInstance.getInstance().usbFileNameList.contains(fileName)) {
+                if (needDownloadCameraPictureToUSB(fileName)) {
                     if (rowFormatFile(FileEnd)) {
                         PictureInfo pictureInfo = new PictureInfo(false, fileName, createDate, 0, fileSystem, usbFileItem, false);
                         sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
@@ -743,6 +743,49 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
         }
 
+    }
+
+
+    private boolean needDownloadCameraPictureToUSB(String fileName) {
+
+        if (VariableInstance.getInstance().usbFileNameList.contains(fileName)) {
+            return false;
+        }
+
+        if (VariableInstance.getInstance().syncAllCameraPicture) {
+            return true;
+        } else {
+            if (VariableInstance.getInstance().copyReferenceDate == null) {//没有格式化过
+                if (VariableInstance.getInstance().cyclicDeletion) {
+                    if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
+                        if (VariableInstance.getInstance().usbFileNameList.get(0).compareTo(fileName) < 0) {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            } else {//格式化的已格式化日期为主
+                if (VariableInstance.getInstance().cyclicDeletion) {
+                    if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
+                        if (VariableInstance.getInstance().usbFileNameList.get(0).compareTo(fileName) < 0) {
+                            return true;
+                        }
+                    } else {
+                        if (VariableInstance.getInstance().copyReferenceDate.compareTo(fileName) < 0) {
+                            return true;
+                        }
+                    }
+                } else {
+                    if (VariableInstance.getInstance().copyReferenceDate.compareTo(fileName) < 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void downloadUSBCameraPictureToTFCard(PictureInfo pictureInfo, boolean needUpload) {
