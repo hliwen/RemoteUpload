@@ -346,7 +346,11 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     String name = usbFileItem.getName();
                     String FileEnd = name.substring(usbFileItem.getName().lastIndexOf(".") + 1).toLowerCase();
                     if (pictureFormatFile(FileEnd)) {
-                        picturePathList.add(name);
+                        if (usbFileItem.getLength() > 10) {
+                            picturePathList.add(name);
+                        } else {
+                            usbFileItem.delete();
+                        }
                     }
                 }
             }
@@ -529,7 +533,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 Log.e(TAG, "uploadLogcatToUSB: 2Exception =" + e);
             }
 
-            if (logcatFilePath.startsWith("logcat1970")) {
+            if (logcatFilePath.contains("logcat1970")) {
                 String date = LogcatHelper.getInstance().getFileName();
                 File file = new File(VariableInstance.getInstance().LogcatDir, "logcat" + date + ".txt");
                 if (localFile != null) {
