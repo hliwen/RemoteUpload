@@ -445,7 +445,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void initStoreUSBFailed() {
-            if (VariableInstance.getInstance().storeUSBDeviceID != 1) {
+            if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
                 return;
             }
             Log.e(TAG, "initStoreUSBFailed: U盘初始化失败，仍然连接mqtt通信");

@@ -164,12 +164,18 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
+                    if (storeUSBListener != null) {
+                        storeUSBListener.initStoreUSBFailed();
+                    }
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备列表个数: connectedUSBDeviceList.size = " + connectedUSBDeviceList.size());
                 Collection<UsbDevice> usbDevices = connectedUSBDeviceList.values();
                 if (usbDevices == null) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备接入");
+                    if (storeUSBListener != null) {
+                        storeUSBListener.initStoreUSBFailed();
+                    }
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备个数:usbDevices.size = " + usbDevices.size());

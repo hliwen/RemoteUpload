@@ -411,7 +411,7 @@ public class RemoteOperationUtils {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
-                        remotePath = remoteCameraDir + "logcat" + date + ".txt";
+                        remotePath = remoteLogcatDir + "logcat" + date + ".txt";
                     }
                     Long timeStampLong = System.currentTimeMillis() / 1000;
                     String timeStamp = timeStampLong.toString();
@@ -461,7 +461,7 @@ public class RemoteOperationUtils {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
-                        remotePath = remoteCameraDir + "logcat" + date + "AAA.txt";
+                        remotePath = remoteLogcatDir + "logcat" + date + "AAA.txt";
                     }
                     Long timeStampLong = file.lastModified() / 1000;
                     String timeStamp = timeStampLong.toString();
