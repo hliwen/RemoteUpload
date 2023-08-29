@@ -63,7 +63,9 @@ public class Utils {
         StatFs stat = new StatFs(path.getPath());
         long blockSize = stat.getBlockSize();
         long availableBlocks = stat.getAvailableBlocks();
-        return blockSize * availableBlocks;
+        long remain = blockSize * availableBlocks;
+        Log.e(TAG, "getSDAvailableSize: 内置卡剩余内存：" + remain);
+        return remain;
     }
 
     public static void resetDir(String dir) {
@@ -165,10 +167,17 @@ public class Utils {
 
 
     public static void deleteAllFiles(File dir) {
-        if (dir == null || !dir.exists() || !dir.isDirectory()) return;
-        if (dir.listFiles() != null) for (File file : dir.listFiles()) {
-            if (file.isFile()) file.delete(); // 删除所有文件
-            else if (file.isDirectory()) deleteAllFiles(file); // 递规的方式删除文件夹
+        if (dir == null || !dir.exists() || !dir.isDirectory()) {
+            return;
+        }
+        if (dir.listFiles() != null) {
+            for (File file : dir.listFiles()) {
+                if (file.isFile()) {
+                    file.delete();
+                } else if (file.isDirectory()) {
+                    deleteAllFiles(file); // 递规的方式删除文件夹
+                }
+            }
         }
         dir.delete();// 删除目录本身
     }
