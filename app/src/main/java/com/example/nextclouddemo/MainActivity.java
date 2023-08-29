@@ -792,6 +792,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void registerWifiReceiver() {
+        if (mWifiReceiver != null)
+            return;
         mWifiReceiver = new WifiReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
