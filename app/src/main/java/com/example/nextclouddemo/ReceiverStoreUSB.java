@@ -349,6 +349,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
         try {
             UsbFile[] usbFileList = usbFile.listFiles();
+
             for (UsbFile usbFileItem : usbFileList) {
                 if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                     Log.e(TAG, "getStoreUSBPictureCount: 22 正在格式化，不需要扫描");
@@ -363,7 +364,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         if (usbFileItem.getLength() > 10) {
                             picturePathList.add(name);
                         } else {
-                            usbFileItem.delete();
+                            usbFileDelete(usbFileItem);
                         }
                     }
                 }
@@ -401,12 +402,29 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 } else {
                     String name = usbFileItem.getName();
                     if (delectPicturePathList.contains(name)) {
-                        usbFileItem.delete();
+                        usbFileDelete(usbFileItem);
                     }
                 }
             }
         } catch (Exception e) {
 
+        }
+    }
+
+    private void usbFileDelete(UsbFile usbFile) {
+        if (usbFile == null) {
+            return;
+        }
+        Log.e(TAG, "usbFileDelete: usbFile =" + usbFile.getName());
+        try {
+            if (usbFile.getLength() > 0) {
+                usbFile.delete();
+            } else {
+                Log.e(TAG, "usbFileDelete: 错误文件");
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "usbFileDelete: Exception =" + e);
         }
     }
 
@@ -451,11 +469,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             try {
                 UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
                 for (UsbFile file : usbLogcatDirFileList) {
-                    try {
-                        file.delete();
-                    } catch (Exception e) {
-
-                    }
+                    usbFileDelete(file);
                 }
             } catch (Exception | OutOfMemoryError e) {
                 Log.e(TAG, "formatStoreUSB 日志:格式化U盘异常 Exception =" + e);
@@ -502,18 +516,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 return;
             }
             if (systemTime - yymmdd > 14) {
-                try {
-                    usbFile.delete();
-                } catch (IOException e) {
-                    Log.e(TAG, "deleteUsbFile: file.delete IOException =" + e);
-                }
+                usbFileDelete(usbFile);
             }
         } else {
-            try {
-                usbFile.delete();
-            } catch (Exception e) {
-                Log.e(TAG, "deleteUsbFile: file.delete IOException =" + e);
-            }
+            usbFileDelete(usbFile);
         }
     }
 
@@ -545,6 +551,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
             }
+            create.close();
         } catch (Exception e) {
             Log.e(TAG, "uploadLogcatToUSB: 1Exception =" + e);
         } finally {
@@ -614,7 +621,12 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                 return false;
             }
-            UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
+
+            UsbFile create = yearMonthUsbFile.search(localFile.getName());
+            if (create == null) {
+                create = yearMonthUsbFile.createFile(localFile.getName());
+            }
+
             Log.e(TAG, "uploadToUSB.................................: name =" + localFile.getName());
             os = new UsbFileOutputStream(create);
             is = new FileInputStream(localFile);
@@ -626,7 +638,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
                 if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
-                    create.delete();
+                    usbFileDelete(create);
                     break;
                 }
             }
@@ -640,6 +652,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             String speed = fileSize / totalTime / 1024 + "";
             Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
             storeUSBListener.storeUSBSaveOnePictureComplete(speed);
+            create.close();
         } catch (Exception e) {
             if (e.toString().contains("Item already exists")) {
                 Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
