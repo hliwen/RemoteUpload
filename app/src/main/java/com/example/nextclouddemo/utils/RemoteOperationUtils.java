@@ -220,7 +220,7 @@ public class RemoteOperationUtils {
                                 for (File file : files) {
                                     UploadFileModel uploadFileModel = new UploadFileModel(file.getAbsolutePath());
                                     Log.d(TAG, "run: uploadFileModel 上一次没传完的 " + uploadFileModel);
-                                    addUploadRemoteFile(fileModel, false);
+                                    addUploadRemoteFile(uploadFileModel, false);
                                 }
                             }
                         }

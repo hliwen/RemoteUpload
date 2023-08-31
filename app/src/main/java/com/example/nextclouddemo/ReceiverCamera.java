@@ -688,15 +688,6 @@ public class ReceiverCamera extends BroadcastReceiver {
                 if (!pictureFormatFile(FileEnd)) continue;
                 cameraTotalPicture++;
 
-                if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
-                    try {
-                        usbFile.delete();
-                    } catch (IOException e) {
-                        Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
-                    }
-                    continue;
-                }
-
 
                 if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                     if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
@@ -747,6 +738,10 @@ public class ReceiverCamera extends BroadcastReceiver {
 
 
     private boolean needDownloadCameraPictureToUSB(String fileName) {
+
+        if (fileName == null) {
+            return false;
+        }
 
         if (VariableInstance.getInstance().usbFileNameList.contains(fileName)) {
             return false;

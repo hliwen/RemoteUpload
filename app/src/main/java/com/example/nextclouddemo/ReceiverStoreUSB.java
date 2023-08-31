@@ -13,10 +13,12 @@ import android.hardware.usb.UsbManager;
 import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
+import com.example.nextclouddemo.utils.Utils;
 
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -165,7 +167,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
                     if (storeUSBListener != null) {
-//                        storeUSBListener.initStoreUSBFailed();
+                        storeUSBListener.initStoreUSBFailed(true);
                     }
                     return;
                 }
@@ -174,7 +176,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 if (usbDevices == null) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备接入");
                     if (storeUSBListener != null) {
-//                        storeUSBListener.initStoreUSBFailed();
+                        storeUSBListener.initStoreUSBFailed(true);
                     }
                     return;
                 }
@@ -215,7 +217,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
                 if (!initStoreUSBSucceed) {
                     if (storeUSBListener != null) {
-                        storeUSBListener.initStoreUSBFailed();
+                        storeUSBListener.initStoreUSBFailed(false);
                     }
                 }
             }
@@ -347,6 +349,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
         try {
             UsbFile[] usbFileList = usbFile.listFiles();
+
             for (UsbFile usbFileItem : usbFileList) {
                 if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                     Log.e(TAG, "getStoreUSBPictureCount: 22 正在格式化，不需要扫描");
@@ -361,7 +364,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         if (usbFileItem.getLength() > 10) {
                             picturePathList.add(name);
                         } else {
-                            usbFileItem.delete();
+                            usbFileDelete(usbFileItem);
                         }
                     }
                 }
@@ -399,12 +402,29 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 } else {
                     String name = usbFileItem.getName();
                     if (delectPicturePathList.contains(name)) {
-                        usbFileItem.delete();
+                        usbFileDelete(usbFileItem);
                     }
                 }
             }
         } catch (Exception e) {
 
+        }
+    }
+
+    private void usbFileDelete(UsbFile usbFile) {
+        if (usbFile == null) {
+            return;
+        }
+        Log.e(TAG, "usbFileDelete: usbFile =" + usbFile.getName());
+        try {
+            if (usbFile.getLength() > 0) {
+                usbFile.delete();
+            } else {
+                Log.e(TAG, "usbFileDelete: 错误文件");
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "usbFileDelete: Exception =" + e);
         }
     }
 
@@ -449,11 +469,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             try {
                 UsbFile[] usbLogcatDirFileList = storeUSBLogcatDirUsbFile.listFiles();
                 for (UsbFile file : usbLogcatDirFileList) {
-                    try {
-                        file.delete();
-                    } catch (Exception e) {
-
-                    }
+                    usbFileDelete(file);
                 }
             } catch (Exception | OutOfMemoryError e) {
                 Log.e(TAG, "formatStoreUSB 日志:格式化U盘异常 Exception =" + e);
@@ -467,36 +483,43 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     public void formatStoreUSB(UsbFile usbFile) {
         try {
             if (usbFile.isDirectory()) {
-                UsbFile[] usbLogcatDirFileList = usbFile.listFiles();
-                for (UsbFile file : usbLogcatDirFileList) {
+                UsbFile[] usbDirFileList = usbFile.listFiles();
+                for (UsbFile file : usbDirFileList) {
                     if (file.isDirectory()) {
                         formatStoreUSB(file);
                     } else {
-                        if (file.getLength() == 0) {
-                            Log.e(TAG, "formatStoreUSB: file.getLength() == 0");
-                            continue;
-                        }
-                        try {
-                            file.delete();
-                            Log.e(TAG, "formatStoreUSB: " + file.getName());
-                        } catch (Exception e) {
-                            Log.e(TAG, "formatStoreUSB: 1删除文件异常Exception e:" + e);
-                        }
+                        deleteUsbFile(file);
                     }
                 }
             } else {
-                if (usbFile.getLength() != 0) {
-                    try {
-                        Log.e(TAG, "formatStoreUSB: " + usbFile.getName());
-                        usbFile.delete();
-                    } catch (Exception e) {
-                        Log.e(TAG, "formatStoreUSB: 2删除文件异常Exception e:" + e);
-                    }
-                }
+                deleteUsbFile(usbFile);
             }
         } catch (Exception | OutOfMemoryError e) {
             Log.e(TAG, "formatStoreUSB: 3删除文件异常Exception =" + e);
             formatException = true;
+        }
+    }
+
+
+    private void deleteUsbFile(UsbFile usbFile) {
+
+        if (usbFile == null || usbFile.getLength() == 0) return;
+
+        Log.e(TAG, "deleteUsbFile: usbFile = " + usbFile.getName());
+
+        if (VariableInstance.getInstance().isFormatingUSB.formatState == 2) {
+            long createDate = usbFile.createdAt() - 1000L * 60 * 60 * 8;
+            int yymmdd = Utils.getyyMMddtringInt(createDate);
+
+            int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
+            if (systemTime == 900101) {
+                return;
+            }
+            if (systemTime - yymmdd > 14) {
+                usbFileDelete(usbFile);
+            }
+        } else {
+            usbFileDelete(usbFile);
         }
     }
 
@@ -528,6 +551,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
             }
+            create.close();
         } catch (Exception e) {
             Log.e(TAG, "uploadLogcatToUSB: 1Exception =" + e);
         } finally {
@@ -597,7 +621,12 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                 return false;
             }
-            UsbFile create = yearMonthUsbFile.createFile(localFile.getName());
+
+            UsbFile create = yearMonthUsbFile.search(localFile.getName());
+            if (create == null) {
+                create = yearMonthUsbFile.createFile(localFile.getName());
+            }
+
             Log.e(TAG, "uploadToUSB.................................: name =" + localFile.getName());
             os = new UsbFileOutputStream(create);
             is = new FileInputStream(localFile);
@@ -609,7 +638,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             while ((bytesRead = is.read(buffer)) != -1) {
                 os.write(buffer, 0, bytesRead);
                 if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
-                    create.delete();
+                    usbFileDelete(create);
                     break;
                 }
             }
@@ -623,6 +652,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             String speed = fileSize / totalTime / 1024 + "";
             Log.d(TAG, "uploadToUSB: 上传USB速度：speed =" + speed + ",fileSize =" + fileSize);
             storeUSBListener.storeUSBSaveOnePictureComplete(speed);
+            create.close();
         } catch (Exception e) {
             if (e.toString().contains("Item already exists")) {
                 Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
@@ -676,7 +706,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         void storeUSBSaveOnePictureComplete(String speed);
 
-        void initStoreUSBFailed();
+        void initStoreUSBFailed(boolean delay);
 
     }
 

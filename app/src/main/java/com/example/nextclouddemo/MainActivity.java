@@ -444,64 +444,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         @Override
-        public void initStoreUSBFailed() {
+        public void initStoreUSBFailed(boolean delay) {
+            mHandler.removeMessages(msg_usb_init_faild_delay);
             if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
                 return;
             }
-            Log.e(TAG, "initStoreUSBFailed: U盘初始化失败，仍然连接mqtt通信");
-            String imei = getPhoneImei(true);
-            DeviceModel deviceModelConnect = null;
-            if ("0".equals(imei)) {
-                int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-                if (style == 0 || style == 1) {
-                    saveDeviceStyle(1); //蜂窝板
-                } else {
-                    DeviceModel deviceModel = getDeviceModel();
-                    if (deviceModel == null) {
-                        saveDeviceStyle(1);
-                        //蜂窝板
-                    } else {
-                        //wifi版
-                        deviceModelConnect = deviceModel;
-                        saveDeviceStyle(2);
-                    }
-                }
+            if (delay) {
+                mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, 30000);
             } else {
-                saveDeviceStyle(1); //蜂窝板
-            }
-
-            if (VariableInstance.getInstance().deviceStyle == 1) {
-                initCellularNetWork();
-            } else if (VariableInstance.getInstance().deviceStyle == 2) {
-                registerWifiReceiver();
-                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if (wifiManager != null) {
-                    boolean wifiEnable = wifiManager.isWifiEnabled();
-                    if (wifiEnable) {
-                        if (deviceModelConnect.wifi != null) {
-                            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                                Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                                networkConnect();
-                                return;
-                            }
-                            if (deviceModelConnect.pass == null) {
-                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                            } else {
-                                if (deviceModelConnect.pass.length() == 0) {
-                                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                                } else {
-                                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                                }
-                            }
-                        } else {
-                            Log.e(TAG, "initStoreUSBComplete: 当前配置的WiFi文件有错");
-                        }
-                    } else {
-                        wifiManager.setWifiEnabled(true);
-                    }
-                }
-
+                initUSBFaild();
             }
         }
 
@@ -598,6 +549,64 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     };
 
+
+    private void initUSBFaild() {
+        Log.e(TAG, "initStoreUSBFailed: U盘初始化失败，仍然连接mqtt通信");
+        String imei = getPhoneImei(true);
+        DeviceModel deviceModelConnect = null;
+        if ("0".equals(imei)) {
+            int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
+            if (style == 0 || style == 1) {
+                saveDeviceStyle(1); //蜂窝板
+            } else {
+                DeviceModel deviceModel = getDeviceModel();
+                if (deviceModel == null) {
+                    saveDeviceStyle(1);
+                    //蜂窝板
+                } else {
+                    //wifi版
+                    deviceModelConnect = deviceModel;
+                    saveDeviceStyle(2);
+                }
+            }
+        } else {
+            saveDeviceStyle(1); //蜂窝板
+        }
+
+        if (VariableInstance.getInstance().deviceStyle == 1) {
+            initCellularNetWork();
+        } else if (VariableInstance.getInstance().deviceStyle == 2) {
+            registerWifiReceiver();
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager != null) {
+                boolean wifiEnable = wifiManager.isWifiEnabled();
+                if (wifiEnable) {
+                    if (deviceModelConnect.wifi != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                        if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
+                            Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                            networkConnect();
+                            return;
+                        }
+                        if (deviceModelConnect.pass == null) {
+                            connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                        } else {
+                            if (deviceModelConnect.pass.length() == 0) {
+                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                            } else {
+                                connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
+                            }
+                        }
+                    } else {
+                        Log.e(TAG, "initStoreUSBComplete: 当前配置的WiFi文件有错");
+                    }
+                } else {
+                    wifiManager.setWifiEnabled(true);
+                }
+            }
+
+        }
+    }
 
     private ReceiverCamera.CameraScanerListener scannerCameraListener = new ReceiverCamera.CameraScanerListener() {
 
@@ -784,6 +793,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void registerWifiReceiver() {
+        if (mWifiReceiver != null)
+            return;
         mWifiReceiver = new WifiReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
@@ -1152,7 +1163,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         Log.e(TAG, "run: 等待格式化");
                         Thread.sleep(2000);
                     } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+
                     }
 
                 }
@@ -1903,6 +1914,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_delay_creta_acitivity = 7;
     private static final int msg_delay_open_device_prot = 8;
 
+    private static final int msg_usb_init_faild_delay = 9;
+
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
 
@@ -1946,6 +1959,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_delay_open_device_prot:
                     activity.openCameraDeviceProt(true);
+                    break;
+                case msg_usb_init_faild_delay:
+                    activity.initUSBFaild();
                     break;
 
             }
