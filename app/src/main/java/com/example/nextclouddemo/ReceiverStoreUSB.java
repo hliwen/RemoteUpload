@@ -165,7 +165,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
                     if (storeUSBListener != null) {
-                        storeUSBListener.initStoreUSBFailed();
+//                        storeUSBListener.initStoreUSBFailed();
                     }
                     return;
                 }
@@ -174,7 +174,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 if (usbDevices == null) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备接入");
                     if (storeUSBListener != null) {
-                        storeUSBListener.initStoreUSBFailed();
+//                        storeUSBListener.initStoreUSBFailed();
                     }
                     return;
                 }

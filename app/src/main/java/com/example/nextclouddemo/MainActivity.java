@@ -764,6 +764,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void registerReceiverCamera() {
+         Log.d(TAG, "registerReceiverCamera: ");
         receiverCamera = new ReceiverCamera(getApplicationContext(), scannerCameraListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
