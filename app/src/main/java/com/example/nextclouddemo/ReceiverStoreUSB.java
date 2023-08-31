@@ -292,7 +292,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
 
 
-        Log.d(TAG, "usbDeviceScaner: deviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        Log.d(TAG, "usbDeviceScaner: storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB无法获取到设备ID);
             return false;

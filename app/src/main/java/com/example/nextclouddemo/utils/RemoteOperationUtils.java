@@ -250,7 +250,8 @@ public class RemoteOperationUtils {
         Log.e(TAG, "stopUploadThread: ");
         if (pictureWorkThread != null) {
             pictureIsThreadStop = true;
-            remoteOperationListener.allFileUploadComplete(uploadTatalTime);
+            if (remoteOperationListener != null)
+                remoteOperationListener.allFileUploadComplete(uploadTatalTime);
             try {
                 pictureWorkThread.interrupt();
                 pictureWorkThread.join(100);
@@ -264,7 +265,9 @@ public class RemoteOperationUtils {
             }
         }
         pictureWorkThread = null;
-        pictureFileListCache.clear();
+        if (pictureFileListCache != null) {
+            pictureFileListCache.clear();
+        }
     }
 
     private void uploadImageFileToRemote(UploadFileModel fileModel) {

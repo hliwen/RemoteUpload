@@ -237,7 +237,7 @@ public class Utils {
             os.close();
             suProcess.waitFor();
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+             Log.e(TAG, "formatUSB: e ="+e );
         }
     }
 
