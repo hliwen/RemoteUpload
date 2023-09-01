@@ -95,7 +95,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int close_device_timeout = 3 * 60 * 1000;
     private static final int close_device_timeout_a = 5 * 60 * 1000;
 
-    private static final int delay_crate_acitivity_time = 5 * 1000;
+    private static final int delay_crate_acitivity_time = 3 * 1000;
     private static String TAG = "MainActivitylog";
     private String returnImei;
     private String deveceName;
@@ -773,7 +773,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void registerReceiverCamera() {
-         Log.d(TAG, "registerReceiverCamera: ");
+        Log.d(TAG, "registerReceiverCamera: ");
         receiverCamera = new ReceiverCamera(getApplicationContext(), scannerCameraListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
@@ -1005,7 +1005,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mHandler.removeCallbacksAndMessages(null);
 
         openCameraDeviceProt(false);
-        operationUtils.stopUploadThread();
+        if (operationUtils != null)
+            operationUtils.stopUploadThread();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
@@ -1103,7 +1104,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
             break;
             case Set_UploadLocat:
-                operationUtils.startUploadLocatThread(false);
+                if (operationUtils != null) {
+                    operationUtils.startUploadLocatThread(false);
+                }
                 break;
             case Set_ResetApk: {
                 if (!isUpdating) {
@@ -1182,7 +1185,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 VariableInstance.getInstance().usbFileNameList.clear();
 
 
-                operationUtils.stopUploadThread();
+                if (operationUtils != null)
+                    operationUtils.stopUploadThread();
 
                 if (receiverStoreUSB != null) {
 

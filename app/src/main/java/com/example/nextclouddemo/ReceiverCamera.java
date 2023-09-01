@@ -296,7 +296,9 @@ public class ReceiverCamera extends BroadcastReceiver {
 
             }
         };
-        scanerThreadExecutor.execute(runnable);
+        if (scanerThreadExecutor != null){
+            scanerThreadExecutor.execute(runnable);
+        }
     }
 
     private void mtpDeviceScaner(UsbDevice usbDevice) {

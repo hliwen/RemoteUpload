@@ -39,7 +39,7 @@ import me.jahnen.libaums.core.partition.Partition;
 public class ReceiverStoreUSB extends BroadcastReceiver {
     private static final String TAG = "MainActivitylog2";
     public static final String INIT_STORE_USB_PERMISSION = "INIT_STORE_USB_PERMISSION";
-    private StoreUSBListener storeUSBListener;
+    private final StoreUSBListener storeUSBListener;
     private ExecutorService initStoreUSBThreadExecutor;
     private UsbManager usbManager;
     private boolean formatException = false;
@@ -658,7 +658,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 Log.d(TAG, "uploadToUSB: U盘已存在同名文件");
             } else {
                 Log.e(TAG, "uploadToUSB: 上传U盘出错 Exception =" + e);
-                String error = ErrorName.上传图片到USB出错 + ":" + e.toString();
+                String error = ErrorName.上传图片到USB出错 + ":" + e;
                 VariableInstance.getInstance().errorLogNameList.add(error);
             }
         } finally {
@@ -681,9 +681,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
 
     private boolean pictureFormatFile(String FileEnd) {
-        if (FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3") || FileEnd.equals("jpg"))
-            return true;
-        return false;
+        return FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3") || FileEnd.equals("jpg");
     }
 
 
