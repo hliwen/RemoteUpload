@@ -52,7 +52,7 @@ public class VariableInstance {
     public boolean isUploadingToRemote;//正在上传照片到远程服务器
     public boolean isUpdatingBetaApk;//正在升级测试版APK
 
-    public static final int MAX_NUM =1000;//U盘最多保留张数
+    public int MAX_NUM = 1000;//U盘最多保留张数
     public boolean cyclicDeletion = true;//开启循环删除，只保留最新的MAX_NUM张数
     public String copyReferenceDate = null;//拷贝参考日期
     public boolean syncAllCameraPicture = false;//下载全部照片到U盘

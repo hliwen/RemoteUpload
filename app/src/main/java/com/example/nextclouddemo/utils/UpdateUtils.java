@@ -69,7 +69,7 @@ public class UpdateUtils {
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
 
 //                if (servierVersion > appVerison) {
-                    startDownloadApk(servierVersion);
+                startDownloadApk(servierVersion);
 //                }
             }
         }).start();
@@ -133,20 +133,20 @@ public class UpdateUtils {
         Log.d(TAG, "startDownloadApp: ");
         boolean downloadSucced = false;
         Utils.makeDir("/storage/emulated/0/Download/");
-        String appName = "RemoteUpload.apk";
-        downloadPath = "/storage/emulated/0/Download/" + appName;
-        File apkFile = new File(downloadPath);
-        if (apkFile != null && apkFile.exists()) {
-            apkFile.delete();
+        String downloadPath_tpm = "/storage/emulated/0/Download/RemoteUpload_tpm.apk";
+        downloadPath = "/storage/emulated/0/Download/RemoteUpload.apk";
+        File apkFileTpm = new File(downloadPath_tpm);
+        if (apkFileTpm != null && apkFileTpm.exists()) {
+            apkFileTpm.delete();
         }
-        apkFile = new File("/storage/emulated/0/Download/" + appName);
+        apkFileTpm = new File(downloadPath_tpm);
         try {
             URL downloadurl = new URL(downloadURL);
             HttpURLConnection connection = (HttpURLConnection) downloadurl.openConnection();
             int ResponseCode = connection.getResponseCode();
             if (ResponseCode == 200 || ResponseCode == 206) {
                 InputStream downloadInputStream = connection.getInputStream();
-                FileOutputStream downloadFileOutputStream = new FileOutputStream(apkFile);
+                FileOutputStream downloadFileOutputStream = new FileOutputStream(apkFileTpm);
                 byte[] buffer = new byte[2048 * 8];
                 int lenght;
 
@@ -162,7 +162,13 @@ public class UpdateUtils {
                 downloadFileOutputStream.flush();
                 downloadInputStream.close();
                 downloadFileOutputStream.close();
-                downloadSucced = true;
+
+                File apkFile = new File(downloadPath);
+                if (apkFile != null && apkFile.exists()) {
+                    apkFile.delete();
+                }
+                apkFile = new File(downloadPath);
+                downloadSucced = apkFileTpm.renameTo(apkFile);
             } else {
 
             }
@@ -178,7 +184,9 @@ public class UpdateUtils {
 
     private void downloadSucceed(String filaPath) {
         try {
-            if (updateListener != null) updateListener.startUpdate();
+            if (updateListener != null) {
+                updateListener.startUpdate();
+            }
             execLinuxCommand();
             boolean installSuccess = installSilent(filaPath);
             if (updateListener != null) {

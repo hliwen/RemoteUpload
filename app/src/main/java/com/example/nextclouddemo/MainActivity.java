@@ -169,10 +169,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    private void copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
+    private boolean copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
         File file = new File(localPath);
         if (file.exists()) {
-            return;
+            file.delete();
         }
         try {
             InputStream is = context.getResources().getAssets().open(ASSETS_NAME);
@@ -184,25 +184,46 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
             fos.close();
             is.close();
+            return true;
         } catch (Exception e) {
 
         }
+        return false;
     }
 
     private void installAPKServer() {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String apkServerPath = "/storage/emulated/0/Download/apkServer.apk";
-                copyAPKServer(apkServerPath, "apkServer.apk", MainActivity.this);
-                File file = new File(apkServerPath);
-                if (file.exists()) {
+                String apkPathTpm = "/storage/emulated/0/Download/tpm_apkServer.apk";
+                String apkPath = "/storage/emulated/0/Download/apkServer.apk";
+                boolean copyResult = copyAPKServer(apkPathTpm, "apkServer.apk", MainActivity.this);
+                if (!copyResult) {
+                    Log.e(TAG, "run: installAPKServer 拷贝文件出错， 服务安装异常");
+                    return;
+                }
+                File tmpApkFile = new File(apkPathTpm);
+
+                if (tmpApkFile == null || !tmpApkFile.exists()) {
+                    Log.e(TAG, "run: installAPKServer 服务文件不存在， 服务安装异常");
+                    return;
+                }
+                File apkFile = new File(apkPath);
+
+                if (apkFile.exists()) {
+                    apkFile.delete();
+                }
+                apkFile = new File(apkPath);
+
+                tmpApkFile.renameTo(apkFile);
+
+                if (apkFile.exists()) {
                     BufferedReader es = null;
                     DataOutputStream os = null;
                     try {
                         Process process = Runtime.getRuntime().exec("su");
                         os = new DataOutputStream(process.getOutputStream());
-                        String command = "pm install -r " + apkServerPath + "\n";
+                        String command = "pm install -r " + apkPath + "\n";
                         os.write(command.getBytes(Charset.forName("utf-8")));
                         os.flush();
                         os.writeBytes("exit\n");
@@ -793,8 +814,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void registerWifiReceiver() {
-        if (mWifiReceiver != null)
-            return;
+        if (mWifiReceiver != null) return;
         mWifiReceiver = new WifiReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
@@ -1005,8 +1025,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mHandler.removeCallbacksAndMessages(null);
 
         openCameraDeviceProt(false);
-        if (operationUtils != null)
-            operationUtils.stopUploadThread();
+        if (operationUtils != null) operationUtils.stopUploadThread();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
@@ -1185,8 +1204,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 VariableInstance.getInstance().usbFileNameList.clear();
 
 
-                if (operationUtils != null)
-                    operationUtils.stopUploadThread();
+                if (operationUtils != null) operationUtils.stopUploadThread();
 
                 if (receiverStoreUSB != null) {
 
