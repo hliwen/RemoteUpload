@@ -379,11 +379,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
         message.what = msg_close_device;
         message.arg1 = position;
         mHandler.sendMessageDelayed(message, close_device_timeout);
+        mHandler.sendEmptyMessageDelayed(msg_test, 1000);
     }
 
     private void removeCloseDeviceMessage(int position) {
         Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
         mHandler.removeMessages(msg_close_device);
+        mHandler.removeMessages(msg_test);
     }
 
 
@@ -1930,13 +1932,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_reload_device_info = 1;
     private static final int msg_close_device = 2;
     private static final int msg_send_ShutDown = 3;
-
     private static final int msg_wifi_disconnected = 5;
     private static final int msg_wifi_connected = 6;
     private static final int msg_delay_creta_acitivity = 7;
     private static final int msg_delay_open_device_prot = 8;
-
     private static final int msg_usb_init_faild_delay = 9;
+    private static final int msg_test = 10;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -1955,11 +1956,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_reload_device_info:
                     activity.initAddress();
                     break;
+                case msg_test:
+                    Log.e(TAG, "handleMessage: msg_test.....................");
+                    activity.mHandler.sendEmptyMessageDelayed(msg_test, 1000);
+                    break;
                 case msg_close_device:
                     if (activity.canCloseDevice()) {
                         activity.operationUtils.startUploadLocatThread(true);
                     } else {
-
                         activity.removeCloseDeviceMessage(10);
                         activity.sendCloseDeviceMessage(6);
                     }
