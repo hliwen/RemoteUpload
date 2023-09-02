@@ -92,8 +92,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_ResetApk = "Set,ResetApk;";
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
-    private static final int close_device_timeout = 3 * 60 * 1000;
-    private static final int close_device_timeout_a = 5 * 60 * 1000;
+    private static final int close_device_timeout = 2 * 60 * 1000;
+    private static final int close_device_timeout_a = 3 * 60 * 1000;
 
     private static final int delay_crate_acitivity_time = 3 * 1000;
     private static String TAG = "MainActivitylog";
@@ -239,6 +239,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         }
                         if (!builder.toString().contains("Failure")) {
                             Log.e(TAG, "run: 安装服务apk成功");
+                            mHandler.removeMessages(msg_delay_creta_acitivity);
+                            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, 3000);
                         } else {
                             Log.e(TAG, "run: 安装服务apk失败");
                         }
@@ -262,6 +264,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    private TextView shutDownTimeText;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -283,6 +287,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
 
+        shutDownTimeText = findViewById(R.id.shutDownTimeText);
         messageText = findViewById(R.id.messageText);
         accessNumberText = findViewById(R.id.accessNumberText);
         cameraStateText = findViewById(R.id.cameraStateText);
@@ -373,19 +378,37 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    int shutDownTime;
+    boolean waitUplodLog;
+
     private void sendCloseDeviceMessage(int position) {
         Log.e(TAG, "sendCloseDeviceMessage: position =" + position);
         Message message = new Message();
         message.what = msg_close_device;
         message.arg1 = position;
         mHandler.sendMessageDelayed(message, close_device_timeout);
+        shutDownTime = 0;
+        waitUplodLog = true;
         mHandler.sendEmptyMessageDelayed(msg_test, 1000);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                shutDownTimeText.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void removeCloseDeviceMessage(int position) {
         Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
         mHandler.removeMessages(msg_close_device);
         mHandler.removeMessages(msg_test);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                shutDownTimeText.setVisibility(View.GONE);
+            }
+        });
     }
 
 
@@ -768,7 +791,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
         public void uploadLogcatComplete() {
             getInfo();
 
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    shutDownTimeText.setVisibility(View.VISIBLE);
+                }
+            });
+            shutDownTime = 0;
+            waitUplodLog = false;
             sendShutDown = true;
+
+            mHandler.sendEmptyMessageDelayed(msg_test, 1000);
             mHandler.removeMessages(msg_send_ShutDown);
             mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
             Log.d(TAG, "send msg_send_ShutDown 1111111111111111");
@@ -1277,7 +1310,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null)
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1403,7 +1437,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1412,7 +1447,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1957,11 +1993,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.initAddress();
                     break;
                 case msg_test:
-                    Log.e(TAG, "handleMessage: msg_test.....................");
+                    activity.shutDownTime++;//TODO
+                    if (activity.waitUplodLog) {
+                        String time = (close_device_timeout/1000 - activity.shutDownTime) + "S 后开始上传日志";
+                        activity.shutDownTimeText.setText(time);
+                    } else {
+                        String time = (close_device_timeout_a/1000 - activity.shutDownTime) + "S 后关机";
+                        activity.shutDownTimeText.setText(time);
+                    }
+
                     activity.mHandler.sendEmptyMessageDelayed(msg_test, 1000);
                     break;
                 case msg_close_device:
                     if (activity.canCloseDevice()) {
+                        activity.shutDownTimeText.setText("日志开始上传.....");
+                        activity.mHandler.removeMessages(msg_test);
                         activity.operationUtils.startUploadLocatThread(true);
                     } else {
                         activity.removeCloseDeviceMessage(10);
