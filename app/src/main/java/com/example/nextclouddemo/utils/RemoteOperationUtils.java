@@ -386,9 +386,17 @@ public class RemoteOperationUtils {
                 try {
 
                     if (LogcatHelper.getInstance().mLogDumperSecond == null) {
+                        Log.e(TAG, "startUploadLocatThread: = null ");
+                        if (delect) {
+                            remoteOperationListener.uploadLogcatComplete();
+                        }
                         return;
                     }
                     if (VariableInstance.getInstance().ownCloudClient == null) {
+                        Log.e(TAG, "ownCloudClient: = null ");
+                        if (delect) {
+                            remoteOperationListener.uploadLogcatComplete();
+                        }
                         return;
                     }
 
@@ -404,6 +412,10 @@ public class RemoteOperationUtils {
                     File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
 
                     if (file == null || !file.exists()) {
+                        Log.e(TAG, "file: = "+LogcatHelper.getInstance().logcatFileSecondPath);
+                        if (delect) {
+                            remoteOperationListener.uploadLogcatComplete();
+                        }
                         return;
                     }
 
