@@ -339,7 +339,7 @@ public class RemoteOperationUtils {
         if (isSuccess) {
             VariableInstance.getInstance().uploadRemorePictureNum++;
             long totalTime = (System.currentTimeMillis() - startTime) / 1000;
-            Log.e(TAG, "uploadImageFileToRemote: " + totalTime + ",fileSize =" + fileSize);
+            Log.e(TAG, "uploadImageFileToRemote: 单张用时" + totalTime + "S,fileSize =" + fileSize);
             if (totalTime != 0) {
                 remoteOperationListener.updateUploadSpeed(("" + (fileSize / totalTime / 1024)));
             }
