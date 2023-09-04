@@ -62,6 +62,8 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
@@ -903,8 +905,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void netWorkLost() {
         Log.e(TAG, "netWorkLost: ");
+        mHandler.removeMessages(msg_reload_device_info);
         networkAvailable = false;
         doingInit = false;
+        VariableInstance.getInstance().ownCloudClient = null;
         runOnUiThreadText(isConnectNetworkText, "是否连网:false");
         runOnUiThreadText(mqttStateText, "mqtt状态:false");
         operationUtils.stopUploadThread();
@@ -927,6 +931,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    private ExecutorService initNetworkExecutorService;
+
     private void initAddress() {
         if (!networkAvailable) {
             Log.e(TAG, "initAddress 网络不可用");
@@ -934,7 +940,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         getInfo();
 
-        Thread workThread = new Thread(new Runnable() {
+        try {
+            if (initNetworkExecutorService != null) {
+                initNetworkExecutorService.shutdown();
+            }
+        } catch (Exception e) {
+        }
+        initNetworkExecutorService = null;
+
+        initNetworkExecutorService = Executors.newSingleThreadExecutor();
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -1026,8 +1041,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     doingInit = false;
                 }
             }
-        });
-        workThread.start();
+        };
+
+        initNetworkExecutorService.execute(runnable);
     }
 
 
@@ -1310,8 +1326,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1437,8 +1452,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1447,8 +1461,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1948,7 +1961,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
-                    Log.d(TAG, "onReceive: 断开wifi =");
+                    Log.d(TAG, "onReceive: 断开wifi  ");
                     mHandler.removeMessages(msg_wifi_disconnected);
                     mHandler.removeMessages(msg_wifi_connected);
                     mHandler.sendEmptyMessageDelayed(msg_wifi_disconnected, 1000);
@@ -1995,10 +2008,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_test:
                     activity.shutDownTime++;//TODO
                     if (activity.waitUplodLog) {
-                        String time = (close_device_timeout/1000 - activity.shutDownTime) + "S 后开始上传日志";
+                        String time = (close_device_timeout / 1000 - activity.shutDownTime) + "S 后开始上传日志";
                         activity.shutDownTimeText.setText(time);
                     } else {
-                        String time = (close_device_timeout_a/1000 - activity.shutDownTime) + "S 后关机";
+                        String time = (close_device_timeout_a / 1000 - activity.shutDownTime) + "S 后关机";
                         activity.shutDownTimeText.setText(time);
                     }
 
