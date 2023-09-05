@@ -544,7 +544,13 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         try {
             localFile = new File(logcatFilePath);
-            UsbFile create = storeUSBLogcatDirUsbFile.createFile(localFile.getName());
+
+            String name = localFile.getName();
+            if (name.contains("logcat1970")) {
+                String date = LogcatHelper.getInstance().getFileName();
+                name = "logcat" + date + ".txt";
+            }
+            UsbFile create = storeUSBLogcatDirUsbFile.createFile(name);
             usbFileOutputStream = new UsbFileOutputStream(create);
             inputStream = new FileInputStream(localFile);
 
@@ -567,14 +573,6 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 }
             } catch (Exception e) {
                 Log.e(TAG, "uploadLogcatToUSB: 2Exception =" + e);
-            }
-
-            if (logcatFilePath.contains("logcat1970")) {
-                String date = LogcatHelper.getInstance().getFileName();
-                File file = new File(VariableInstance.getInstance().LogcatDir, "logcat" + date + ".txt");
-                if (localFile != null) {
-                    localFile.renameTo(file);
-                }
             }
         }
     }

@@ -256,11 +256,11 @@ public class RemoteOperationUtils {
                 pictureWorkThread.interrupt();
                 pictureWorkThread.join(100);
             } catch (Exception e) {
-                Log.e(TAG, "stop: Exception = " + e);
+                Log.e(TAG, "stopUploadThread: Exception = " + e);
                 try {
                     pictureWorkThread.interrupt();
                 } catch (Exception e1) {
-                    Log.e(TAG, "stop: Exception1 = " + e1);
+                    Log.e(TAG, "stopUploadThread: Exception1 = " + e1);
                 }
             }
         }
@@ -399,7 +399,7 @@ public class RemoteOperationUtils {
                         }
                         return;
                     }
-
+                    Log.e(TAG, "startUploadLocatThread: delect =" + delect);
                     if (delect) {
                         LogcatHelper.getInstance().stopSecond();
                         try {
@@ -412,7 +412,7 @@ public class RemoteOperationUtils {
                     File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
 
                     if (file == null || !file.exists()) {
-                        Log.e(TAG, "file: = "+LogcatHelper.getInstance().logcatFileSecondPath);
+                        Log.e(TAG, "file: = " + LogcatHelper.getInstance().logcatFileSecondPath);
                         if (delect) {
                             remoteOperationListener.uploadLogcatComplete();
                         }
