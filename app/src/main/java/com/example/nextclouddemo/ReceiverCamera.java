@@ -296,7 +296,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
             }
         };
-        if (scanerThreadExecutor != null){
+        if (scanerThreadExecutor != null) {
             scanerThreadExecutor.execute(runnable);
         }
     }
@@ -346,12 +346,20 @@ public class ReceiverCamera extends BroadcastReceiver {
                 for (int i : pictureHandlesItem) {
                     while (VariableInstance.getInstance().isScanningStoreUSB) {
                         Log.e(TAG, "mtpDeviceScaner: 正在扫描U盘，暂停相机扫描");
+                        if (cameraDeviceID == -1) {
+                            return;
+                        }
                         try {
                             Thread.sleep(2000);
                         } catch (InterruptedException e) {
 
                         }
                     }
+
+                    if (cameraDeviceID == -1) {
+                        return;
+                    }
+
                     MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
 
                     if (mtpObjectInfo == null) {
@@ -416,6 +424,11 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         int pictureCount = 0;
         for (SameDayPicutreInfo sameDayPicutreInfo : pictureInfoList) {
+
+            if (cameraDeviceID == -1) {
+                break;
+            }
+
             Collections.sort(sameDayPicutreInfo.jpgPictureInfos, new order());
             Collections.sort(sameDayPicutreInfo.rowPictureInfos, new order());
             pictureCount += sameDayPicutreInfo.jpgPictureInfos.size();
@@ -429,6 +442,9 @@ public class ReceiverCamera extends BroadcastReceiver {
         downloadFlieListener.scannerCameraComplete(pictureCount, cameraTotalPicture, usbDevice.getProductName());
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
+            if (cameraDeviceID == -1) {
+                break;
+            }
             if (VariableInstance.getInstance().UploadMode == 1) {
                 for (PictureInfo pictureInfo : pictureItem.rowPictureInfos) {
                     downloadMTPCameraPictureToTFCard(mtpDevice, pictureInfo, true);
@@ -514,7 +530,7 @@ public class ReceiverCamera extends BroadcastReceiver {
             boolean importResult = mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveLocalPath);
 
             if (!importResult) {
-                Log.e(TAG, "downloadMTPCameraPictureToTFCard: 导出相机照片失败");
+                Log.e(TAG, "downloadMTPCameraPictureToTFCard: 111 导出相机照片失败");
             }
 
             if (pictureSaveFile != null && pictureSaveFile.exists()) {
@@ -531,7 +547,10 @@ public class ReceiverCamera extends BroadcastReceiver {
                         if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) {
                             pictureUploadSaveFile.delete();
                         }
-                        mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveUploadLocalPath);
+                        importResult = mtpDevice.importFile(pictureInfo.mtpPictureID, pictureSaveUploadLocalPath);
+                        if (!importResult) {
+                            Log.e(TAG, "downloadMTPCameraPictureToTFCard:222 导出相机照片失败");
+                        }
                         if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) {
                             downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
                         }
@@ -599,6 +618,11 @@ public class ReceiverCamera extends BroadcastReceiver {
         downloadFlieListener.scannerCameraComplete(pictureCount, cameraTotalPicture, usbDevice.getProductName());
 
         for (SameDayPicutreInfo pictureItem : pictureInfoList) {
+
+            if (cameraDeviceID == -1) {
+                break;
+            }
+
             if (VariableInstance.getInstance().UploadMode == 1) {
                 for (PictureInfo pictureInfo : pictureItem.rowPictureInfos) {
                     downloadUSBCameraPictureToTFCard(pictureInfo, true);
