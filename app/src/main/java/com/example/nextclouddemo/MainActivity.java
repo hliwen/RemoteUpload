@@ -599,6 +599,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void initUSBFaild() {
+
+        if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
+            return;
+        }
+
         Log.e(TAG, "initStoreUSBFailed: U盘初始化失败，仍然连接mqtt通信");
         String imei = getPhoneImei(true);
         DeviceModel deviceModelConnect = null;
