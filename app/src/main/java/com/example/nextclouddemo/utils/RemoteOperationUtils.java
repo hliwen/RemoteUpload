@@ -256,7 +256,6 @@ public class RemoteOperationUtils {
                 pictureWorkThread.interrupt();
                 pictureWorkThread.join(100);
             } catch (Exception e) {
-                Log.e(TAG, "stopUploadThread: Exception = " + e);
                 try {
                     pictureWorkThread.interrupt();
                 } catch (Exception e1) {
@@ -422,16 +421,25 @@ public class RemoteOperationUtils {
 
                     String remotePath = remoteLogcatDir + file.getName();
 
+                    if (!delect) {
+                        remotePath = remoteLogcatDir + "/" + System.currentTimeMillis() + "_" + file.getName();
+                    }
+
                     if (remotePath.trim().contains("logcat1970")) {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
                         remotePath = remoteLogcatDir + "logcat" + date + ".txt";
+
+                        if (!delect) {
+                            remotePath = remoteLogcatDir + "/" + System.currentTimeMillis() + "_logcat" + date + ".txt";
+                        }
                     }
                     Long timeStampLong = System.currentTimeMillis() / 1000;
                     String timeStamp = timeStampLong.toString();
 
 
+                    Log.e(TAG, "run: UploadLocatThread = " + remotePath);
                     UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 

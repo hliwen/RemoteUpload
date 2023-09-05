@@ -1622,6 +1622,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         } else if (view.getId() == R.id.clearViewBt) {
             messageTextString = "";
             messageText.setText(messageTextString);
+
+            if (operationUtils != null) {
+                operationUtils.startUploadLocatThread(false);
+            }
+
         } else if (view.getId() == R.id.formatUSBt) {
             formatUSB(true);
         } else if (view.getId() == R.id.formatCameraBt) {
