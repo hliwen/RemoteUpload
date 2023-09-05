@@ -535,33 +535,33 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             return;
         }
 
-        UsbFileOutputStream os = null;
-        InputStream is = null;
+        UsbFileOutputStream usbFileOutputStream = null;
+        InputStream inputStream = null;
         File localFile = null;
 
 
         try {
             localFile = new File(logcatFilePath);
             UsbFile create = storeUSBLogcatDirUsbFile.createFile(localFile.getName());
-            os = new UsbFileOutputStream(create);
-            is = new FileInputStream(localFile);
+            usbFileOutputStream = new UsbFileOutputStream(create);
+            inputStream = new FileInputStream(localFile);
 
             int bytesRead;
             byte[] buffer = new byte[storeUSBFs.getChunkSize()];
-            while ((bytesRead = is.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                usbFileOutputStream.write(buffer, 0, bytesRead);
             }
             create.close();
         } catch (Exception e) {
             Log.e(TAG, "uploadLogcatToUSB: 1Exception =" + e);
         } finally {
             try {
-                if (os != null) {
-                    os.flush();
-                    os.close();
+                if (usbFileOutputStream != null) {
+                    usbFileOutputStream.flush();
+                    usbFileOutputStream.close();
                 }
-                if (is != null) {
-                    is.close();
+                if (inputStream != null) {
+                    inputStream.close();
                 }
             } catch (Exception e) {
                 Log.e(TAG, "uploadLogcatToUSB: 2Exception =" + e);
@@ -584,7 +584,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
 
 
-        if (localFile == null || !localFile.exists()) {
+        if (localFile == null || !localFile.exists() || localFile.length() < 10) {
             Log.e(TAG, "uploadToUSB: 上传文件到U盘出错，文件不存在 \ntodayDir =" + "\n localFile =" + localFile);
             return false;
         }
@@ -600,8 +600,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         long time = System.currentTimeMillis();
         long fileSize = 0;
-        UsbFileOutputStream os = null;
-        InputStream is = null;
+        UsbFileOutputStream usbFileOutputStream = null;
+        InputStream inputStream = null;
         try {
             UsbFile yearMonthUsbFile = null;
             UsbFile[] usbFileList = storeUSBPictureDirUsbFile.listFiles();
@@ -625,18 +625,21 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             UsbFile create = yearMonthUsbFile.search(localFile.getName());
             if (create == null) {
                 create = yearMonthUsbFile.createFile(localFile.getName());
+            } else {
+                Log.e(TAG, "uploadToUSB: U盘已存在这个文件，size=" + create.getLength());
+                create.setLength(localFile.length());
             }
 
-            Log.e(TAG, "uploadToUSB.................................: name =" + localFile.getName());
-            os = new UsbFileOutputStream(create);
-            is = new FileInputStream(localFile);
-            fileSize = is.available();
+            Log.d(TAG, "uploadToUSB.................................: name =" + localFile.getName());
+            usbFileOutputStream = new UsbFileOutputStream(create);
+            inputStream = new FileInputStream(localFile);
+            fileSize = inputStream.available();
             int bytesRead;
             byte[] buffer = new byte[storeUSBFs.getChunkSize()];
 
 
-            while ((bytesRead = is.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                usbFileOutputStream.write(buffer, 0, bytesRead);
                 if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
                     usbFileDelete(create);
                     break;
@@ -663,14 +666,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
         } finally {
             try {
-                if (os != null) {
-                    os.flush();
-                    os.close();
+                if (usbFileOutputStream != null) {
+                    usbFileOutputStream.flush();
+                    usbFileOutputStream.close();
                 }
-                if (is != null) {
-                    is.close();
+                if (inputStream != null) {
+                    inputStream.close();
                 }
-            } catch (Exception e) {
+            } catch (Exception | OutOfMemoryError e) {
             }
         }
 
