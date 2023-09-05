@@ -182,6 +182,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备个数:usbDevices.size = " + usbDevices.size());
                 boolean initStoreUSBSucceed = false;
+                boolean isPermission = false;
                 for (UsbDevice usbDevice : usbDevices) {
                     if (usbDevice == null) {
                         Log.e(TAG, "initStoreUSBDevice usbDevice == null ");
@@ -191,6 +192,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权");
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
                         usbManager.requestPermission(usbDevice, pendingIntent);
+                        isPermission = true;
                         continue;
                     }
 
@@ -217,7 +219,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
                 if (!initStoreUSBSucceed) {
                     if (storeUSBListener != null) {
-                        storeUSBListener.initStoreUSBFailed(false);
+                        storeUSBListener.initStoreUSBFailed(isPermission);
                     }
                 }
             }
