@@ -356,8 +356,8 @@ public class RemoteOperationUtils {
                 uploadFaildCount++;
             }
 
-            RemoveFileRemoteOperation remoteOperation = new RemoveFileRemoteOperation(remotePath);
-            remoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
+//            RemoveFileRemoteOperation remoteOperation = new RemoveFileRemoteOperation(remotePath);
+//            remoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
             if (uploadFaildCount > 5) {
                 uploadFaildPath = null;
