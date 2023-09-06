@@ -179,7 +179,7 @@ public class RemoteOperationUtils {
             pictureFileListCache.add(uploadFileModel);
         }
         if (VariableInstance.getInstance().ownCloudClient != null && VariableInstance.getInstance().isConnectedRemote) {
-            startUploadFirstLocatThread();
+            startUploadFirstLocatThread(true);
             startCameraPictureUploadThread();
         }
     }
@@ -250,8 +250,7 @@ public class RemoteOperationUtils {
         Log.e(TAG, "stopUploadThread: ");
         if (pictureWorkThread != null) {
             pictureIsThreadStop = true;
-            if (remoteOperationListener != null)
-                remoteOperationListener.allFileUploadComplete(uploadTatalTime);
+            if (remoteOperationListener != null) remoteOperationListener.allFileUploadComplete(uploadTatalTime);
             try {
                 pictureWorkThread.interrupt();
                 pictureWorkThread.join(100);
@@ -460,42 +459,72 @@ public class RemoteOperationUtils {
         }).start();
     }
 
-    public void startUploadFirstLocatThread() {
-        Log.e(TAG, "startUploadFirstLocatThread: ");
+    boolean uploadingFirstLocat;
+
+    public void startUploadFirstLocatThread(boolean delect) {
+        Log.e(TAG, "startUploadFirstLocatThread: uploadingFirstLocat =" + uploadingFirstLocat + ",delect =" + delect);
+
+        if (uploadingFirstLocat) {
+            return;
+        }
+        uploadingFirstLocat = true;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
+
+                    Log.d(TAG, "startUploadFirstLocatThread: mLogDumperFirst =" + LogcatHelper.getInstance().mLogDumperFirst + ",ownCloudClient =" + VariableInstance.getInstance().ownCloudClient);
+
                     if (LogcatHelper.getInstance().mLogDumperFirst == null) {
+                        uploadingFirstLocat = false;
                         return;
                     }
                     if (VariableInstance.getInstance().ownCloudClient == null) {
+                        uploadingFirstLocat = false;
                         return;
                     }
 
-                    LogcatHelper.getInstance().stopFirst();
-                    Thread.sleep(1000);
+                    if (delect) {
+                        LogcatHelper.getInstance().stopFirst();
+                    }
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                    }
 
                     File file = new File(LogcatHelper.getInstance().logcatFileFirstPath);
-                    if (file == null || !file.exists()) return;
+                    if (file == null || !file.exists()) {
+                        Log.e(TAG, "startUploadFirstLocatThread 文件不存在");
+                        uploadingFirstLocat = false;
+                        return;
+                    }
+
 
                     String remotePath = remoteLogcatDir + file.getName();
+                    Log.e(TAG, "startUploadFirstLocatThread:1111 remotePath =" + remotePath);
+
                     if (remotePath.contains("logcat1970")) {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
                         remotePath = remoteLogcatDir + "logcat" + date + "AAA.txt";
                     }
+
+                    Log.e(TAG, "startUploadFirstLocatThread:2222 remotePath =" + remotePath);
+
                     Long timeStampLong = file.lastModified() / 1000;
                     String timeStamp = timeStampLong.toString();
                     UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
-                    if (result.isSuccess()) file.delete();
-
+                    if (result.isSuccess() && delect) {
+                        file.delete();
+                    }
                 } catch (Exception e) {
-
+                    Log.e(TAG, "startUploadFirstLocatThread: Exception =" + e);
                 }
+                uploadingFirstLocat = false;
             }
         }).start();
 

@@ -1030,6 +1030,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         removeCloseDeviceMessage(9);
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startCameraPictureUploadThread();
+                        operationUtils.startUploadFirstLocatThread(false);
+
 
                     } else {
                         Log.e(TAG, "initAddress:   配置远程服务器失败，延时10s后继续访问尝试 ");
@@ -1622,11 +1624,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         } else if (view.getId() == R.id.clearViewBt) {
             messageTextString = "";
             messageText.setText(messageTextString);
-
-            if (operationUtils != null) {
-                operationUtils.startUploadLocatThread(false);
-            }
-
         } else if (view.getId() == R.id.formatUSBt) {
             formatUSB(true);
         } else if (view.getId() == R.id.formatCameraBt) {
