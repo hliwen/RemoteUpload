@@ -94,10 +94,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_ResetApk = "Set,ResetApk;";
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
-    private static final int close_device_timeout = 2 * 60 * 1000;
-    private static final int close_device_timeout_a = 3 * 60 * 1000;
+    private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
+    private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
 
-    private static final int delay_crate_acitivity_time = 3 * 1000;
     private static String TAG = "MainActivitylog";
     private String returnImei;
     private String deveceName;
@@ -241,8 +240,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         }
                         if (!builder.toString().contains("Failure")) {
                             Log.e(TAG, "run: 安装服务apk成功");
-                            mHandler.removeMessages(msg_delay_creta_acitivity);
-                            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, 3000);
+                            removeDelayCreateActivity();
+                            sendDelayCreateActivity(3000);
                         } else {
                             Log.e(TAG, "run: 安装服务apk失败");
                         }
@@ -266,8 +265,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private TextView shutDownTimeText;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -278,18 +275,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mHandler = new MyHandler(MainActivity.this);
         UUID uuid = UUID.randomUUID();
         uuidString = uuid.toString();
-        mHandler.removeMessages(msg_delay_creta_acitivity);
 
-
+        removeDelayCreateActivity();
         if (isAppInstalled(MainActivity.this, apkServerPackageName)) {
-            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delay_crate_acitivity_time);
+            sendDelayCreateActivity(3000);
         } else {
-            mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, 40000);
+            sendDelayCreateActivity(4000);
             installAPKServer();
         }
 
-
-        shutDownTimeText = findViewById(R.id.shutDownTimeText);
         messageText = findViewById(R.id.messageText);
         accessNumberText = findViewById(R.id.accessNumberText);
         cameraStateText = findViewById(R.id.cameraStateText);
@@ -362,7 +356,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         EventBus.getDefault().register(this);
 
-        sendCloseDeviceMessage(1);
+        sendUploadLogcatMessage(1);
         getUploadModel();
 
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
@@ -380,39 +374,69 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    int shutDownTime;
-    boolean waitUplodLog;
+    boolean hasSendUploadLogcatMessage;
+    int sendUploadLogcatMessageYMD;
+    boolean hasSendCloseDeviceMessage;
+    int sendCloseDeviceMessageYMD;
+    boolean hasSendWifiConnectMessage;
+    int sendWifiConnectMessageYMD;
+    boolean hasSendDelayCreateActivity;
+    int sendDelayCreateActivityYMD;
 
-    private void sendCloseDeviceMessage(int position) {
-        Log.e(TAG, "sendCloseDeviceMessage: position =" + position);
-        Message message = new Message();
-        message.what = msg_close_device;
-        message.arg1 = position;
-        mHandler.sendMessageDelayed(message, close_device_timeout);
-        shutDownTime = 0;
-        waitUplodLog = true;
-        mHandler.sendEmptyMessageDelayed(msg_test, 1000);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                shutDownTimeText.setVisibility(View.VISIBLE);
-            }
-        });
+    int sendDelayCreateActivityDelayTime;
+
+    private void sendDelayCreateActivity(int delayTime) {
+        mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delayTime);
+        sendDelayCreateActivityDelayTime = delayTime;
+        hasSendDelayCreateActivity = true;
+        sendDelayCreateActivityYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
+    }
+
+    private void removeDelayCreateActivity() {
+        mHandler.removeMessages(msg_delay_creta_acitivity);
+        hasSendDelayCreateActivity = false;
+    }
+
+
+    private void sendWifiConnectMessage() {
+        mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 1000);
+        hasSendWifiConnectMessage = true;
+        sendWifiConnectMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
+    }
+
+    private void removeWifiConnectMessage() {
+        mHandler.removeMessages(msg_wifi_connected);
+        hasSendWifiConnectMessage = false;
+    }
+
+    private void sendUploadLogcatMessage(int position) {
+        Log.e(TAG, "sendUploadLogcatMessage: position =" + position);
+        mHandler.sendEmptyMessageDelayed(msg_start_upload_local_logcat_to_remote, UPPOAD_LOGCAT_DELAY_TIME);
+        hasSendUploadLogcatMessage = true;
+        sendUploadLogcatMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
+    }
+
+    private void removeUploadLogcatMessage(int position) {
+        Log.e(TAG, "removeUploadLogcatMessage: position =" + position);
+        mHandler.removeMessages(msg_start_upload_local_logcat_to_remote);
+        hasSendUploadLogcatMessage = false;
+    }
+
+    int sendCloseDeviceMessageDelayTime;
+
+    private void sendCloseDeviceMessage(int position, int delayTime) {
+        Log.e(TAG, "sendCloseDeviceMessage: position" + position + ",delayTime =" + delayTime);
+        mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, delayTime);
+        hasSendCloseDeviceMessage = true;
+        sendCloseDeviceMessageDelayTime = delayTime;
+        sendCloseDeviceMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
     }
 
     private void removeCloseDeviceMessage(int position) {
         Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
-        mHandler.removeMessages(msg_close_device);
-        mHandler.removeMessages(msg_test);
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                shutDownTimeText.setVisibility(View.GONE);
-            }
-        });
+        mHandler.removeMessages(msg_send_ShutDown);
+        hasSendCloseDeviceMessage = false;
     }
-
 
     @SuppressLint("SetTextI18n")
     private void initView() {
@@ -458,7 +482,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Log.e(TAG, "startUpdate: ..................................");
             isUpdating = true;
             runOnUiThreadText(updateResultText, "开始升级");
-            removeCloseDeviceMessage(1);
+            removeUploadLogcatMessage(1);
         }
 
         @Override
@@ -466,8 +490,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             isUpdating = false;
             VariableInstance.getInstance().isUpdatingBetaApk = false;
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
-            removeCloseDeviceMessage(2);
-            sendCloseDeviceMessage(2);
+            removeUploadLogcatMessage(2);
+            sendUploadLogcatMessage(2);
         }
     };
 
@@ -671,7 +695,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (!VariableInstance.getInstance().isUploadingToRemote) {
                 startDownLed(true);
             }
-            removeCloseDeviceMessage(3);
+            removeUploadLogcatMessage(3);
         }
 
         @Override
@@ -706,8 +730,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             editor.apply();
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
-                removeCloseDeviceMessage(4);
-                sendCloseDeviceMessage(3);
+                removeUploadLogcatMessage(4);
+                sendUploadLogcatMessage(3);
             }
             getInfo();
         }
@@ -767,15 +791,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             getInfo();
 
-            removeCloseDeviceMessage(5);
-            sendCloseDeviceMessage(4);
+            removeUploadLogcatMessage(5);
+            sendUploadLogcatMessage(4);
         }
 
         @Override
         public void pictureUploadStart() {
             Log.d(TAG, "fileUploadStart: ");
             VariableInstance.getInstance().isUploadingToRemote = true;
-            removeCloseDeviceMessage(6);
+            removeUploadLogcatMessage(6);
             startDownLed(false);
         }
 
@@ -798,20 +822,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         public void uploadLogcatComplete() {
             getInfo();
 
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    shutDownTimeText.setVisibility(View.VISIBLE);
-                }
-            });
-            shutDownTime = 0;
-            waitUplodLog = false;
             sendShutDown = true;
-
-            mHandler.sendEmptyMessageDelayed(msg_test, 1000);
-            mHandler.removeMessages(msg_send_ShutDown);
-            mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
-            Log.d(TAG, "send msg_send_ShutDown 1111111111111111");
+            removeCloseDeviceMessage(1);
+            sendCloseDeviceMessage(1, CLOSE_DEVICE_DELAY_TIME);
             sendMessageToMqtt(UploadEndUploadUseTime + UploadUseTime + ";");
         }
 
@@ -897,6 +910,27 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void networkConnect() {
+        int yymmdd = Utils.getyyMMddtringInt(System.currentTimeMillis());
+
+        if (hasSendUploadLogcatMessage && yymmdd != sendUploadLogcatMessageYMD) {
+            removeUploadLogcatMessage(11);
+            sendUploadLogcatMessage(5);
+        }
+
+        if (hasSendCloseDeviceMessage && yymmdd != sendCloseDeviceMessageYMD) {
+            removeCloseDeviceMessage(3);
+            sendCloseDeviceMessage(4, sendCloseDeviceMessageDelayTime);
+        }
+        if (hasSendWifiConnectMessage && yymmdd != sendWifiConnectMessageYMD) {
+            removeWifiConnectMessage();
+            sendWifiConnectMessage();
+        }
+        if (hasSendDelayCreateActivity && yymmdd != sendDelayCreateActivityYMD) {
+            removeDelayCreateActivity();
+            sendDelayCreateActivity(sendDelayCreateActivityDelayTime);
+        }
+
+
         networkAvailable = true;
         Log.e(TAG, "Network onAvailable: doingInit =" + doingInit);
         runOnUiThreadText(isConnectNetworkText, "是否连网:true");
@@ -1027,7 +1061,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().isConnectedRemote);
                     updateServerStateUI(VariableInstance.getInstance().isConnectedRemote);
                     if (VariableInstance.getInstance().isConnectedRemote) {
-                        removeCloseDeviceMessage(9);
+                        removeUploadLogcatMessage(9);
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startCameraPictureUploadThread();
                         operationUtils.startUploadFirstLocatThread(false);
@@ -1219,9 +1253,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void AppShutdownAck() {
         if (sendShutDown) {
-            mHandler.removeMessages(msg_send_ShutDown);
-            mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, 5000);
-            Log.d(TAG, "send msg_send_ShutDown 2222222222222222222");
+            removeCloseDeviceMessage(2);
+            sendCloseDeviceMessage(2, 5000);
             sendShutDown = false;
         }
     }
@@ -1317,8 +1350,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (receiverCamera != null) {
                     receiverCamera.formatCamera();
                 }
-                Log.d(TAG, "send msg_send_ShutDown 4444444444444444");
-                mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, close_device_timeout_a);
+
+                sendCloseDeviceMessage(3, CLOSE_DEVICE_DELAY_TIME);
                 openCameraDeviceProt(false);
                 openCameraDeviceProt(true);
             }
@@ -1922,8 +1955,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
                 Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
                 mHandler.removeMessages(msg_wifi_disconnected);
-                mHandler.removeMessages(msg_wifi_connected);
-                mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 1000);
+                removeWifiConnectMessage();
+                sendWifiConnectMessage();
+
                 return;
             }
             if (deviceModelConnect.pass == null) {
@@ -1970,14 +2004,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
                     Log.d(TAG, "onReceive: 断开wifi  ");
                     mHandler.removeMessages(msg_wifi_disconnected);
-                    mHandler.removeMessages(msg_wifi_connected);
-                    mHandler.sendEmptyMessageDelayed(msg_wifi_disconnected, 1000);
+                    removeWifiConnectMessage();
+                    sendWifiConnectMessage();
                 } else if (info.getState().equals(NetworkInfo.State.CONNECTED)) {
                     if (info.getType() == ConnectivityManager.TYPE_WIFI) {
                         Log.d(TAG, "onReceive: 连接wifi ");
                         mHandler.removeMessages(msg_wifi_disconnected);
-                        mHandler.removeMessages(msg_wifi_connected);
-                        mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 1000);
+                        removeWifiConnectMessage();
+                        sendWifiConnectMessage();
                     }
                 }
             }
@@ -1986,14 +2020,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private static final int msg_reload_device_info = 1;
-    private static final int msg_close_device = 2;
+    private static final int msg_start_upload_local_logcat_to_remote = 2;
     private static final int msg_send_ShutDown = 3;
     private static final int msg_wifi_disconnected = 5;
     private static final int msg_wifi_connected = 6;
     private static final int msg_delay_creta_acitivity = 7;
     private static final int msg_delay_open_device_prot = 8;
     private static final int msg_usb_init_faild_delay = 9;
-    private static final int msg_test = 10;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -2012,29 +2045,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_reload_device_info:
                     activity.initAddress();
                     break;
-                case msg_test:
-                    activity.shutDownTime++;//TODO
-                    if (activity.waitUplodLog) {
-                        String time = (close_device_timeout / 1000 - activity.shutDownTime) + "S 后开始上传日志";
-                        activity.shutDownTimeText.setText(time);
-                    } else {
-                        String time = (close_device_timeout_a / 1000 - activity.shutDownTime) + "S 后关机";
-                        activity.shutDownTimeText.setText(time);
-                    }
 
-                    activity.mHandler.sendEmptyMessageDelayed(msg_test, 1000);
-                    break;
-                case msg_close_device:
+                case msg_start_upload_local_logcat_to_remote:
+                    activity.hasSendUploadLogcatMessage = false;
                     if (activity.canCloseDevice()) {
-                        activity.shutDownTimeText.setText("日志开始上传.....");
-                        activity.mHandler.removeMessages(msg_test);
                         activity.operationUtils.startUploadLocatThread(true);
                     } else {
-                        activity.removeCloseDeviceMessage(10);
-                        activity.sendCloseDeviceMessage(6);
+                        activity.removeUploadLogcatMessage(10);
+                        activity.sendUploadLogcatMessage(6);
                     }
                     break;
                 case msg_send_ShutDown:
+                    activity.hasSendCloseDeviceMessage = false;
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
                     Utils.resetDir(VariableInstance.getInstance().LogcatDir);
@@ -2045,8 +2067,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_wifi_connected:
                     activity.networkConnect();
+                    activity.hasSendWifiConnectMessage = false;
                     break;
                 case msg_delay_creta_acitivity:
+                    activity.hasSendDelayCreateActivity = false;
                     activity.delayCreate();
                     break;
                 case msg_delay_open_device_prot:

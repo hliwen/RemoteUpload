@@ -425,8 +425,13 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 Log.e(TAG, "usbFileDelete: 错误文件");
             }
 
-        } catch (Exception e) {
+        } catch (Throwable e) {
             Log.e(TAG, "usbFileDelete: Exception =" + e);
+            try {
+                usbFile.close();
+            } catch (Exception ex) {
+
+            }
         }
     }
 

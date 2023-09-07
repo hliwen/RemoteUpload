@@ -208,7 +208,7 @@ public class RemoteOperationUtils {
                         Collections.sort(list, new MyOrder());
                         pictureFileListCache = new LinkedBlockingQueue<>(list);
                         fileModel = pictureFileListCache.poll(10, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) {
+                    } catch (Exception e) {
                         Log.e(TAG, "startUploadThread: e =" + e);
                     }
 
