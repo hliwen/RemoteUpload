@@ -155,17 +155,19 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-
+                VariableInstance.getInstance().initingUSB = true;
                 if (usbManager == null) {
                     usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
                 }
                 if (usbManager == null) {
                     Log.e(TAG, "initStoreUSBDevice: 系统异常 usbManager==null");
+                    VariableInstance.getInstance().initingUSB = false;
                     return;
                 }
                 HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
+                    VariableInstance.getInstance().initingUSB = false;
                     if (storeUSBListener != null) {
                         storeUSBListener.initStoreUSBFailed(true);
                     }
@@ -178,6 +180,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     if (storeUSBListener != null) {
                         storeUSBListener.initStoreUSBFailed(true);
                     }
+                    VariableInstance.getInstance().initingUSB = false;
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备个数:usbDevices.size = " + usbDevices.size());
@@ -210,6 +213,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                             UsbMassStorageDevice device = getUsbMass(usbDevice);
                             initStoreUSBSucceed = initDevice(device, usbDevice);
                             Log.e(TAG, "initStoreUSBDevice run: initSucceed =" + initStoreUSBSucceed);
+                            VariableInstance.getInstance().initingUSB = false;
                             if (initStoreUSBSucceed) {
                                 return;
                             }
@@ -222,6 +226,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         storeUSBListener.initStoreUSBFailed(isPermission);
                     }
                 }
+                VariableInstance.getInstance().initingUSB = false;
             }
         };
         initStoreUSBThreadExecutor.execute(runnable);
@@ -310,6 +315,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     public Vector<String> picturePathList;
 
     public void getUSBPictureCount() {
+        Log.d(TAG, "getUSBPictureCount: start..........................");
         if (storeUSBPictureDirUsbFile == null) {
             Log.e(TAG, "getUSBPictureCount:  storeUSBPictureDirUsbFile == null");
             return;
@@ -328,6 +334,9 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
         VariableInstance.getInstance().isScanningStoreUSB = true;
         getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
+
+        Log.d(TAG, "getUSBPictureCount: end..........................");
+
         Collections.sort(picturePathList, new MyOrder());
 
         if (VariableInstance.getInstance().cyclicDeletion && !VariableInstance.getInstance().syncAllCameraPicture) {
