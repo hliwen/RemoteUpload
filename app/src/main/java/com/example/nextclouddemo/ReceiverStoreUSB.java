@@ -210,6 +210,11 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         int interfaceClass = usbInterface.getInterfaceClass();
 
                         if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
+                            if (usbDevices.size() > 2 && usbDevice.getProductName() != null) {
+                                if (usbDevice.getProductName().contains("USB Storage")) {
+                                    continue;
+                                }
+                            }
                             Log.e(TAG, "initStoreUSBDevice: 当前设设备为U盘");
                             UsbMassStorageDevice device = getUsbMass(usbDevice);
                             initStoreUSBSucceed = initDevice(device, usbDevice);
