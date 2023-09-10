@@ -191,6 +191,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         Log.e(TAG, "initStoreUSBDevice usbDevice == null ");
                         continue;
                     }
+                    Log.e(TAG, "run: 当前设备名称：" + usbDevice.getProductName());
                     if (!usbManager.hasPermission(usbDevice)) {
                         Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权");
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);

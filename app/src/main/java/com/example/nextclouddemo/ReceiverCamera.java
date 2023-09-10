@@ -23,8 +23,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -135,6 +137,9 @@ public class ReceiverCamera extends BroadcastReceiver {
         String action = intent.getAction();
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED:
+                if (downloadFlieListener != null) {
+                    downloadFlieListener.cameraDeviceAttached();
+                }
                 usbConnect(intent.getParcelableExtra(UsbManager.EXTRA_DEVICE), context);
                 break;
             case UsbManager.ACTION_USB_DEVICE_DETACHED:
@@ -146,6 +151,62 @@ public class ReceiverCamera extends BroadcastReceiver {
                 break;
             default:
                 break;
+        }
+    }
+
+
+    public void openDeviceTimeOut() {
+        UsbManager usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+        if (usbManager == null) {
+
+            Log.d(TAG, "openDeviceTimeOut:usbManager==null ");
+            return;
+        }
+        HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
+        if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
+            Log.e(TAG, "openDeviceTimeOut:  没有检测到有设备列表");
+            return;
+        }
+        Collection<UsbDevice> usbDevices = connectedUSBDeviceList.values();
+        if (usbDevices == null) {
+            Log.e(TAG, "openDeviceTimeOut:  没有检测到有设备接入");
+            return;
+        }
+
+        for (UsbDevice usbDevice : usbDevices) {
+            if (usbDevice == null) {
+                continue;
+            }
+
+            Log.e(TAG, "openDeviceTimeOut: 当前设备名称：" + usbDevice.getProductName());
+            if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
+                continue;
+            }
+
+            if (!usbManager.hasPermission(usbDevice)) {
+                Log.e(TAG, "openDeviceTimeOut: 当前设备没有授权");
+                @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(CHECK_PERMISSION), 0);
+                usbManager.requestPermission(usbDevice, pendingIntent);
+                continue;
+            }
+
+            for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
+                UsbInterface usbInterface = usbDevice.getInterface(i);
+                if (usbInterface == null) {
+                    continue;
+                }
+
+                switch (usbInterface.getInterfaceClass()) {
+                    case UsbConstants.USB_CLASS_STILL_IMAGE:
+                    case UsbConstants.USB_CLASS_MASS_STORAGE:
+                        Log.e(TAG, "openDeviceTimeOut: faceClass = " + usbInterface.getInterfaceClass());
+                        checkConnectedDevice(usbDevice);
+                        break;
+                    default:
+                        break;
+                }
+
+            }
         }
     }
 
@@ -931,7 +992,8 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
+            return true;
         return false;
     }
 
@@ -951,7 +1013,10 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         void cameraDeviceDetached();
 
+
         void scannerCameraComplete(int needDownloadConut, int pictureCont, String deviceName);
+
+        void cameraDeviceAttached();
 
     }
 

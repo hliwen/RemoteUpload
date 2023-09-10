@@ -440,8 +440,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @SuppressLint("SetTextI18n")
     private void initView() {
-
-
         AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
         appVerison = appInfo.getVersionCode();
         currentVersionText.setText("当前版本：" + appVerison);
@@ -769,6 +767,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + needDownloadCount);
             runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + cameraTotalPictureCount);
             runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
+        }
+
+        @Override
+        public void cameraDeviceAttached() {
+            mHandler.removeMessages(msg_open_device_timeout);
         }
 
     };
@@ -1366,7 +1369,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null)
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1492,7 +1496,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1501,7 +1506,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1613,6 +1619,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (debug) return;
         if (open) {
             LedControl.writeGpio('b', 2, 1);
+            mHandler.removeMessages(msg_open_device_timeout);
+            mHandler.sendEmptyMessageDelayed(msg_open_device_timeout, 20000);
         } else {
             LedControl.writeGpio('b', 2, 0);
         }
@@ -2027,6 +2035,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_delay_creta_acitivity = 7;
     private static final int msg_delay_open_device_prot = 8;
     private static final int msg_usb_init_faild_delay = 9;
+    private static final int msg_open_device_timeout = 10;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -2078,6 +2087,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_usb_init_faild_delay:
                     activity.initUSBFaild();
+                    break;
+                case msg_open_device_timeout:
+                    if (activity.receiverCamera != null) {
+                        activity.receiverCamera.openDeviceTimeOut();
+                    }
                     break;
 
             }
