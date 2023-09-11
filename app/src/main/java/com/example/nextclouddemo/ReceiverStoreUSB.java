@@ -211,7 +211,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
                         if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
                             if (usbDevices.size() > 2 && usbDevice.getProductName() != null) {
-                                if (usbDevice.getProductName().contains("USB Storage")) {
+                                if (!usbDevice.getProductName().contains("USB Storage")) {
                                     continue;
                                 }
                             }

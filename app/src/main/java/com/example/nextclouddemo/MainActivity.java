@@ -468,6 +468,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void serverVersion(int version) {
             runOnUiThreadText(serverVersionText, "最新版本：" + version);
+            if (networkAvailable && version == 0) {
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateUtils.networkAvailable(MainActivity.this);
+                    }
+                }, 1000);
+            }
         }
 
         @Override
@@ -1212,7 +1220,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case Set_Powoff: {
                 if (!isUpdating) {
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+//                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
                     Utils.closeAndroid();
                 }
             }
@@ -1316,7 +1324,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                 Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
                 Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+//                Utils.resetDir(VariableInstance.getInstance().LogcatDir);//TODO hu
 
                 if (receiverCamera != null) {
                     receiverCamera.storeUSBDetached();
@@ -2068,7 +2076,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.hasSendCloseDeviceMessage = false;
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+//                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
                     Utils.closeAndroid();
                     break;
                 case msg_wifi_disconnected:
