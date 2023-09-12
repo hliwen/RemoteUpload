@@ -250,7 +250,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 checkConnectedDevice(usbDevice);
             } else {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
-                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName"+usbDevice.getProductName());
+                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName" + usbDevice.getProductName());
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
             }
@@ -342,7 +342,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                     try {
                         if (!usbManager.hasPermission(device)) {
-                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取,productName"+device.getProductName());
+                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取,productName" + device.getProductName());
                             VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
 
                             requestPerminssCount++;
@@ -691,10 +691,16 @@ public class ReceiverCamera extends BroadcastReceiver {
         try {
             device.init();
         } catch (Exception e) {
+            try {
+                device.close();
+            } catch (Exception e1) {
+
+            }
             Log.e(TAG, "usbDeviceScaner: 结束扫描 device.init() error:" + e);
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.USB模式初始化访问相机失败);
             return;
         }
+
 
         if (device.getPartitions().size() <= 0) {
             Log.e(TAG, "usbDeviceScaner: " + "device.getPartitions().size() error 结束扫描");
@@ -1038,7 +1044,8 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
+            return true;
         return false;
     }
 
