@@ -158,7 +158,6 @@ public class ReceiverCamera extends BroadcastReceiver {
     public void openDeviceTimeOut() {
         UsbManager usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
         if (usbManager == null) {
-
             Log.d(TAG, "openDeviceTimeOut:usbManager==null ");
             return;
         }
@@ -178,8 +177,20 @@ public class ReceiverCamera extends BroadcastReceiver {
                 continue;
             }
 
-            Log.e(TAG, "openDeviceTimeOut: 当前设备名称：" + usbDevice.getProductName());
-            if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
+            String usbProductName = usbDevice.getProductName();
+            int deviceID = usbDevice.getDeviceId();
+            Log.e(TAG, "openDeviceTimeOut: 当前设备名称：" + usbProductName + ",deviceID = " + deviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+
+            if (usbProductName == null) {
+                continue;
+            }
+
+            usbProductName = usbProductName.trim();
+            if (usbProductName.contains("802.11n NIC") || usbProductName.contains("USB Optical Mouse") || usbProductName.startsWith("EC25") || usbProductName.startsWith("EG25") || usbProductName.startsWith("EC20") || usbProductName.startsWith("EC200T")) {
+                continue;
+            }
+
+            if (deviceID == VariableInstance.getInstance().storeUSBDeviceID) {
                 continue;
             }
 
@@ -283,7 +294,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private void checkConnectedDevice(UsbDevice device) {  /*  cameraDeviceID = usbDevice.getDeviceId();*/
-        Log.e(TAG, "checkConnectedDevice:  ");
+        Log.e(TAG, "checkConnectedDevice:  start.......................");
 
         stopScanerThread(3);
         scanerThreadExecutor = Executors.newSingleThreadExecutor();
@@ -304,6 +315,17 @@ public class ReceiverCamera extends BroadcastReceiver {
                         return;
                     }
 
+
+                    if (device.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
+                        Log.e(TAG, "USB_CLASS_MASS_STORAGE 检测到当前的U盘设备为上传usb, 结束扫描");
+                        return;
+                    }
+
+
+                    String devieName = device.getProductName();
+
+                    Log.e(TAG, "checkConnectedDevice: productName =" + devieName);
+
                     try {
                         if (!usbManager.hasPermission(device)) {
                             Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取");
@@ -315,6 +337,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                             if (requestPerminssCount < 10) {
                                 Log.e(TAG, "checkConnectedDevice: 连续申请10次权限都无法扫描相机，没有后续操作");
                                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.连续申请10次权限都无法扫描相机没有后续操作);
+                                downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
                                 return;
                             }
                         }
@@ -323,35 +346,38 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
 
 
-                    for (int i = 0; i < device.getInterfaceCount(); i++) {
+                    boolean isMassStorage = false;
 
+                    for (int i = 0; i < device.getInterfaceCount(); i++) {
                         UsbInterface usbInterface = device.getInterface(i);
                         if (usbInterface == null) {
                             continue;
                         }
 
+                        Log.e(TAG, "checkConnectedDevice: interfaceClass =" + usbInterface.getInterfaceClass());
+
                         switch (usbInterface.getInterfaceClass()) {
                             case UsbConstants.USB_CLASS_STILL_IMAGE:
-                                downloadFlieListener.cameraOperationStart();
-                                mtpDeviceScaner(device);
-                                VariableInstance.getInstance().isFormaringCamera.formatState = 0;
-                                downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
+                                isMassStorage = false;
                                 break;
                             case UsbConstants.USB_CLASS_MASS_STORAGE:
-                                if (device.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
-                                    Log.e(TAG, "USB_CLASS_MASS_STORAGE 检测到当前的U盘设备为上传usb, 结束扫描");
-                                    return;
-                                }
-                                downloadFlieListener.cameraOperationStart();
-                                usbDeviceScaner(device);
-                                VariableInstance.getInstance().isFormaringCamera.formatState = 0;
-                                downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
+                                isMassStorage = true;
                                 break;
                             default:
                                 break;
                         }
-
                     }
+
+
+                    downloadFlieListener.cameraOperationStart();
+                    if (isMassStorage) {
+                        usbDeviceScaner(device);
+                    } else {
+                        mtpDeviceScaner(device);
+                    }
+                    VariableInstance.getInstance().isFormaringCamera.formatState = 0;
+                    downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
+
                 } catch (Exception e) {
                 }
 
@@ -992,8 +1018,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
         return false;
     }
 

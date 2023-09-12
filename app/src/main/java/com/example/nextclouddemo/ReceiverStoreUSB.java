@@ -191,7 +191,17 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         Log.e(TAG, "initStoreUSBDevice usbDevice == null ");
                         continue;
                     }
-                    Log.e(TAG, "run: 当前设备名称：" + usbDevice.getProductName());
+
+                    String productName = usbDevice.getProductName();
+                    Log.e(TAG, "run: 当前设备名称：" + productName);
+                    if (productName == null) {
+                        continue;
+                    }
+
+                    if (!productName.contains("USB Storage")) {
+                        continue;
+                    }
+
                     if (!usbManager.hasPermission(usbDevice)) {
                         Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权");
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
@@ -202,19 +212,13 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
                     int interfaceCount = usbDevice.getInterfaceCount();
                     Log.e(TAG, "initStoreUSBDevice run:获取接口数量 interfaceCount = " + interfaceCount);
+
                     for (int i = 0; i < interfaceCount; i++) {
                         UsbInterface usbInterface = usbDevice.getInterface(i);
                         if (usbInterface == null) {
                             continue;
                         }
-                        int interfaceClass = usbInterface.getInterfaceClass();
-
-                        if (interfaceClass == UsbConstants.USB_CLASS_MASS_STORAGE) {
-                            if (usbDevices.size() > 2 && usbDevice.getProductName() != null) {
-                                if (!usbDevice.getProductName().contains("USB Storage")) {
-                                    continue;
-                                }
-                            }
+                        if (usbInterface.getInterfaceClass() == UsbConstants.USB_CLASS_MASS_STORAGE) {
                             Log.e(TAG, "initStoreUSBDevice: 当前设设备为U盘");
                             UsbMassStorageDevice device = getUsbMass(usbDevice);
                             initStoreUSBSucceed = initDevice(device, usbDevice);
