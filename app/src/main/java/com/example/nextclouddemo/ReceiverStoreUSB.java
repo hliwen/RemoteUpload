@@ -203,7 +203,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     }
 
                     if (!usbManager.hasPermission(usbDevice)) {
-                        Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权");
+                        Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权,productName" + usbDevice.getProductName());
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
                         usbManager.requestPermission(usbDevice, pendingIntent);
                         isPermission = true;

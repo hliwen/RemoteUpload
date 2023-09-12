@@ -186,7 +186,7 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
 
             usbProductName = usbProductName.trim();
-            if (usbProductName.contains("802.11n NIC") || usbProductName.contains("USB Optical Mouse") || usbProductName.startsWith("EC25") || usbProductName.startsWith("EG25") || usbProductName.startsWith("EC20") || usbProductName.startsWith("EC200T")) {
+            if (usbProductName.contains("802.11n NIC") || usbProductName.contains("USB Optical Mouse") || usbProductName.contains("USB Charger") || usbProductName.startsWith("EC25") || usbProductName.startsWith("EG25") || usbProductName.startsWith("EC20") || usbProductName.startsWith("EC200T")) {
                 continue;
             }
 
@@ -230,13 +230,27 @@ public class ReceiverCamera extends BroadcastReceiver {
         if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
             return;
         }
+
+        String usbProductName = usbDevice.getProductName();
+        Log.e(TAG, "usbConnect: usbProductName =" + usbProductName);
+
+        if (usbProductName == null) {
+            return;
+        }
+
+        usbProductName = usbProductName.trim();
+        if (usbProductName.contains("802.11n NIC") || usbProductName.contains("USB Optical Mouse") || usbProductName.contains("USB Charger") || usbProductName.startsWith("EC25") || usbProductName.startsWith("EG25") || usbProductName.startsWith("EC20") || usbProductName.startsWith("EC200T")) {
+            return;
+        }
+
+
         try {
             UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
             if (usbManager.hasPermission(usbDevice)) {
                 checkConnectedDevice(usbDevice);
             } else {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
-                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权");
+                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName"+usbDevice.getProductName());
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
             }
@@ -328,7 +342,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                     try {
                         if (!usbManager.hasPermission(device)) {
-                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取");
+                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取,productName"+device.getProductName());
                             VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
 
                             requestPerminssCount++;
@@ -347,6 +361,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
 
                     boolean isMassStorage = false;
+                    boolean needScaner = false;
 
                     for (int i = 0; i < device.getInterfaceCount(); i++) {
                         UsbInterface usbInterface = device.getInterface(i);
@@ -359,15 +374,20 @@ public class ReceiverCamera extends BroadcastReceiver {
                         switch (usbInterface.getInterfaceClass()) {
                             case UsbConstants.USB_CLASS_STILL_IMAGE:
                                 isMassStorage = false;
+                                needScaner = true;
                                 break;
                             case UsbConstants.USB_CLASS_MASS_STORAGE:
                                 isMassStorage = true;
+                                needScaner = true;
                                 break;
                             default:
                                 break;
                         }
                     }
 
+                    if (!needScaner) {
+                        return;
+                    }
 
                     downloadFlieListener.cameraOperationStart();
                     if (isMassStorage) {
