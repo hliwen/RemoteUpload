@@ -167,10 +167,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
-                    VariableInstance.getInstance().initingUSB = false;
                     if (storeUSBListener != null) {
                         storeUSBListener.initStoreUSBFailed(true);
                     }
+                    VariableInstance.getInstance().initingUSB = false;
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备列表个数: connectedUSBDeviceList.size = " + connectedUSBDeviceList.size());
@@ -251,6 +251,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         } catch (Exception e) {
         }
         initStoreUSBThreadExecutor = null;
+        VariableInstance.getInstance().initingUSB = false;
     }
 
 
@@ -643,6 +644,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
 
             if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
+                VariableInstance.getInstance().isDownloadingUSB = false;
                 return false;
             }
 

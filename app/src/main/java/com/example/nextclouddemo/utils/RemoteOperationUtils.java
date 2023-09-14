@@ -198,6 +198,7 @@ public class RemoteOperationUtils {
 
                     if (VariableInstance.getInstance().isFormatingUSB.formatState != 0 || VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                         Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
+                        pictureIsThreadStop = true;
                         return;
                     }
 
@@ -378,6 +379,10 @@ public class RemoteOperationUtils {
 
     public void startUploadLocatThread(boolean delect) {
         Log.e(TAG, "startUploadLocatThread: ");
+
+        remoteOperationListener.uploadLogcatComplete();
+
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -406,6 +411,7 @@ public class RemoteOperationUtils {
                         }
                         remoteOperationListener.startUploadLogcatToUsb();
                     }
+
 
                     File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
 

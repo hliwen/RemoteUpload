@@ -3,6 +3,8 @@ package com.example.nextclouddemo;
 import android.annotation.SuppressLint;
 import android.util.Log;
 
+import com.example.nextclouddemo.utils.Utils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -35,6 +37,14 @@ public class LogcatHelper {
         File file = new File(VariableInstance.getInstance().LogcatDir);
         if (!file.exists()) {
             file.mkdirs();
+        }
+
+        try {
+            if (file.listFiles().length > 10) {
+                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+            }
+        } catch (Exception e) {
+
         }
     }
 

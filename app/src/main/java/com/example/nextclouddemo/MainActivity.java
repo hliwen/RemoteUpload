@@ -1220,7 +1220,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case Set_Powoff: {
                 if (!isUpdating) {
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-//                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
                     Utils.closeAndroid();
                 }
             }
@@ -1324,7 +1323,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                 Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
                 Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-//                Utils.resetDir(VariableInstance.getInstance().LogcatDir);//TODO hu
+                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
 
                 if (receiverCamera != null) {
                     receiverCamera.storeUSBDetached();
@@ -1868,7 +1867,25 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private boolean canCloseDevice() {
         boolean canCloseDevice;
-        if (VariableInstance.getInstance().isUploadingToRemote || VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isScanningStoreUSB || VariableInstance.getInstance().isDownloadingUSB || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB || isUpdating) {
+
+
+        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 " +
+                ",isUploadingToRemote=" + VariableInstance.getInstance().isUploadingToRemote +
+                ",isScanningCamera =" + VariableInstance.getInstance().isScanningCamera +
+                ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB +
+                ",isDownloadingUSB=" + VariableInstance.getInstance().isDownloadingUSB +
+                ",pictureIsThreadStop=" + operationUtils.pictureIsThreadStop +
+                ",initingUSB=" + VariableInstance.getInstance().initingUSB +
+                ",isUpdating=" + isUpdating
+        );
+
+        if (VariableInstance.getInstance().isUploadingToRemote ||
+                VariableInstance.getInstance().isScanningCamera ||
+                VariableInstance.getInstance().isScanningStoreUSB ||
+                VariableInstance.getInstance().isDownloadingUSB ||
+                !operationUtils.pictureIsThreadStop ||
+                VariableInstance.getInstance().initingUSB ||
+                isUpdating) {
             canCloseDevice = false;
         } else {
             canCloseDevice = true;
@@ -2076,7 +2093,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.hasSendCloseDeviceMessage = false;
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-//                    Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+
                     Utils.closeAndroid();
                     break;
                 case msg_wifi_disconnected:
