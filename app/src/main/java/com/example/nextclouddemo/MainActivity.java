@@ -529,35 +529,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void initStoreUSBFailed(boolean delay) {
-            initStoreUSBFailedDelay = delay;
-            mHandler.sendEmptyMessage(msg_init_store_usb_failed);
+            initStoreUSBFailedMain(delay);
         }
 
 
         @Override
         public void initStoreUSBComplete(UsbFile usbFile) {
-            wifiConfigurationFile = usbFile;
-            mHandler.sendEmptyMessage(msg_init_store_usb_complete);
+            initStoreUSBCompleteMain(usbFile);
         }
 
     };
 
-    private boolean initStoreUSBFailedDelay;
-    private UsbFile wifiConfigurationFile;
 
-    private void initStoreUSBFailedMain() {
+    private void initStoreUSBFailedMain(boolean delay) {
         mHandler.removeMessages(msg_usb_init_faild_delay);
         if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
             return;
         }
-        if (initStoreUSBFailedDelay) {
+        if (delay) {
             mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, 30000);
         } else {
             initUSBFaild();
         }
     }
 
-    private void initStoreUSBCompleteMain() {
+    private void initStoreUSBCompleteMain(UsbFile wifiConfigurationFile) {
         String imei = getPhoneImei(true);
         DeviceModel deviceModelConnect = null;
         if ("0".equals(imei)) {
@@ -2080,8 +2076,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_delay_open_device_prot = 8;
     private static final int msg_usb_init_faild_delay = 9;
     private static final int msg_open_device_timeout = 10;
-    private static final int msg_init_store_usb_complete = 11;
-    private static final int msg_init_store_usb_failed = 12;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -2139,15 +2133,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         activity.receiverCamera.openDeviceTimeOut();
                     }
                     break;
-                case msg_init_store_usb_complete: {
-                    activity.initStoreUSBCompleteMain();
-                }
-                break;
-                case msg_init_store_usb_failed: {
-                    activity.initStoreUSBFailedMain();
-                }
-                break;
-
             }
         }
     }
