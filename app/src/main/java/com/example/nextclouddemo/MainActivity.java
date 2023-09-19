@@ -542,6 +542,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     };
 
+    private boolean initStoreUSBFailedDelay;
+    private UsbFile wifiConfigurationFile;
+
     private void initStoreUSBFailedMain() {
         mHandler.removeMessages(msg_usb_init_faild_delay);
         if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
@@ -610,6 +613,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             registerReceiverCamera();
         }
 
+
+        Log.d(TAG, "initStoreUSBCompleteMain: deviceStyle =" + VariableInstance.getInstance().deviceStyle);
+
         if (VariableInstance.getInstance().deviceStyle == 1) {
             initCellularNetWork();
         } else if (VariableInstance.getInstance().deviceStyle == 2) {
@@ -646,8 +652,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private boolean initStoreUSBFailedDelay;
-    private UsbFile wifiConfigurationFile;
+
 
     private void initUSBFaild() {
 
@@ -913,6 +918,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     public void initCellularNetWork() {
 
+        Log.d(TAG, "initCellularNetWork: ");
         if (hasinitCellularNetWork) {
             return;
         }
@@ -1763,7 +1769,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
             }
 
-            Log.e(TAG, "onClick: wifi =" + wifiName + ",pass =" + pass + ",SN =" + SN);
+            Log.e(TAG, "parseUSBFile: wifi =" + wifiName + ",pass =" + pass + ",SN =" + SN);
 
         } catch (Exception e) {
             Log.e(TAG, "initWifiConfigurationFile Exception =" + e);
