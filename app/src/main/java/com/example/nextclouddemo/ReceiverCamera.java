@@ -172,6 +172,8 @@ public class ReceiverCamera extends BroadcastReceiver {
             return;
         }
 
+        Log.e(TAG, "openDeviceTimeOut: usbDevices.size =" + usbDevices.size());
+
         for (UsbDevice usbDevice : usbDevices) {
             if (usbDevice == null) {
                 continue;
@@ -250,7 +252,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 checkConnectedDevice(usbDevice);
             } else {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
-                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName:"+usbDevice.getProductName());
+                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName:" + usbDevice.getProductName());
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
             }
@@ -342,7 +344,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                     try {
                         if (!usbManager.hasPermission(device)) {
-                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取,productName"+device.getProductName());
+                            Log.e(TAG, "checkConnectedDevice: 无法扫描相机，权限未获取,productName" + device.getProductName());
                             VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
 
                             requestPerminssCount++;

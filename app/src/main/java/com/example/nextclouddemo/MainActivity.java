@@ -509,6 +509,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private ReceiverStoreUSB.StoreUSBListener storeUSBListener = new ReceiverStoreUSB.StoreUSBListener() {
         @Override
         public void storeUSBPictureCount(int count) {
+            Log.d(TAG, "storeUSBPictureCount: count =" + count);
             UpanPictureCount = count;
             if (count != 0) {
                 runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
@@ -600,6 +601,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         int capacity = receiverStoreUSB.getStoreUSBCapacity();
         int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
+
+        Log.d(TAG, "initStoreUSBCompleteMain: capacity =" + capacity + ",freeSpace =" + freeSpace);
 
         runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 

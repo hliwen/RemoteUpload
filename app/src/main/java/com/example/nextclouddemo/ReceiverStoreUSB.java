@@ -359,6 +359,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         VariableInstance.getInstance().isScanningStoreUSB = false;
         int usbTotalPictureSize = VariableInstance.getInstance().usbFileNameList.size();
 
+        Log.d(TAG, "getUSBPictureCount: end.......................... usbTotalPictureSize =" + usbTotalPictureSize);
 
         storeUSBListener.storeUSBPictureCount(usbTotalPictureSize);
         VariableInstance.getInstance().LastPictureCount = usbTotalPictureSize;
