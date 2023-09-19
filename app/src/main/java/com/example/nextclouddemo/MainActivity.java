@@ -1155,6 +1155,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         hasinitCellularNetWork = false;
         networkAvailable = false;
+
+        LogcatHelper.getInstance().stopTestLogcat();
+        LogcatHelper.getInstance().stopMainLogcat();
+
         Log.e(TAG, "onDestroy: .................................................");
     }
 

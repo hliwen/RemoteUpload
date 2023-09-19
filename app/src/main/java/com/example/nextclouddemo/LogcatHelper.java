@@ -58,13 +58,13 @@ public class LogcatHelper {
 
 
     public void start() {
-
-
         String testName = "logcat" + getFileName() + "_test.txt";
         String mainName = "logcat" + getFileName() + ".txt";
 
         logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + testName;
         logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + mainName;
+
+        Log.d(TAG, "start: logcatFileTestPath =" + logcatFileTestPath + ",logcatFileMainPath =" + logcatFileMainPath);
 
         if (mLogDumperTest == null) {
             mLogDumperTest = new LogDumper(String.valueOf(mPId), logcatFileTestPath);
@@ -92,25 +92,21 @@ public class LogcatHelper {
             mLogDumperTest = null;
 
             try {
-                if (logcatFileTestPath != null) {
-                    File testLogcatFile = new File(logcatFileTestPath);
-                    if (testLogcatFile != null && testLogcatFile.exists()) {
-                        String fileName = testLogcatFile.getName();
-                        int lastIndex = fileName.lastIndexOf(".");
-                        if (lastIndex != -1) {
-                            fileName = fileName.substring(0, lastIndex);
-                        }
-                        if (fileName.trim().contains("logcat1970")) {
-                            Log.e(TAG, "stopTestLogcat: 日志开始时1970，需要重命名");
-                            @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
-                            String date = format.format(new Date(System.currentTimeMillis()));
-                            fileName = "logcat" + date + "_test";
-                            if (!fileName.trim().contains("logcat1970")) {
-                                Log.e(TAG, "stopTestLogcat: 已经同步到网络时间，重命名日志文件");
-                                logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
-                                File file = new File(logcatFileTestPath);
-                                testLogcatFile.renameTo(file);
-                            }
+                File testLogcatFile = new File(logcatFileTestPath);
+                if (testLogcatFile != null && testLogcatFile.exists()) {
+                    String fileName = testLogcatFile.getName();
+                    int lastIndex = fileName.lastIndexOf(".");
+                    if (lastIndex != -1) {
+                        fileName = fileName.substring(0, lastIndex);
+                    }
+                    if (fileName.trim().contains("logcat1970")) {
+                        Log.e(TAG, "stopTestLogcat: 日志开始时1970，需要重命名");
+                        fileName = "logcat" + getFileName() + "_test";
+                        if (!fileName.trim().contains("logcat1970")) {
+                            Log.e(TAG, "stopTestLogcat: 已经同步到网络时间，重命名日志文件");
+                            logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
+                            File file = new File(logcatFileTestPath);
+                            testLogcatFile.renameTo(file);
                         }
                     }
                 }
@@ -132,25 +128,21 @@ public class LogcatHelper {
             mLogDumperMain = null;
 
             try {
-                if (logcatFileMainPath != null) {
-                    File mainLogcatFile = new File(logcatFileMainPath);
-                    if (mainLogcatFile != null && mainLogcatFile.exists()) {
-                        String fileName = mainLogcatFile.getName();
-                        int lastIndex = fileName.lastIndexOf(".");
-                        if (lastIndex != -1) {
-                            fileName = fileName.substring(0, lastIndex);
-                        }
-                        if (fileName.trim().contains("logcat1970")) {
-                            Log.e(TAG, "stopMainLogcat: 日志开始时1970，需要重命名");
-                            @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
-                            String date = format.format(new Date(System.currentTimeMillis()));
-                            fileName = "logcat" + date;
-                            if (!fileName.trim().contains("logcat1970")) {
-                                Log.e(TAG, "stopMainLogcat: 已经同步到网络时间，重命名日志文件");
-                                logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
-                                File file = new File(logcatFileMainPath);
-                                mainLogcatFile.renameTo(file);
-                            }
+                File mainLogcatFile = new File(logcatFileMainPath);
+                if (mainLogcatFile != null && mainLogcatFile.exists()) {
+                    String fileName = mainLogcatFile.getName();
+                    int lastIndex = fileName.lastIndexOf(".");
+                    if (lastIndex != -1) {
+                        fileName = fileName.substring(0, lastIndex);
+                    }
+                    if (fileName.trim().contains("logcat1970")) {
+                        Log.e(TAG, "stopMainLogcat: 日志开始时1970，需要重命名");
+                        fileName = "logcat" + getFileName();
+                        if (!fileName.trim().contains("logcat1970")) {
+                            Log.e(TAG, "stopMainLogcat: 已经同步到网络时间，重命名日志文件");
+                            logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
+                            File file = new File(logcatFileMainPath);
+                            mainLogcatFile.renameTo(file);
                         }
                     }
                 }
@@ -161,12 +153,12 @@ public class LogcatHelper {
 
 
     public String getTestLogcatPath() {
-        Log.e(TAG, "getTestLogcatPath: logcatFileTestPath ="+logcatFileTestPath );
+        Log.e(TAG, "getTestLogcatPath: logcatFileTestPath =" + logcatFileTestPath);
         return logcatFileTestPath;
     }
 
     public String getMainLogcatPath() {
-        Log.e(TAG, "getMainLogcatPath: logcatFileMainPath ="+logcatFileMainPath );
+        Log.e(TAG, "getMainLogcatPath: logcatFileMainPath =" + logcatFileMainPath);
         return logcatFileMainPath;
     }
 
