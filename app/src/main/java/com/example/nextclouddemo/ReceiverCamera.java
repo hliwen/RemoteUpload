@@ -250,7 +250,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 checkConnectedDevice(usbDevice);
             } else {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
-                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName"+usbDevice.getProductName());
+                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName:"+usbDevice.getProductName());
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
             }

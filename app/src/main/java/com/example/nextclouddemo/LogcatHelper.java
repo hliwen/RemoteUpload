@@ -18,12 +18,13 @@ public class LogcatHelper {
     private static final String TAG = "MainActivitylog";
     private static LogcatHelper INSTANCE = null;
 
-    public LogDumper mLogDumperFirst = null;
-    public LogDumper mLogDumperSecond = null;
+    public LogDumper mLogDumperTest = null;
+    public LogDumper mLogDumperMain = null;
     private int mPId;
 
-    public String logcatFileFirstPath;
-    public String logcatFileSecondPath;
+    private String logcatFileTestPath;
+    private String logcatFileMainPath;
+
 
     private LogcatHelper() {
         init();
@@ -58,51 +59,121 @@ public class LogcatHelper {
 
     public void start() {
 
-        String logcatName = getFileName();
 
-        String first = "logcat" + logcatName + "_AAA.txt";
-        String second = "logcat" + logcatName + ".txt";
+        String testName = "logcat" + getFileName() + "_test.txt";
+        String mainName = "logcat" + getFileName() + ".txt";
 
-        logcatFileFirstPath = VariableInstance.getInstance().LogcatDir + "/" + first;
-        logcatFileSecondPath = VariableInstance.getInstance().LogcatDir + "/" + second;
+        logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + testName;
+        logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + mainName;
 
-        if (mLogDumperFirst == null) {
-            mLogDumperFirst = new LogDumper(String.valueOf(mPId), logcatFileFirstPath);
+        if (mLogDumperTest == null) {
+            mLogDumperTest = new LogDumper(String.valueOf(mPId), logcatFileTestPath);
         }
 
-        if (mLogDumperSecond == null) {
-            mLogDumperSecond = new LogDumper(String.valueOf(mPId), logcatFileSecondPath);
+        if (mLogDumperMain == null) {
+            mLogDumperMain = new LogDumper(String.valueOf(mPId), logcatFileMainPath);
         }
 
-        mLogDumperFirst.start();
-        mLogDumperSecond.start();
+        mLogDumperTest.start();
+        mLogDumperMain.start();
     }
 
-    public void stopFirst() {
-        if (mLogDumperFirst != null) {
+
+    public void stopTestLogcat() {
+        Log.e(TAG, "stopTestLogcat: logcatFileTestPath =" + logcatFileTestPath);
+        if (mLogDumperTest != null) {
             try {
                 for (String error : VariableInstance.getInstance().errorLogNameList) {
-                    Log.d(TAG, "stopSecond: error = " + error);
+                    Log.d(TAG, "stopTestLogcat: error = " + error);
                 }
             } catch (Exception e) {
             }
-            mLogDumperFirst.stopLogs();
-            mLogDumperFirst = null;
-        }
-    }
+            mLogDumperTest.stopLogs();
+            mLogDumperTest = null;
 
-    public void stopSecond() {
-        if (mLogDumperSecond != null) {
             try {
-                for (String error : VariableInstance.getInstance().errorLogNameList) {
-                    Log.d(TAG, "stopSecond: error = " + error);
+                if (logcatFileTestPath != null) {
+                    File testLogcatFile = new File(logcatFileTestPath);
+                    if (testLogcatFile != null && testLogcatFile.exists()) {
+                        String fileName = testLogcatFile.getName();
+                        int lastIndex = fileName.lastIndexOf(".");
+                        if (lastIndex != -1) {
+                            fileName = fileName.substring(0, lastIndex);
+                        }
+                        if (fileName.trim().contains("logcat1970")) {
+                            Log.e(TAG, "stopTestLogcat: 日志开始时1970，需要重命名");
+                            @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+                            String date = format.format(new Date(System.currentTimeMillis()));
+                            fileName = "logcat" + date + "_test";
+                            if (!fileName.trim().contains("logcat1970")) {
+                                Log.e(TAG, "stopTestLogcat: 已经同步到网络时间，重命名日志文件");
+                                logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
+                                File file = new File(logcatFileTestPath);
+                                testLogcatFile.renameTo(file);
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
             }
-
-            mLogDumperSecond.stopLogs();
-            mLogDumperSecond = null;
         }
+    }
+
+    public void stopMainLogcat() {
+        Log.e(TAG, "stopMainLogcat: logcatFileMainPath =" + logcatFileMainPath);
+        if (mLogDumperMain != null) {
+            try {
+                for (String error : VariableInstance.getInstance().errorLogNameList) {
+                    Log.d(TAG, "stopMainLogcat: error = " + error);
+                }
+            } catch (Exception e) {
+            }
+            mLogDumperMain.stopLogs();
+            mLogDumperMain = null;
+
+            try {
+                if (logcatFileMainPath != null) {
+                    File mainLogcatFile = new File(logcatFileMainPath);
+                    if (mainLogcatFile != null && mainLogcatFile.exists()) {
+                        String fileName = mainLogcatFile.getName();
+                        int lastIndex = fileName.lastIndexOf(".");
+                        if (lastIndex != -1) {
+                            fileName = fileName.substring(0, lastIndex);
+                        }
+                        if (fileName.trim().contains("logcat1970")) {
+                            Log.e(TAG, "stopMainLogcat: 日志开始时1970，需要重命名");
+                            @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+                            String date = format.format(new Date(System.currentTimeMillis()));
+                            fileName = "logcat" + date;
+                            if (!fileName.trim().contains("logcat1970")) {
+                                Log.e(TAG, "stopMainLogcat: 已经同步到网络时间，重命名日志文件");
+                                logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
+                                File file = new File(logcatFileMainPath);
+                                mainLogcatFile.renameTo(file);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
+
+
+    public String getTestLogcatPath() {
+        Log.e(TAG, "getTestLogcatPath: logcatFileTestPath ="+logcatFileTestPath );
+        return logcatFileTestPath;
+    }
+
+    public String getMainLogcatPath() {
+        Log.e(TAG, "getMainLogcatPath: logcatFileMainPath ="+logcatFileMainPath );
+        return logcatFileMainPath;
+    }
+
+    public String getFileName() {
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
+        String date = format.format(new Date(System.currentTimeMillis()));
+        return date;
     }
 
     private class LogDumper extends Thread {
@@ -174,9 +245,4 @@ public class LogcatHelper {
         }
     }
 
-    public String getFileName() {
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
-        String date = format.format(new Date(System.currentTimeMillis()));
-        return date;
-    }
 }

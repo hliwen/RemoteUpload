@@ -325,8 +325,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    void delayCreate() {
+    boolean isInitView;
 
+    void delayCreate() {
+        if (isInitView) {
+            return;
+        }
+        isInitView = true;
         getUploadToday();
         VariableInstance.getInstance().isFormaringCamera.formatState = 0;
         VariableInstance.getInstance().isConnectCamera = false;
@@ -523,110 +528,123 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void initStoreUSBFailed(boolean delay) {
-            mHandler.removeMessages(msg_usb_init_faild_delay);
-            if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
-                return;
-            }
-            if (delay) {
-                mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, 30000);
-            } else {
-                initUSBFaild();
-            }
+            initStoreUSBFailedDelay = delay;
+            mHandler.sendEmptyMessage(msg_init_store_usb_failed);
         }
 
 
         @Override
-        public void initStoreUSBComplete(UsbFile wifiConfigurationFile) {
-            String imei = getPhoneImei(true);
-            DeviceModel deviceModelConnect = null;
-            if ("0".equals(imei)) {
-                if (wifiConfigurationFile == null) {
-                    int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-                    if (style == 0 || style == 1) {
-                        saveDeviceStyle(1); //蜂窝板
-                    } else {
-                        DeviceModel deviceModel = getDeviceModel();
-                        if (deviceModel == null) {
-                            saveDeviceStyle(1);
-                            //蜂窝板
-                        } else {
-                            //wifi版
-                            deviceModelConnect = deviceModel;
-                            saveDeviceStyle(2);
-                        }
-                    }
-                } else {
-                    DeviceModel parseMode = parseUSBFile(wifiConfigurationFile);
-                    DeviceModel deviceModel = getDeviceModel();
-                    if (parseMode == null) {
-                        if (deviceModel == null) {
-                            saveDeviceStyle(1);
-                            //蜂窝板
-                        } else {
-                            deviceModelConnect = deviceModel;
-                            saveDeviceStyle(2);
-                            //wifi版
-                        }
-                    } else {
-                        saveDeviceStyle(2);
-                        saveDeviceModel(parseMode);
-                        deviceModelConnect = parseMode;
-                        //wifi版
-                    }
-                }
-            } else {
-                saveDeviceStyle(1); //蜂窝板
-            }
-
-            openCameraDeviceProt(true);
-            getInfo();
-
-            int capacity = receiverStoreUSB.getStoreUSBCapacity();
-            int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
-
-            runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
-
-            if (receiverCamera == null) {
-                registerReceiverCamera();
-            }
-
-            if (VariableInstance.getInstance().deviceStyle == 1) {
-                initCellularNetWork();
-            } else if (VariableInstance.getInstance().deviceStyle == 2) {
-                registerWifiReceiver();
-                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if (wifiManager != null) {
-                    boolean wifiEnable = wifiManager.isWifiEnabled();
-                    if (wifiEnable) {
-                        if (deviceModelConnect.wifi != null) {
-                            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                                Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                                networkConnect();
-                                return;
-                            }
-                            if (deviceModelConnect.pass == null) {
-                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                            } else {
-                                if (deviceModelConnect.pass.length() == 0) {
-                                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                                } else {
-                                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                                }
-                            }
-                        } else {
-                            Log.e(TAG, "initStoreUSBComplete: 当前配置的WiFi文件有错");
-                        }
-                    } else {
-                        wifiManager.setWifiEnabled(true);
-                    }
-                }
-
-            }
+        public void initStoreUSBComplete(UsbFile usbFile) {
+            wifiConfigurationFile = usbFile;
+            mHandler.sendEmptyMessage(msg_init_store_usb_complete);
         }
 
     };
 
+    private void initStoreUSBFailedMain() {
+        mHandler.removeMessages(msg_usb_init_faild_delay);
+        if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
+            return;
+        }
+        if (initStoreUSBFailedDelay) {
+            mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, 30000);
+        } else {
+            initUSBFaild();
+        }
+    }
+
+    private void initStoreUSBCompleteMain() {
+        String imei = getPhoneImei(true);
+        DeviceModel deviceModelConnect = null;
+        if ("0".equals(imei)) {
+            if (wifiConfigurationFile == null) {
+                int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
+                if (style == 0 || style == 1) {
+                    saveDeviceStyle(1); //蜂窝板
+                } else {
+                    DeviceModel deviceModel = getDeviceModel();
+                    if (deviceModel == null) {
+                        saveDeviceStyle(1);
+                        //蜂窝板
+                    } else {
+                        //wifi版
+                        deviceModelConnect = deviceModel;
+                        saveDeviceStyle(2);
+                    }
+                }
+            } else {
+                DeviceModel parseMode = parseUSBFile(wifiConfigurationFile);
+                DeviceModel deviceModel = getDeviceModel();
+                if (parseMode == null) {
+                    if (deviceModel == null) {
+                        saveDeviceStyle(1);
+                        //蜂窝板
+                    } else {
+                        deviceModelConnect = deviceModel;
+                        saveDeviceStyle(2);
+                        //wifi版
+                    }
+                } else {
+                    saveDeviceStyle(2);
+                    saveDeviceModel(parseMode);
+                    deviceModelConnect = parseMode;
+                    //wifi版
+                }
+            }
+        } else {
+            saveDeviceStyle(1); //蜂窝板
+        }
+
+        openCameraDeviceProt(true);
+        getInfo();
+
+        int capacity = receiverStoreUSB.getStoreUSBCapacity();
+        int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
+
+        runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
+
+        if (receiverCamera == null) {
+            registerReceiverCamera();
+        }
+
+        if (VariableInstance.getInstance().deviceStyle == 1) {
+            initCellularNetWork();
+        } else if (VariableInstance.getInstance().deviceStyle == 2) {
+            registerWifiReceiver();
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager != null) {
+                boolean wifiEnable = wifiManager.isWifiEnabled();
+                if (wifiEnable) {
+                    if (deviceModelConnect.wifi != null) {
+                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                        if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
+                            Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                            networkConnect();
+                            return;
+                        }
+                        if (deviceModelConnect.pass == null) {
+                            connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                        } else {
+                            if (deviceModelConnect.pass.length() == 0) {
+                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
+                            } else {
+                                connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
+                            }
+                        }
+                    } else {
+                        Log.e(TAG, "initStoreUSBComplete: 当前配置的WiFi文件有错");
+                    }
+                } else {
+                    wifiManager.setWifiEnabled(true);
+                }
+            }
+
+        }
+    }
+
+
+    private boolean initStoreUSBFailedDelay;
+    private UsbFile wifiConfigurationFile;
 
     private void initUSBFaild() {
 
@@ -849,7 +867,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void startUploadLogcatToUsb() {
             if (receiverStoreUSB != null) {
-                receiverStoreUSB.uploadLogcatToUSB(LogcatHelper.getInstance().logcatFileSecondPath);
+                receiverStoreUSB.uploadLogcatToUSB();
             }
         }
     };
@@ -1075,7 +1093,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         removeUploadLogcatMessage(9);
                         mHandler.removeMessages(msg_reload_device_info);
                         operationUtils.startCameraPictureUploadThread();
-                        operationUtils.startUploadFirstLocatThread(false);
+                        operationUtils.startUploadTestLocatThread(false);
 
 
                     } else {
@@ -1226,7 +1244,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             break;
             case Set_UploadLocat:
                 if (operationUtils != null) {
-                    operationUtils.startUploadLocatThread(false);
+                    operationUtils.startUploadMainLocatThread(false);
                 }
                 break;
             case Set_ResetApk: {
@@ -1376,8 +1394,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null)
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
     }
 
     @SuppressLint("SetTextI18n")
@@ -1503,8 +1520,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1513,8 +1529,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1869,23 +1884,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         boolean canCloseDevice;
 
 
-        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 " +
-                ",isUploadingToRemote=" + VariableInstance.getInstance().isUploadingToRemote +
-                ",isScanningCamera =" + VariableInstance.getInstance().isScanningCamera +
-                ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB +
-                ",isDownloadingUSB=" + VariableInstance.getInstance().isDownloadingUSB +
-                ",pictureIsThreadStop=" + operationUtils.pictureIsThreadStop +
-                ",initingUSB=" + VariableInstance.getInstance().initingUSB +
-                ",isUpdating=" + isUpdating
-        );
+        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 " + ",isUploadingToRemote=" + VariableInstance.getInstance().isUploadingToRemote + ",isScanningCamera =" + VariableInstance.getInstance().isScanningCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB + ",isDownloadingUSB=" + VariableInstance.getInstance().isDownloadingUSB + ",pictureIsThreadStop=" + operationUtils.pictureIsThreadStop + ",initingUSB=" + VariableInstance.getInstance().initingUSB + ",isUpdating=" + isUpdating);
 
-        if (VariableInstance.getInstance().isUploadingToRemote ||
-                VariableInstance.getInstance().isScanningCamera ||
-                VariableInstance.getInstance().isScanningStoreUSB ||
-                VariableInstance.getInstance().isDownloadingUSB ||
-                !operationUtils.pictureIsThreadStop ||
-                VariableInstance.getInstance().initingUSB ||
-                isUpdating) {
+        if (VariableInstance.getInstance().isUploadingToRemote || VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isScanningStoreUSB || VariableInstance.getInstance().isDownloadingUSB || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB || isUpdating) {
             canCloseDevice = false;
         } else {
             canCloseDevice = true;
@@ -2061,6 +2062,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_delay_open_device_prot = 8;
     private static final int msg_usb_init_faild_delay = 9;
     private static final int msg_open_device_timeout = 10;
+    private static final int msg_init_store_usb_complete = 11;
+    private static final int msg_init_store_usb_failed = 12;
 
     private static class MyHandler extends Handler {
         private WeakReference<MainActivity> weakReference;
@@ -2083,7 +2086,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_start_upload_local_logcat_to_remote:
                     activity.hasSendUploadLogcatMessage = false;
                     if (activity.canCloseDevice()) {
-                        activity.operationUtils.startUploadLocatThread(true);
+                        activity.operationUtils.startUploadMainLocatThread(true);
                     } else {
                         activity.removeUploadLogcatMessage(10);
                         activity.sendUploadLogcatMessage(6);
@@ -2118,6 +2121,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         activity.receiverCamera.openDeviceTimeOut();
                     }
                     break;
+                case msg_init_store_usb_complete: {
+                    activity.initStoreUSBCompleteMain();
+                }
+                break;
+                case msg_init_store_usb_failed: {
+                    activity.initStoreUSBFailedMain();
+                }
+                break;
 
             }
         }
