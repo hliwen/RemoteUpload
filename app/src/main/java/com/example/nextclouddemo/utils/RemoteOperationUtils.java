@@ -398,6 +398,7 @@ public class RemoteOperationUtils {
                         LogcatHelper.getInstance().stopMainLogcat();
                         try {
                             Thread.sleep(1000);
+                            LogcatHelper.getInstance().stopMainLogcatRename();
                         } catch (Exception e) {
                         }
                         remoteOperationListener.startUploadLogcatToUsb();
@@ -431,7 +432,6 @@ public class RemoteOperationUtils {
                     String timeStamp = timeStampLong.toString();
 
                     String remotePath = remoteLogcatDir + fileName + ".txt";
-
                     if (!delect) {
                         remotePath = remoteLogcatDir + fileName + "_" + System.currentTimeMillis() + ".txt";
                     }
@@ -481,6 +481,7 @@ public class RemoteOperationUtils {
                     }
                     try {
                         Thread.sleep(1000);
+                        LogcatHelper.getInstance().stopTestLogcatRename();
                     } catch (Exception e) {
                     }
 
@@ -492,25 +493,25 @@ public class RemoteOperationUtils {
                         return;
                     }
 
-                    String testLogcatFilePath = testLogcatFile.getName();
-                    Log.e(TAG, "startUploadTestLocatThread:1111  testLogcatFilePath =" + testLogcatFilePath);
+                    String testLogcatFileName = testLogcatFile.getName();
+                    Log.e(TAG, "startUploadTestLocatThread:1111  testLogcatFileName =" + testLogcatFileName);
 
-                    int lastIndex = testLogcatFilePath.lastIndexOf(".");
+                    int lastIndex = testLogcatFileName.lastIndexOf(".");
                     if (lastIndex != -1) {
-                        testLogcatFilePath = testLogcatFilePath.substring(0, lastIndex);
+                        testLogcatFileName = testLogcatFileName.substring(0, lastIndex);
                     }
 
-                    if (testLogcatFilePath.contains("logcat1970")) {
+                    if (testLogcatFileName.contains("logcat1970")) {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
-                        testLogcatFilePath = "logcat" + date + "_test.txt";
+                        testLogcatFileName = "logcat" + date + "_test";
                     }
-                    Log.e(TAG, "startUploadTestLocatThread:2222 testLogcatFilePath =" + testLogcatFilePath);
+                    Log.e(TAG, "startUploadTestLocatThread:2222 testLogcatFileName =" + testLogcatFileName);
 
                     Long timeStampLong = testLogcatFile.lastModified() / 1000;
                     String timeStamp = timeStampLong.toString();
-                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(testLogcatFile.getAbsolutePath(), remoteLogcatDir + testLogcatFilePath + ".txt", "text/plain", timeStamp);
+                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(testLogcatFile.getAbsolutePath(), remoteLogcatDir + testLogcatFileName + ".txt", "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
                     Log.e(TAG, "run: startUploadTestLocatThread result=" + result);

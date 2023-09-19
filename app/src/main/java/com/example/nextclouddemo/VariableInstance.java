@@ -78,7 +78,6 @@ public class VariableInstance {
 
         Utils.makeDir(TFCardPictureDir);
         Utils.makeDir(TFCardUploadPictureDir);
-        Utils.makeDir(LogcatDir);
     }
 
 

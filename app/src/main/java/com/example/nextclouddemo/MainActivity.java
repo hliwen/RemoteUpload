@@ -652,8 +652,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-
-
     private void initUSBFaild() {
 
         if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
@@ -1167,6 +1165,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         LogcatHelper.getInstance().stopTestLogcat();
         LogcatHelper.getInstance().stopMainLogcat();
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                LogcatHelper.getInstance().stopMainLogcat();
+                LogcatHelper.getInstance().stopTestLogcatRename();
+            }
+        }, 300);
 
         Log.e(TAG, "onDestroy: .................................................");
     }
