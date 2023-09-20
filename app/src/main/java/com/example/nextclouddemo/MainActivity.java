@@ -95,7 +95,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
 
-    public static final String Update_StartDownloadAPK = "Update,StartDownloadAPK";
+    public static final String Update_StartDownloadAPK = "Update,StartDownloadAPK;";
     public static final String Update_DownloadAPKSucceed = "Update,DownloadAPKSucceed;";
     public static final String Update_DownloadAPKFaild = "Update,DownloadAPKFaild;";
     public static final String Update_InstallAPKStart = "Update,InstallAPKStart;";
