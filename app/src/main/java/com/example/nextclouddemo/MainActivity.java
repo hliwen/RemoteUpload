@@ -287,6 +287,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (isAppInstalled(MainActivity.this, apkServerPackageName)) {
             sendDelayCreateActivity(3000);
         } else {
+            Log.d(TAG, "onCreate: isAppInstalled =false");
             sendDelayCreateActivity(4000);
             installAPKServer();
         }
