@@ -850,7 +850,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                 SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
                 int index = pictureInfoList.indexOf(sameDayPicutreInfo);
-                Log.e(TAG, "readPicFileFromUSBFile: index =" + index);
+
                 if (index > -1) {
                     sameDayPicutreInfo = pictureInfoList.get(index);
                 } else {
