@@ -7,8 +7,10 @@ import android.text.TextUtils;
 import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.example.nextclouddemo.ErrorName;
+import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.VariableInstance;
 
+import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -66,7 +68,9 @@ public class UpdateUtils {
                 int appVerison = appInfo.getVersionCode();
                 int servierVersion = getServiceVersion();
 
-                if (updateListener != null) updateListener.serverVersion(servierVersion);
+                if (updateListener != null) {
+                    updateListener.serverVersion(servierVersion);
+                }
 
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
 
@@ -80,11 +84,16 @@ public class UpdateUtils {
 
     void startDownloadApk(int servierVersion) {
         String downloadURL = VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appDowloadURL_Beta : UrlUtils.appDowloadURL;
+
+        EventBus.getDefault().post(MainActivity.Set_Update_Download_Start);
+
         boolean downloadSucced = startDownloadApp(downloadURL + servierVersion);
         Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
         if (downloadSucced) {
+            EventBus.getDefault().post(MainActivity.Set_Update_Download_Succeed);
             downloadSucceed(downloadPath);
         } else {
+            EventBus.getDefault().post(MainActivity.Set_Update_Download_Faild);
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
         }
     }
@@ -158,8 +167,7 @@ public class UpdateUtils {
                     downloadFileOutputStream.write(buffer, 0, lenght);
                     curentLength += lenght;
 
-                    if (updateListener != null)
-                        updateListener.downloadProgress((int) (curentLength / 1024));
+                    if (updateListener != null) updateListener.downloadProgress((int) (curentLength / 1024));
 
                 }
                 downloadFileOutputStream.flush();
@@ -191,7 +199,11 @@ public class UpdateUtils {
                 updateListener.startUpdate();
             }
             execLinuxCommand();
+            EventBus.getDefault().post(MainActivity.Set_Update_Install_Start);
             boolean installSuccess = installSilent(filaPath);
+            if (!installSuccess) {
+                EventBus.getDefault().post(MainActivity.Set_Update_Install_Faild);
+            }
             if (updateListener != null) {
                 updateListener.endUpdate(installSuccess);
             }
@@ -250,6 +262,7 @@ public class UpdateUtils {
             the Failure character, or a success if it is not.
              */
             if (!builder.toString().contains("Failure")) {
+                EventBus.getDefault().post(MainActivity.Set_Update_Install_Succeed);
                 result = true;
             } else {
                 delayInstall(path);

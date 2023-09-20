@@ -94,6 +94,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_ResetApk = "Set,ResetApk;";
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
+
+    public static final String Set_Update_Download_Start = "Set,UpdateDownloadStart;";
+    public static final String Set_Update_Download_Succeed = "Set,UpdateDownloadSucceed;";
+    public static final String Set_Update_Download_Faild = "Set,UpdateDownloadFaild;";
+    public static final String Set_Update_Install_Start = "Set,UpdateInstallStart;";
+    public static final String Set_Update_Install_Succeed = "Set,UpdateInstallSucceed;";
+    public static final String Set_Update_Install_Faild = "Set,UpdateInstallFaild;";
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
 
@@ -1274,6 +1281,25 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 updateBetaApk();
                 break;
             case Set_UpdateFormalApk:
+                sendMessageToMqtt(Set_UpdateFormalApk);
+                break;
+            case Set_Update_Download_Start:
+                sendMessageToMqtt(Set_Update_Download_Start);
+                break;
+            case Set_Update_Download_Succeed:
+                sendMessageToMqtt(Set_Update_Download_Succeed);
+                break;
+            case Set_Update_Download_Faild:
+                sendMessageToMqtt(Set_Update_Download_Faild);
+                break;
+            case Set_Update_Install_Start:
+                sendMessageToMqtt(Set_Update_Install_Start);
+                break;
+            case Set_Update_Install_Succeed:
+                sendMessageToMqtt(Set_Update_Install_Succeed);
+                break;
+            case Set_Update_Install_Faild:
+                sendMessageToMqtt(Set_Update_Install_Faild);
                 break;
         }
     }
