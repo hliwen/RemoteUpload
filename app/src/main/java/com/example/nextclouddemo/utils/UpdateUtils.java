@@ -1,11 +1,8 @@
 package com.example.nextclouddemo.utils;
 
 import android.content.Context;
-import android.net.Uri;
-import android.text.TextUtils;
 
 import com.blankj.utilcode.util.AppUtils;
-import com.blankj.utilcode.util.LogUtils;
 import com.example.nextclouddemo.ErrorName;
 import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.VariableInstance;
@@ -85,15 +82,15 @@ public class UpdateUtils {
     void startDownloadApk(int servierVersion) {
         String downloadURL = VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appDowloadURL_Beta : UrlUtils.appDowloadURL;
 
-        EventBus.getDefault().post(MainActivity.Set_Update_Download_Start);
+        EventBus.getDefault().post(MainActivity.Update_StartDownloadAPK);
 
         boolean downloadSucced = startDownloadApp(downloadURL + servierVersion);
         Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
         if (downloadSucced) {
-            EventBus.getDefault().post(MainActivity.Set_Update_Download_Succeed);
+            EventBus.getDefault().post(MainActivity.Update_DownloadAPKSucceed);
             downloadSucceed(downloadPath);
         } else {
-            EventBus.getDefault().post(MainActivity.Set_Update_Download_Faild);
+            EventBus.getDefault().post(MainActivity.Update_DownloadAPKFaild);
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
         }
     }
@@ -199,10 +196,10 @@ public class UpdateUtils {
                 updateListener.startUpdate();
             }
             execLinuxCommand();
-            EventBus.getDefault().post(MainActivity.Set_Update_Install_Start);
+            EventBus.getDefault().post(MainActivity.Update_InstallAPKStart);
             boolean installSuccess = installSilent(filaPath);
             if (!installSuccess) {
-                EventBus.getDefault().post(MainActivity.Set_Update_Install_Faild);
+                EventBus.getDefault().post(MainActivity.Update_InstallAPKFaild);
             }
             if (updateListener != null) {
                 updateListener.endUpdate(installSuccess);
@@ -262,7 +259,7 @@ public class UpdateUtils {
             the Failure character, or a success if it is not.
              */
             if (!builder.toString().contains("Failure")) {
-                EventBus.getDefault().post(MainActivity.Set_Update_Install_Succeed);
+                EventBus.getDefault().post(MainActivity.Update_InstallAPKSucceed);
                 result = true;
             } else {
                 delayInstall(path);

@@ -95,12 +95,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     private static final String Set_UpdateFormalApk = "Set,UpdateFormalApk;";
 
-    public static final String Set_Update_Download_Start = "Set,UpdateDownloadStart;";
-    public static final String Set_Update_Download_Succeed = "Set,UpdateDownloadSucceed;";
-    public static final String Set_Update_Download_Faild = "Set,UpdateDownloadFaild;";
-    public static final String Set_Update_Install_Start = "Set,UpdateInstallStart;";
-    public static final String Set_Update_Install_Succeed = "Set,UpdateInstallSucceed;";
-    public static final String Set_Update_Install_Faild = "Set,UpdateInstallFaild;";
+    public static final String Update_StartDownloadAPK = "Update,StartDownloadAPK";
+    public static final String Update_DownloadAPKSucceed = "Update,DownloadAPKSucceed;";
+    public static final String Update_DownloadAPKFaild = "Update,DownloadAPKFaild;";
+    public static final String Update_InstallAPKStart = "Update,InstallAPKStart;";
+    public static final String Update_InstallAPKSucceed = "Update,InstallAPKSucceed;";
+    public static final String Update_InstallAPKFaild = "Update,InstallAPKFaild;";
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
 
@@ -1283,23 +1283,23 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case Set_UpdateFormalApk:
                 sendMessageToMqtt(Set_UpdateFormalApk);
                 break;
-            case Set_Update_Download_Start:
-                sendMessageToMqtt(Set_Update_Download_Start);
+            case Update_StartDownloadAPK:
+                sendMessageToMqtt(Update_StartDownloadAPK);
                 break;
-            case Set_Update_Download_Succeed:
-                sendMessageToMqtt(Set_Update_Download_Succeed);
+            case Update_DownloadAPKSucceed:
+                sendMessageToMqtt(Update_DownloadAPKSucceed);
                 break;
-            case Set_Update_Download_Faild:
-                sendMessageToMqtt(Set_Update_Download_Faild);
+            case Update_DownloadAPKFaild:
+                sendMessageToMqtt(Update_DownloadAPKFaild);
                 break;
-            case Set_Update_Install_Start:
-                sendMessageToMqtt(Set_Update_Install_Start);
+            case Update_InstallAPKStart:
+                sendMessageToMqtt(Update_InstallAPKStart);
                 break;
-            case Set_Update_Install_Succeed:
-                sendMessageToMqtt(Set_Update_Install_Succeed);
+            case Update_InstallAPKSucceed:
+                sendMessageToMqtt(Update_InstallAPKSucceed);
                 break;
-            case Set_Update_Install_Faild:
-                sendMessageToMqtt(Set_Update_Install_Faild);
+            case Update_InstallAPKFaild:
+                sendMessageToMqtt(Update_InstallAPKFaild);
                 break;
         }
     }
