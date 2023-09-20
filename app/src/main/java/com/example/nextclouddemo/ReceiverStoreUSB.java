@@ -444,7 +444,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             if (usbFile.getLength() > 0) {
                 usbFile.delete();
             } else {
-                Log.e(TAG, "usbFileDelete: 错误文件");
+                Log.e(TAG, "usbFileDelete: 错误文件:" + usbFile.getName());
             }
 
         } catch (Throwable e) {
