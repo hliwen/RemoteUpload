@@ -100,7 +100,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "StoreUSBReceiver onReceive: 设备断开异常 e =" + e);
         }
-        Log.e(TAG, "StoreUSBReceiver onReceive:断开USB设备的 id = " + usbDevice.getDeviceId() + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        Log.e(TAG, "StoreUSBReceiver onReceive:断开USB设备的 id = " + usbDevice.getDeviceId() + ",name =" + usbDevice.getProductName() + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
 
             stopStoreUSBInitThreadExecutor();

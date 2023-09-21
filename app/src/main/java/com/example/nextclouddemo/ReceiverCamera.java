@@ -252,7 +252,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 checkConnectedDevice(usbDevice);
             } else {
                 VariableInstance.getInstance().errorLogNameList.add(ErrorName.相机无权限重新授权);
-                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName:" + usbDevice.getProductName());
+                Log.e(TAG, "onReceive: 接收到相机挂载 ，相机无权限，重新授权,productName:" + usbDevice.getProductName() + ",getDeviceId =" + usbDevice.getDeviceId());
                 @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 0, new Intent(CHECK_PERMISSION), 0);
                 usbManager.requestPermission(usbDevice, pendingIntent);
             }
@@ -273,7 +273,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 设备断开异常 e =" + e);
         }
-        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",cameraDeviceID =" + cameraDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        Log.e(TAG, "onReceive:断开USB设备，设备id = " + usbDevice.getDeviceId() + ",name= " + usbDevice.getProductName() + ",cameraDeviceID =" + cameraDeviceID + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (usbDevice.getDeviceId() != VariableInstance.getInstance().storeUSBDeviceID && cameraDeviceID == usbDevice.getDeviceId()) {
             Log.e(TAG, "onReceive:ACTION_USB_DEVICE_DETACHED 相机断开");
             cameraDeviceID = -1;

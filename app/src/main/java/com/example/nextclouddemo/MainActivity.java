@@ -603,6 +603,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             saveDeviceStyle(1); //蜂窝板
         }
 
+
         openCameraDeviceProt(true);
         getInfo();
 
@@ -1050,7 +1051,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
 
 
-                    if (serverUrlModel == null || deviceInfoModel.responseCode != 200) {
+                    if (deviceInfoModel == null || deviceInfoModel.responseCode != 200) {
                         Log.e(TAG, "run: initAddress 无法获取服务器设备信息");
                         mHandler.removeMessages(msg_reload_device_info);
                         mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
@@ -1191,6 +1192,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void receiveMqttMessage(String message) {
         if (message == null) return;
+
+        Log.d(TAG, "receiveMqttMessage: message =" + message);
 
         mqttStateText.setText("mqtt状态:true");
         if (message.contains(UploadMode3)) {
@@ -1435,7 +1438,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         Log.d(TAG, "sendMessageToMqtt: message =" + message);
-        if (returnImei != null) MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (returnImei != null) {
+            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        }
     }
 
     @SuppressLint("SetTextI18n")
