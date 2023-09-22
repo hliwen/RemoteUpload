@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.hardware.usb.UsbManager;
 import android.net.ConnectivityManager;
@@ -177,6 +178,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    private int getServerVersion(Context context, String packageName) {
+
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
+            return packageInfo.versionCode;
+
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     private boolean copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
         File file = new File(localPath);
         if (file.exists()) {
@@ -284,11 +297,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         uuidString = uuid.toString();
 
         removeDelayCreateActivity();
-        if (isAppInstalled(MainActivity.this, apkServerPackageName)) {
+        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 0) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: isAppInstalled =false");
-            sendDelayCreateActivity(4000);
+            sendDelayCreateActivity(30000);
             installAPKServer();
         }
 
