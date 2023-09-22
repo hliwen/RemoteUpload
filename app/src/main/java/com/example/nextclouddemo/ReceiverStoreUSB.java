@@ -303,22 +303,20 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             if (storeUSBLogcatDirUsbFile == null) {
                 storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
             }
-
-
         } catch (Exception e) {
             Log.e(TAG, "run: initDevice Exception =" + e);
         }
-
 
         Log.d(TAG, "usbDeviceScaner: storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB无法获取到设备ID);
             return false;
         } else {
+            storeUSBListener.checkUSBComplete(storeUSBWifiConfigurationFile);
             VariableInstance.getInstance().isInitUSB = true;
             getUSBPictureCount();
             VariableInstance.getInstance().initingUSB = false;
-            storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
+            storeUSBListener.startConnectCamera();
         }
         return true;
     }
@@ -729,7 +727,9 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     public interface StoreUSBListener {
         void storeUSBPictureCount(int count);
 
-        void initStoreUSBComplete(UsbFile wifiConfigurationFile);
+        void startConnectCamera();
+
+        void checkUSBComplete(UsbFile wifiConfigurationFile);
 
         void storeUSBDeviceDetached();
 
