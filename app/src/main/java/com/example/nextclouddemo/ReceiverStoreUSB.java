@@ -100,7 +100,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "StoreUSBReceiver onReceive: 设备断开异常 e =" + e);
         }
-        Log.e(TAG, "StoreUSBReceiver onReceive:断开USB设备的 id = " + usbDevice.getDeviceId() + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
+        Log.e(TAG, "StoreUSBReceiver onReceive:断开USB设备的 id = " + usbDevice.getDeviceId() + ",name =" + usbDevice.getProductName() + ",storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (usbDevice.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
 
             stopStoreUSBInitThreadExecutor();
@@ -167,10 +167,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
                 if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
                     Log.e(TAG, "initStoreUSBDevice:  没有检测到有设备列表");
-                    VariableInstance.getInstance().initingUSB = false;
                     if (storeUSBListener != null) {
                         storeUSBListener.initStoreUSBFailed(true);
                     }
+                    VariableInstance.getInstance().initingUSB = false;
                     return;
                 }
                 Log.d(TAG, "initStoreUSBDevice: " + "当前连接设备列表个数: connectedUSBDeviceList.size = " + connectedUSBDeviceList.size());
@@ -203,7 +203,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     }
 
                     if (!usbManager.hasPermission(usbDevice)) {
-                        Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权,productName" + usbDevice.getProductName());
+                        Log.e(TAG, "initStoreUSBDevice: 当前设备没有授权,productName :" + usbDevice.getProductName());
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(INIT_STORE_USB_PERMISSION), 0);
                         usbManager.requestPermission(usbDevice, pendingIntent);
                         isPermission = true;
@@ -251,6 +251,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         } catch (Exception e) {
         }
         initStoreUSBThreadExecutor = null;
+        VariableInstance.getInstance().initingUSB = false;
     }
 
 
@@ -302,21 +303,20 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             if (storeUSBLogcatDirUsbFile == null) {
                 storeUSBLogcatDirUsbFile = mRootFolder.createDirectory(VariableInstance.getInstance().LogcatDirName);
             }
-
-
         } catch (Exception e) {
             Log.e(TAG, "run: initDevice Exception =" + e);
         }
-
 
         Log.d(TAG, "usbDeviceScaner: storeUSBDeviceID =" + VariableInstance.getInstance().storeUSBDeviceID);
         if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
             VariableInstance.getInstance().errorLogNameList.add(ErrorName.存储USB无法获取到设备ID);
             return false;
         } else {
+            storeUSBListener.checkUSBComplete(storeUSBWifiConfigurationFile);
             VariableInstance.getInstance().isInitUSB = true;
             getUSBPictureCount();
-            storeUSBListener.initStoreUSBComplete(storeUSBWifiConfigurationFile);
+            VariableInstance.getInstance().initingUSB = false;
+            storeUSBListener.startConnectCamera();
         }
         return true;
     }
@@ -345,7 +345,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         VariableInstance.getInstance().isScanningStoreUSB = true;
         getStoreUSBPictureCount(storeUSBPictureDirUsbFile);
 
-        Log.d(TAG, "getUSBPictureCount: end..........................");
+        Log.d(TAG, "getUSBPictureCount: end.......................... picturePathList.size =" + picturePathList.size());
 
         Collections.sort(picturePathList, new MyOrder());
 
@@ -357,6 +357,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         VariableInstance.getInstance().isScanningStoreUSB = false;
         int usbTotalPictureSize = VariableInstance.getInstance().usbFileNameList.size();
 
+        Log.d(TAG, "getUSBPictureCount: end.......................... usbTotalPictureSize =" + usbTotalPictureSize);
 
         storeUSBListener.storeUSBPictureCount(usbTotalPictureSize);
         VariableInstance.getInstance().LastPictureCount = usbTotalPictureSize;
@@ -436,12 +437,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         if (usbFile == null) {
             return;
         }
-        Log.e(TAG, "usbFileDelete: usbFile =" + usbFile.getName());
+
         try {
-            if (usbFile.getLength() > 0) {
+            long length = usbFile.getLength();
+            if (length > 0) {
+                Log.e(TAG, "usbFileDelete: usbFile =" + usbFile.getName() + ",length =" + length);
                 usbFile.delete();
             } else {
-                Log.e(TAG, "usbFileDelete: 错误文件");
+                Log.e(TAG, "usbFileDelete: 错误文件:" + usbFile.getName());
             }
 
         } catch (Throwable e) {
@@ -549,34 +552,32 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
     }
 
-    public void uploadLogcatToUSB(String logcatFilePath) {
+    public void uploadLogcatToUSB() {
         Log.e(TAG, "uploadLogcatToUSB start ...........................");
         if (storeUSBLogcatDirUsbFile == null || storeUSBFs == null) {
             Log.e(TAG, "uploadLogcatToUSB: 出错，U盘未初始化");
             return;
         }
 
+        String logcatFilePath = LogcatHelper.getInstance().getMainLogcatPath();
         if (logcatFilePath == null) {
             Log.e(TAG, "uploadLogcatToUSB: 出错，日志文件路径不存在");
+            return;
+        }
+        File logcatFile = new File(logcatFilePath);
+
+        if (logcatFile == null || !logcatFile.exists()) {
             return;
         }
 
         UsbFileOutputStream usbFileOutputStream = null;
         InputStream inputStream = null;
-        File localFile = null;
-
 
         try {
-            localFile = new File(logcatFilePath);
-
-            String name = localFile.getName();
-            if (name.contains("logcat1970")) {
-                String date = LogcatHelper.getInstance().getFileName();
-                name = "logcat" + date + ".txt";
-            }
+            String name = logcatFile.getName();
             UsbFile create = storeUSBLogcatDirUsbFile.createFile(name);
             usbFileOutputStream = new UsbFileOutputStream(create);
-            inputStream = new FileInputStream(localFile);
+            inputStream = new FileInputStream(logcatFile);
 
             int bytesRead;
             byte[] buffer = new byte[storeUSBFs.getChunkSize()];
@@ -643,6 +644,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
 
             if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
+                VariableInstance.getInstance().isDownloadingUSB = false;
                 return false;
             }
 
@@ -725,7 +727,9 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     public interface StoreUSBListener {
         void storeUSBPictureCount(int count);
 
-        void initStoreUSBComplete(UsbFile wifiConfigurationFile);
+        void startConnectCamera();
+
+        void checkUSBComplete(UsbFile wifiConfigurationFile);
 
         void storeUSBDeviceDetached();
 

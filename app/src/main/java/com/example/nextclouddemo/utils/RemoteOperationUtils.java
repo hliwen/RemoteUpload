@@ -10,7 +10,6 @@ import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.CreateFolderRemoteOperation;
 import com.owncloud.android.lib.resources.files.FileUtils;
 import com.owncloud.android.lib.resources.files.ReadFolderRemoteOperation;
-import com.owncloud.android.lib.resources.files.RemoveFileRemoteOperation;
 import com.owncloud.android.lib.resources.files.UploadFileRemoteOperation;
 import com.owncloud.android.lib.resources.files.model.RemoteFile;
 
@@ -179,7 +178,7 @@ public class RemoteOperationUtils {
             pictureFileListCache.add(uploadFileModel);
         }
         if (VariableInstance.getInstance().ownCloudClient != null && VariableInstance.getInstance().isConnectedRemote) {
-            startUploadFirstLocatThread(true);
+            startUploadTestLocatThread(true);
             startCameraPictureUploadThread();
         }
     }
@@ -198,6 +197,7 @@ public class RemoteOperationUtils {
 
                     if (VariableInstance.getInstance().isFormatingUSB.formatState != 0 || VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                         Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
+                        pictureIsThreadStop = true;
                         return;
                     }
 
@@ -376,82 +376,77 @@ public class RemoteOperationUtils {
     private String uploadFaildPath;
     private int uploadFaildCount;
 
-    public void startUploadLocatThread(boolean delect) {
-        Log.e(TAG, "startUploadLocatThread: ");
+    public void startUploadMainLocatThread(boolean delect) {
+        Log.e(TAG, "startUploadMainLocatThread: ");
+
+        remoteOperationListener.uploadLogcatComplete();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
 
-                    if (LogcatHelper.getInstance().mLogDumperSecond == null) {
-                        Log.e(TAG, "startUploadLocatThread: = null ");
+                    if (LogcatHelper.getInstance().mLogDumperMain == null || VariableInstance.getInstance().ownCloudClient == null) {
+                        Log.e(TAG, "startUploadMainLocatThread: = null ");
                         if (delect) {
                             remoteOperationListener.uploadLogcatComplete();
                         }
                         return;
                     }
-                    if (VariableInstance.getInstance().ownCloudClient == null) {
-                        Log.e(TAG, "ownCloudClient: = null ");
-                        if (delect) {
-                            remoteOperationListener.uploadLogcatComplete();
-                        }
-                        return;
-                    }
-                    Log.e(TAG, "startUploadLocatThread: delect =" + delect);
+
+                    Log.e(TAG, "startUploadMainLocatThread: delect =" + delect);
                     if (delect) {
-                        LogcatHelper.getInstance().stopSecond();
+                        LogcatHelper.getInstance().stopMainLogcat();
                         try {
                             Thread.sleep(1000);
+                            LogcatHelper.getInstance().stopMainLogcatRename();
                         } catch (Exception e) {
                         }
                         remoteOperationListener.startUploadLogcatToUsb();
                     }
 
-                    File file = new File(LogcatHelper.getInstance().logcatFileSecondPath);
+                    String path = LogcatHelper.getInstance().getMainLogcatPath();
+                    File mainLogFile = new File(path);
 
-                    if (file == null || !file.exists()) {
-                        Log.e(TAG, "file: = " + LogcatHelper.getInstance().logcatFileSecondPath);
+                    if (mainLogFile == null || !mainLogFile.exists()) {
+                        Log.e(TAG, "startUploadMainLocatThread 日志文件不存在：" + path);
                         if (delect) {
                             remoteOperationListener.uploadLogcatComplete();
                         }
                         return;
                     }
 
+                    String fileName = mainLogFile.getName();
 
-                    String remotePath = remoteLogcatDir + file.getName();
-
-                    if (!delect) {
-                        remotePath = remoteLogcatDir + "/" + System.currentTimeMillis() + "_" + file.getName();
+                    int lastIndex = fileName.lastIndexOf(".");
+                    if (lastIndex != -1) {
+                        fileName = fileName.substring(0, lastIndex);
                     }
 
-                    if (remotePath.trim().contains("logcat1970")) {
+                    if (fileName.trim().contains("logcat1970")) {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
-                        remotePath = remoteLogcatDir + "logcat" + date + ".txt";
-
-                        if (!delect) {
-                            remotePath = remoteLogcatDir + "/" + System.currentTimeMillis() + "_logcat" + date + ".txt";
-                        }
+                        fileName = "logcat" + date;
                     }
                     Long timeStampLong = System.currentTimeMillis() / 1000;
                     String timeStamp = timeStampLong.toString();
 
+                    String remotePath = remoteLogcatDir + fileName + ".txt";
+                    if (!delect) {
+                        remotePath = remoteLogcatDir + fileName + "_" + System.currentTimeMillis() + ".txt";
+                    }
 
-                    Log.e(TAG, "run: UploadLocatThread = " + remotePath);
-                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
+                    Log.e(TAG, "run: startUploadMainLocatThread = " + remotePath);
+                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(mainLogFile.getAbsolutePath(), remotePath, "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
-                    Log.e(TAG, "run: startUploadLocatThread result = " + result);
+                    Log.e(TAG, "run: startUploadMainLocatThread result = " + result);
 
-                    if (delect) {
-                        file.delete();
-                    }
                 } catch (Exception e) {
 
                 }
                 if (delect) {
-                    Log.e(TAG, "run:  uploadLogcatComplete");
+                    Log.e(TAG, "run:  startUploadMainLocatThread uploadLogcatComplete");
                     remoteOperationListener.uploadLogcatComplete();
                 }
 
@@ -459,72 +454,71 @@ public class RemoteOperationUtils {
         }).start();
     }
 
-    boolean uploadingFirstLocat;
+    boolean uploadingTestLogcat;
 
-    public void startUploadFirstLocatThread(boolean delect) {
-        Log.e(TAG, "startUploadFirstLocatThread: uploadingFirstLocat =" + uploadingFirstLocat + ",delect =" + delect);
+    public void startUploadTestLocatThread(boolean delect) {
+        Log.e(TAG, "startUploadTestLocatThread: uploadingTestLogcat =" + uploadingTestLogcat + ",delect =" + delect);
 
-        if (uploadingFirstLocat) {
+        if (uploadingTestLogcat) {
             return;
         }
-        uploadingFirstLocat = true;
+        uploadingTestLogcat = true;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
 
-                    Log.d(TAG, "startUploadFirstLocatThread: mLogDumperFirst =" + LogcatHelper.getInstance().mLogDumperFirst + ",ownCloudClient =" + VariableInstance.getInstance().ownCloudClient);
+                    Log.d(TAG, "startUploadTestLocatThread: mLogDumperTest =" + LogcatHelper.getInstance().mLogDumperTest + ",ownCloudClient =" + VariableInstance.getInstance().ownCloudClient);
 
-                    if (LogcatHelper.getInstance().mLogDumperFirst == null) {
-                        uploadingFirstLocat = false;
-                        return;
-                    }
-                    if (VariableInstance.getInstance().ownCloudClient == null) {
-                        uploadingFirstLocat = false;
+                    if (LogcatHelper.getInstance().mLogDumperTest == null || VariableInstance.getInstance().ownCloudClient == null) {
+                        uploadingTestLogcat = false;
                         return;
                     }
 
+                    Log.e(TAG, "startUploadTestLocatThread: delect =" + delect);
                     if (delect) {
-                        LogcatHelper.getInstance().stopFirst();
+                        LogcatHelper.getInstance().stopTestLogcat();
                     }
-
                     try {
                         Thread.sleep(1000);
+                        LogcatHelper.getInstance().stopTestLogcatRename();
                     } catch (Exception e) {
                     }
 
-                    File file = new File(LogcatHelper.getInstance().logcatFileFirstPath);
-                    if (file == null || !file.exists()) {
-                        Log.e(TAG, "startUploadFirstLocatThread 文件不存在");
-                        uploadingFirstLocat = false;
+
+                    File testLogcatFile = new File(LogcatHelper.getInstance().getTestLogcatPath());
+                    if (testLogcatFile == null || !testLogcatFile.exists()) {
+                        Log.e(TAG, "startUploadTestLocatThread 文件不存在");
+                        uploadingTestLogcat = false;
                         return;
                     }
 
+                    String testLogcatFileName = testLogcatFile.getName();
+                    Log.e(TAG, "startUploadTestLocatThread:1111  testLogcatFileName =" + testLogcatFileName);
 
-                    String remotePath = remoteLogcatDir + file.getName();
-                    Log.e(TAG, "startUploadFirstLocatThread:1111 remotePath =" + remotePath);
+                    int lastIndex = testLogcatFileName.lastIndexOf(".");
+                    if (lastIndex != -1) {
+                        testLogcatFileName = testLogcatFileName.substring(0, lastIndex);
+                    }
 
-                    if (remotePath.contains("logcat1970")) {
+                    if (testLogcatFileName.contains("logcat1970")) {
                         Log.e(TAG, "run: 日志开始时1970，需要重命名");
                         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH_mm");
                         String date = format.format(new Date(System.currentTimeMillis()));
-                        remotePath = remoteLogcatDir + "logcat" + date + "AAA.txt";
+                        testLogcatFileName = "logcat" + date + "_test";
                     }
+                    Log.e(TAG, "startUploadTestLocatThread:2222 testLogcatFileName =" + testLogcatFileName);
 
-                    Log.e(TAG, "startUploadFirstLocatThread:2222 remotePath =" + remotePath);
-
-                    Long timeStampLong = file.lastModified() / 1000;
+                    Long timeStampLong = testLogcatFile.lastModified() / 1000;
                     String timeStamp = timeStampLong.toString();
-                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(file.getAbsolutePath(), remotePath, "text/plain", timeStamp);
+                    UploadFileRemoteOperation uploadOperation = new UploadFileRemoteOperation(testLogcatFile.getAbsolutePath(), remoteLogcatDir + testLogcatFileName + ".txt", "text/plain", timeStamp);
                     RemoteOperationResult result = uploadOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
-                    if (result.isSuccess() && delect) {
-                        file.delete();
-                    }
+                    Log.e(TAG, "run: startUploadTestLocatThread result=" + result);
                 } catch (Exception e) {
-                    Log.e(TAG, "startUploadFirstLocatThread: Exception =" + e);
+                    Log.e(TAG, "startUploadTestLocatThread: Exception =" + e);
                 }
-                uploadingFirstLocat = false;
+                uploadingTestLogcat = false;
             }
         }).start();
 
