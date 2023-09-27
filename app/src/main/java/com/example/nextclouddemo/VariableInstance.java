@@ -7,9 +7,16 @@ import com.owncloud.android.lib.common.OwnCloudClient;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Vector;
 
 public class VariableInstance {
+
+    public static final String GET_STORE_USB_PERMISSION = "GET_STORE_USB_PERMISSION";
+    public static final String GET_STORE_CAMERA_PERMISSION = "GET_STORE_CAMERA_PERMISSION";
+
+    public static final int FormatCameraDay = 14;//删除两周前相机照片
+
     private static VariableInstance instance = null;
     public String sdCardDirRoot;
     public String wifiConfigurationFileName;
@@ -28,34 +35,31 @@ public class VariableInstance {
 
     public FormatState isFormaringCamera;
     public FormatState isFormatingUSB;
-    public boolean isConnectCamera;
-    public boolean isInitUSB;
-    public boolean initingUSB;
-    public boolean isConnectedRemote;
-    public boolean isUploadToday = true;
 
 
     public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
     public ArrayList<Integer> uploadSelectIndexList;
-    public int deviceStyle;//0 是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-
-    public int uploadRemorePictureNum = 0;//已上传张数
-    public int downdCameraPicrureNum = 0;//从相机同步到U盘的张数
-    public Vector<String> usbFileNameList;
-
-    public Vector<String> errorLogNameList;
-    public int LastPictureCount;
-    public int storeUSBDeviceID = -1;//U盘设备号
-    public boolean isScanningStoreUSB;//正在扫描U盘
-    public boolean isDownloadingUSB;//正在下载相机的照片到U盘
-    public boolean isScanningCamera;//正在扫描相机
-    public boolean isUploadingToRemote;//正在上传照片到远程服务器
-    public boolean isUpdatingBetaApk;//正在升级测试版APK
 
     public int MAX_NUM = 1000;//U盘最多保留张数
+    public int currentUSBPictureCount;
+    public int uploadRemorePictureNum = 0;//已上传张数
+    public int backupPicrureNum = 0;//当次从相机同步到U盘的张数
+    public int storeUSBDeviceID = -1;//U盘设备号
+
+    public boolean isScanningStoreUSB;//正在扫描U盘
+    public boolean isOperationCamera;//正在操作相机
+    public boolean isUploadingToRemote;//正在上传照片到远程服务器
+    public boolean isUpdatingBetaApk;//正在升级测试版APK
+    public boolean isConnectCamera;
+
+    public boolean isUploadToday = true;
+    public boolean backupListInit;//已初始化备份列表
+    public boolean remoteListInit;//已初始化远程列表
     public boolean cyclicDeletion = true;//开启循环删除，只保留最新的MAX_NUM张数
-    public String copyReferenceDate = null;//拷贝参考日期
-    public boolean syncAllCameraPicture = false;//下载全部照片到U盘
+
+    public boolean remoteServerAvailable;
+    public boolean remoteServerConnecting;
+
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();
@@ -63,14 +67,13 @@ public class VariableInstance {
         wifiConfigurationFileName = "wifiConfiguration";
         PictureUploadDirName = "CameraUploadPath";
         LogcatDirName = "MLogcat";
-//        sdCardDirRoot = "/mnt/sdcard" + File.separator;
         sdCardDirRoot = Environment.getExternalStorageDirectory() + File.separator;
 
         TFCardPictureDir = sdCardDirRoot + PictureDirName;
         TFCardUploadPictureDir = sdCardDirRoot + PictureUploadDirName;
         LogcatDir = sdCardDirRoot + LogcatDirName;
-        usbFileNameList = new Vector<>();
-        errorLogNameList = new Vector<>();
+
+
         storeUSBDeviceID = -1;
 
         isFormaringCamera = new FormatState();
@@ -91,4 +94,40 @@ public class VariableInstance {
         }
         return instance;
     }
+
+    public void resetAllData() {
+        isFormaringCamera.formatState = 0;
+        isFormatingUSB.formatState = 0;
+        currentUSBPictureCount = 0;
+        uploadRemorePictureNum = 0;//已上传张数
+        backupPicrureNum = 0;//当次从相机同步到U盘的张数
+        storeUSBDeviceID = -1;//U盘设备号
+
+        isScanningStoreUSB = false;//正在扫描U盘
+        isOperationCamera = false;//正在操作相机
+
+        isUploadingToRemote = false;//正在上传照片到远程服务器
+        isConnectCamera = false;
+        remoteServerAvailable = false;
+        remoteServerConnecting = false;
+    }
+
+    public boolean isStroreUSBDevice(String deviceName) {
+        if (deviceName == null) {
+            return false;
+        }
+        return deviceName.contains("USB Storage");
+    }
+
+    public boolean isOthreDevice(String deviceName) {
+        if (deviceName == null) {
+            return true;
+        }
+        if (deviceName.contains("802.11n NIC") || deviceName.contains("USB Optical Mouse") || deviceName.contains("USB Charger") || deviceName.startsWith("EC25") || deviceName.startsWith("EG25") || deviceName.startsWith("EC20") || deviceName.startsWith("EC200T")) {
+            return true;
+        }
+        return false;
+    }
+
+
 }

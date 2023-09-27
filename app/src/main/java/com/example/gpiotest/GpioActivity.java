@@ -23,7 +23,7 @@ import java.util.ArrayList;
 
 public class GpioActivity extends Activity {
 
-    private static final String TAG = "MqttManager";
+    private static final String TAG = "remotelog_GpioActivity";
 
 
     Button mRedLedTimerButton;

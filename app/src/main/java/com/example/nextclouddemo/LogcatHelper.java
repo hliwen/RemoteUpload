@@ -1,8 +1,9 @@
 package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
-import android.util.Log;
 
+
+import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.Utils;
 
 import java.io.BufferedReader;
@@ -15,7 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class LogcatHelper {
-    private static final String TAG = "MainActivitylog";
+    private static final String TAG = "remotelog_LogcatHelper";
     private static LogcatHelper INSTANCE = null;
 
     public LogDumper mLogDumperTest = null;
@@ -82,12 +83,7 @@ public class LogcatHelper {
     public void stopTestLogcat() {
         Log.e(TAG, "stopTestLogcat: logcatFileTestPath =" + logcatFileTestPath);
         if (mLogDumperTest != null) {
-            try {
-                for (String error : VariableInstance.getInstance().errorLogNameList) {
-                    Log.d(TAG, "stopTestLogcat: error = " + error);
-                }
-            } catch (Exception e) {
-            }
+
             mLogDumperTest.stopLogs();
             mLogDumperTest = null;
         }
@@ -120,12 +116,6 @@ public class LogcatHelper {
     public void stopMainLogcat() {
         Log.e(TAG, "stopMainLogcat: logcatFileMainPath =" + logcatFileMainPath);
         if (mLogDumperMain != null) {
-            try {
-                for (String error : VariableInstance.getInstance().errorLogNameList) {
-                    Log.d(TAG, "stopMainLogcat: error = " + error);
-                }
-            } catch (Exception e) {
-            }
             mLogDumperMain.stopLogs();
             mLogDumperMain = null;
         }
@@ -188,7 +178,7 @@ public class LogcatHelper {
 
             }
 
-            cmds = "logcat  -s MainActivitylog | *:e | grep \"(" + mPID + ")\"";
+            cmds = "logcat  -s remotelog | *:e | grep \"(" + mPID + ")\"";
         }
 
         public void stopLogs() {

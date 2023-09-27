@@ -3,7 +3,6 @@ package com.example.nextclouddemo.utils;
 import android.content.Context;
 
 import com.blankj.utilcode.util.AppUtils;
-import com.example.nextclouddemo.ErrorName;
 import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.VariableInstance;
 
@@ -25,7 +24,7 @@ import java.nio.charset.Charset;
 
 public class UpdateUtils {
 
-    private static final String TAG = "UpdateUtils";
+    private static final String TAG = "remotelog_UpdateUtils";
     private String downloadPath;
     private UpdateListener updateListener;
 
@@ -33,44 +32,20 @@ public class UpdateUtils {
         this.updateListener = updateListener;
     }
 
-    public void networkAvailable(Context context) {
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                AppUtils.AppInfo appInfo = AppUtils.getAppInfo(context.getPackageName());
-
-                int appVerison = appInfo.getVersionCode();
-                int servierVersion = getServiceVersion();
-
-                if (updateListener != null) {
-                    updateListener.serverVersion(servierVersion);
-                }
-
-                Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
-
-                if (servierVersion > appVerison) {
-                    startDownloadApk(servierVersion);
-                }
-            }
-        }).start();
-    }
 
     public void checkBetaApk(Context context) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 AppUtils.AppInfo appInfo = AppUtils.getAppInfo(context.getPackageName());
-
                 int appVerison = appInfo.getVersionCode();
                 int servierVersion = getServiceVersion();
 
-                if (updateListener != null) {
-                    updateListener.serverVersion(servierVersion);
+                if (servierVersion == 0) {
+                    return;
                 }
 
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
-
 //                if (servierVersion > appVerison) {
                 startDownloadApk(servierVersion);
 //                }
@@ -79,7 +54,7 @@ public class UpdateUtils {
     }
 
 
-    void startDownloadApk(int servierVersion) {
+    public void startDownloadApk(int servierVersion) {
         String downloadURL = VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appDowloadURL_Beta : UrlUtils.appDowloadURL;
 
         EventBus.getDefault().post(MainActivity.Update_StartDownloadAPK);
@@ -91,7 +66,8 @@ public class UpdateUtils {
             downloadSucceed(downloadPath);
         } else {
             EventBus.getDefault().post(MainActivity.Update_DownloadAPKFaild);
-            VariableInstance.getInstance().errorLogNameList.add(ErrorName.下载升级文件失败无法升级);
+
+            Log.d(TAG, "startDownloadApk: 下载升级文件失败无法升级");
         }
     }
 
@@ -110,7 +86,8 @@ public class UpdateUtils {
 
             Log.e(TAG, "getServiceVersion: ResponseCode =" + ResponseCode);
             if (ResponseCode != 200) {
-                VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法访问升级链接);
+
+                Log.d(TAG, "getServiceVersion: 无法访问升级链接");
                 return 0;
             }
 
@@ -336,8 +313,45 @@ public class UpdateUtils {
         }
     }
 
+
+    public static int checkServiceVersion() {
+
+        int servierVersion = 0;
+        try {
+            URL url = new URL(UrlUtils.appVersionURL);
+            HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
+            int ResponseCode = urlcon.getResponseCode();
+
+            Log.e(TAG, "checkServiceVersion: ResponseCode =" + ResponseCode);
+            if (ResponseCode != 200) {
+                Log.d(TAG, "checkServiceVersion: 无法访问升级链接");
+                return 0;
+            }
+            InputStream inputStream = urlcon.getInputStream();
+            InputStreamReader isr = new InputStreamReader(inputStream, "UTF-8");
+            BufferedReader reader = new BufferedReader(isr);
+            String line;
+            StringBuffer buffer = new StringBuffer();
+            while ((line = reader.readLine()) != null) {
+                buffer.append(line);
+            }
+            String content = buffer.toString();
+            Log.d(TAG, "checkServiceVersion:  nccontent = " + content);
+            JSONObject jsonObject = new JSONObject(content);
+            JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
+            jsonObject = new JSONObject(jsonArray.getString(0));
+            String version = jsonObject.getString("version");
+            servierVersion = Integer.parseInt(version);
+        } catch (Exception e) {
+            Log.e(TAG, "checkServiceVersion: Exception =" + e);
+        }
+        Log.e(TAG, "checkServiceVersion: servierVersion =" + servierVersion);
+        return servierVersion;
+    }
+
+
     public interface UpdateListener {
-        void serverVersion(int version);
+
 
         void downloadProgress(int progress);
 

@@ -3,19 +3,17 @@ package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.hardware.usb.UsbManager;
 import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
-import android.net.NetworkRequest;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -32,15 +30,18 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.blankj.utilcode.util.ActivityUtils;
 import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
 import com.example.gpiotest.LedControl;
 import com.example.nextclouddemo.model.DeviceInfoModel;
 import com.example.nextclouddemo.model.MyMessage;
+
 import com.example.nextclouddemo.model.ServerUrlModel;
 import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
+import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
 import com.example.nextclouddemo.utils.UpdateUtils;
@@ -60,9 +61,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -71,7 +71,7 @@ import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
 public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
-
+    private static final String TAG = "remotelog_MainActivityl";
     private static final String FormatUSB = "Start,Format;";
     private static final String FormatTF = "Start,FormatTF;";
     private static final String FormatCamera = "Start,FormatCamera;";
@@ -81,7 +81,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String UploadMode3 = "Set,UploadMode,3,";
     private static final String UploadMode4 = "Set,UploadMode,4,";
     private static final String GetInfo = "Get,Info;";
-    private static final String return2GImei = "return2GImei";
+
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
     private static final String UploadToday = "Set,UploadToday,";
@@ -102,14 +102,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String Update_InstallAPKStart = "Update,InstallAPKStart;";
     public static final String Update_InstallAPKSucceed = "Update,InstallAPKSucceed;";
     public static final String Update_InstallAPKFaild = "Update,InstallAPKFaild;";
+    public static final String Debug_finish = "Debug_finish;";
+    public static final String Debug_reset = "Debug_reset;";
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
-
-    private static String TAG = "MainActivitylog";
+    private static final int NETWORK_WAIT_TIME = 2 * 60 * 1000;
     private String returnImei;
     private String deveceName;
-    private boolean doingInit;
-    private String messageTextString;
+
     private boolean isUpdating;
 
     private boolean openDeviceProtFlag;
@@ -119,13 +119,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private String cameraName;
     private String copySpeed;
     private int copyTotalNum;
-    private String uuidString;
+
     private MyHandler mHandler;
 
     private Communication communication;
     private ReceiverCamera receiverCamera;
     private ReceiverStoreUSB receiverStoreUSB;
-    private RemoteOperationUtils operationUtils;
+    private RemoteOperationUtils remoteOperationUtils;
     private TextView messageText;
     private TextView UpanSpaceText;
     private TextView accessNumberText;
@@ -155,36 +155,33 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private Button clearViewBt;
     private Button formatUSBt;
     private Button formatCameraBt;
-    private Button catErrorLogcat;
 
 
     private UpdateUtils updateUtils;
-    private WifiReceiver mWifiReceiver;
+    private NetWorkReceiver netWorkReceiver;
 
     private boolean sendShutDown;
-    private boolean networkAvailable;
-
-    boolean hasinitCellularNetWork;
 
     private static final String apkServerPackageName = "com.remoteupload.apkserver";
+
+    private String messageTextString;
 
 
     private boolean isAppInstalled(Context context, String packageName) {
         try {
             context.getPackageManager().getApplicationInfo(packageName, 0);
             return true;
-        } catch (PackageManager.NameNotFoundException e) {
+        } catch (Exception e) {
             return false;
         }
     }
 
     private int getServerVersion(Context context, String packageName) {
-
         try {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
             return packageInfo.versionCode;
 
-        } catch (PackageManager.NameNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
@@ -216,28 +213,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String apkPathTpm = "/storage/emulated/0/Download/tpm_apkServer.apk";
-                String apkPath = "/storage/emulated/0/Download/apkServer.apk";
-                boolean copyResult = copyAPKServer(apkPathTpm, "apkServer.apk", MainActivity.this);
-                if (!copyResult) {
-                    Log.e(TAG, "run: installAPKServer 拷贝文件出错， 服务安装异常");
-                    return;
-                }
-                File tmpApkFile = new File(apkPathTpm);
 
-                if (tmpApkFile == null || !tmpApkFile.exists()) {
-                    Log.e(TAG, "run: installAPKServer 服务文件不存在， 服务安装异常");
+                String apkPath = "/storage/emulated/0/Download/apkServer.apk";
+                boolean copyResult = copyAPKServer(apkPath, "apkServer.apk", MainActivity.this);
+                if (!copyResult) {
+                    Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
                     return;
                 }
                 File apkFile = new File(apkPath);
-
-                if (apkFile.exists()) {
-                    apkFile.delete();
-                }
-                apkFile = new File(apkPath);
-
-                tmpApkFile.renameTo(apkFile);
-
                 if (apkFile.exists()) {
                     BufferedReader es = null;
                     DataOutputStream os = null;
@@ -245,7 +228,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         Process process = Runtime.getRuntime().exec("su");
                         os = new DataOutputStream(process.getOutputStream());
                         String command = "pm install -r " + apkPath + "\n";
-                        os.write(command.getBytes(Charset.forName("utf-8")));
+                        os.write(command.getBytes(StandardCharsets.UTF_8));
                         os.flush();
                         os.writeBytes("exit\n");
                         os.flush();
@@ -259,14 +242,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
                             builder.append(line);
                         }
                         if (!builder.toString().contains("Failure")) {
-                            Log.e(TAG, "run: 安装服务apk成功");
+                            Log.e(TAG, "installAPKServer: 安装服务apk成功");
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
-                            Log.e(TAG, "run: 安装服务apk失败");
+                            Log.e(TAG, "installAPKServer: 安装服务apk失败");
+                            removeDelayCreateActivity();
+                            sendDelayCreateActivity(3000);
                         }
                     } catch (Exception e) {
-                        Log.e(TAG, "run: 安装服务apk失败：" + e);
+                        Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
+                        removeDelayCreateActivity();
+                        sendDelayCreateActivity(3000);
                     } finally {
                         try {
                             if (os != null) {
@@ -276,7 +263,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                 es.close();
                             }
                         } catch (IOException e) {
-                            Log.e(TAG, "run: 安装服务apk失败：" + e);
+                            Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
                         }
                     }
                 }
@@ -293,14 +280,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.main_acitivity);
         openCameraDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
-        UUID uuid = UUID.randomUUID();
-        uuidString = uuid.toString();
 
         removeDelayCreateActivity();
         if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 0) {
             sendDelayCreateActivity(3000);
         } else {
-            Log.d(TAG, "onCreate: isAppInstalled =false");
+            Log.d(TAG, "onCreate: 需要等待安装守护线程");
             sendDelayCreateActivity(30000);
             installAPKServer();
         }
@@ -334,7 +319,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         clearViewBt = findViewById(R.id.clearViewBt);
         formatUSBt = findViewById(R.id.formatUSBt);
         formatCameraBt = findViewById(R.id.formatCameraBt);
-        catErrorLogcat = findViewById(R.id.catErrorLogcat);
+
 
         guanjiBt.setOnClickListener(this);
         rescanerBt.setOnClickListener(this);
@@ -342,9 +327,54 @@ public class MainActivity extends Activity implements View.OnClickListener {
         clearViewBt.setOnClickListener(this);
         formatUSBt.setOnClickListener(this);
         formatCameraBt.setOnClickListener(this);
-        catErrorLogcat.setOnClickListener(this);
+
     }
 
+    private void sendDelayCreateActivity(int delayTime) {
+        mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delayTime);
+    }
+
+    private void removeDelayCreateActivity() {
+        mHandler.removeMessages(msg_delay_creta_acitivity);
+    }
+
+    private void sendUploadLogcatMessage(int position) {
+        Log.e(TAG, "sendUploadLogcatMessage: position =" + position);
+        mHandler.sendEmptyMessageDelayed(msg_start_upload_local_logcat_to_remote, UPPOAD_LOGCAT_DELAY_TIME);
+    }
+
+    private void removeUploadLogcatMessage(int position) {
+        Log.e(TAG, "removeUploadLogcatMessage: position =" + position);
+        mHandler.removeMessages(msg_start_upload_local_logcat_to_remote);
+    }
+
+
+    private void sendCloseDeviceMessage(int position, int delayTime) {
+        Log.e(TAG, "sendCloseDeviceMessage: position" + position + ",delayTime =" + delayTime);
+        mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, delayTime);
+    }
+
+    private void removeCloseDeviceMessage(int position) {
+        Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
+        mHandler.removeMessages(msg_send_ShutDown);
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void initView() {
+        AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
+        appVerison = appInfo.getVersionCode();
+        currentVersionText.setText("当前版本：" + appVerison);
+        Log.d(TAG, "initView: app当前版本 =" + appVerison);
+
+        serverStateText.setText("服务器状态：false");
+        remoteNameText.setText("云端名称：");
+        accessNumberText.setText("入网号：");
+
+        accessNumberText.setText("入网号:");
+        cameraStateText.setText("相机状态:false");
+        isConnectNetworkText.setText("是否连网:false");
+        mqttStateText.setText("mqtt状态:false");
+    }
 
     boolean isInitView;
 
@@ -354,23 +384,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
         isInitView = true;
         getUploadToday();
-        VariableInstance.getInstance().isFormaringCamera.formatState = 0;
-        VariableInstance.getInstance().isConnectCamera = false;
-        VariableInstance.getInstance().isInitUSB = false;
-        VariableInstance.getInstance().initingUSB = false;
-        VariableInstance.getInstance().isConnectedRemote = false;
-        VariableInstance.getInstance().isFormatingUSB.formatState = 0;
-        VariableInstance.getInstance().uploadRemorePictureNum = 0;
-        VariableInstance.getInstance().downdCameraPicrureNum = 0;
-        VariableInstance.getInstance().LastPictureCount = 0;
-        VariableInstance.getInstance().storeUSBDeviceID = -1;
-        VariableInstance.getInstance().isScanningStoreUSB = false;
-        VariableInstance.getInstance().isDownloadingUSB = false;
-        VariableInstance.getInstance().usbFileNameList.clear();
+        VariableInstance.getInstance().resetAllData();
+
 
         communication = new Communication();
-        updateUtils = new UpdateUtils(updateListener);
-        operationUtils = new RemoteOperationUtils(remoteOperationListener);
+        if (updateUtils == null) updateUtils = new UpdateUtils(updateListener);
+        remoteOperationUtils = new RemoteOperationUtils(remoteOperationListener);
 
 
         initView();
@@ -392,115 +411,24 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
+
+        mHandler.sendEmptyMessageDelayed(msg_connect_server_timeout, NETWORK_WAIT_TIME);
+
+        registerWifiReceiver();
         registerStoreUSBReceiver();
 
-
-    }
-
-
-    boolean hasSendUploadLogcatMessage;
-    int sendUploadLogcatMessageYMD;
-    boolean hasSendCloseDeviceMessage;
-    int sendCloseDeviceMessageYMD;
-    boolean hasSendWifiConnectMessage;
-    int sendWifiConnectMessageYMD;
-    boolean hasSendDelayCreateActivity;
-    int sendDelayCreateActivityYMD;
-
-    int sendDelayCreateActivityDelayTime;
-
-    private void sendDelayCreateActivity(int delayTime) {
-        mHandler.sendEmptyMessageDelayed(msg_delay_creta_acitivity, delayTime);
-        sendDelayCreateActivityDelayTime = delayTime;
-        hasSendDelayCreateActivity = true;
-        sendDelayCreateActivityYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
-    }
-
-    private void removeDelayCreateActivity() {
-        mHandler.removeMessages(msg_delay_creta_acitivity);
-        hasSendDelayCreateActivity = false;
-    }
-
-
-    private void sendWifiConnectMessage() {
-        mHandler.sendEmptyMessageDelayed(msg_wifi_connected, 2000);
-        hasSendWifiConnectMessage = true;
-        sendWifiConnectMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
-    }
-
-    private void removeWifiConnectMessage() {
-        mHandler.removeMessages(msg_wifi_connected);
-        hasSendWifiConnectMessage = false;
-    }
-
-    private void sendUploadLogcatMessage(int position) {
-        Log.e(TAG, "sendUploadLogcatMessage: position =" + position);
-        mHandler.sendEmptyMessageDelayed(msg_start_upload_local_logcat_to_remote, UPPOAD_LOGCAT_DELAY_TIME);
-        hasSendUploadLogcatMessage = true;
-        sendUploadLogcatMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
-    }
-
-    private void removeUploadLogcatMessage(int position) {
-        Log.e(TAG, "removeUploadLogcatMessage: position =" + position);
-        mHandler.removeMessages(msg_start_upload_local_logcat_to_remote);
-        hasSendUploadLogcatMessage = false;
-    }
-
-    int sendCloseDeviceMessageDelayTime;
-
-    private void sendCloseDeviceMessage(int position, int delayTime) {
-        Log.e(TAG, "sendCloseDeviceMessage: position" + position + ",delayTime =" + delayTime);
-        mHandler.sendEmptyMessageDelayed(msg_send_ShutDown, delayTime);
-        hasSendCloseDeviceMessage = true;
-        sendCloseDeviceMessageDelayTime = delayTime;
-        sendCloseDeviceMessageYMD = Utils.getyyMMddtringInt(System.currentTimeMillis());
-    }
-
-    private void removeCloseDeviceMessage(int position) {
-        Log.e(TAG, "removeCloseDeviceMessage: position =" + position);
-        mHandler.removeMessages(msg_send_ShutDown);
-        hasSendCloseDeviceMessage = false;
-    }
-
-    @SuppressLint("SetTextI18n")
-    private void initView() {
-        AppUtils.AppInfo appInfo = AppUtils.getAppInfo(getPackageName());
-        appVerison = appInfo.getVersionCode();
-        currentVersionText.setText("当前版本：" + appVerison);
-        Log.d(TAG, "initView: app当前版本 =" + appVerison);
-
-        serverStateText.setText("服务器状态：false");
-        remoteNameText.setText("云端名称：");
-        accessNumberText.setText("入网号：");
-
-        accessNumberText.setText("入网号:");
-        cameraStateText.setText("相机状态:false");
-        isConnectNetworkText.setText("是否连网:false");
-        mqttStateText.setText("mqtt状态:false");
     }
 
 
     PhoneStateListener MyPhoneListener = new PhoneStateListener() {
-
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             int asu = signalStrength.getGsmSignalStrength();
             signalStrengthValue = -113 + 2 * asu;
         }
     };
 
-    private UpdateUtils.UpdateListener updateListener = new UpdateUtils.UpdateListener() {
-        @Override
-        public void serverVersion(int version) {
-            runOnUiThreadText(serverVersionText, "最新版本：" + version);
-            if (networkAvailable && version == 0) {
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateUtils.networkAvailable(MainActivity.this);
-                    }
-                }, 1000);
-            }
-        }
+    private final UpdateUtils.UpdateListener updateListener = new UpdateUtils.UpdateListener() {
+
 
         @Override
         public void downloadProgress(int progress) {
@@ -525,214 +453,162 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     };
 
-    private ReceiverStoreUSB.StoreUSBListener storeUSBListener = new ReceiverStoreUSB.StoreUSBListener() {
+    private final ReceiverStoreUSB.StoreUSBListener storeUSBListener = new ReceiverStoreUSB.StoreUSBListener() {
         @Override
-        public void storeUSBPictureCount(int count) {
-            Log.d(TAG, "storeUSBPictureCount: count =" + count);
-            UpanPictureCount = count;
-            if (count != 0) {
-                runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
-            }
-        }
-
-        @Override
-        public void storeUSBDeviceDetached() {
-            openCameraDeviceProt(false);
-        }
-
-        @Override
-        public void storeUSBSaveOnePictureComplete(String speed) {
-            copySpeed = speed;
-            runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().downdCameraPicrureNum + "\n同步到USB速度:" + speed);
-        }
-
-        @Override
-        public void initStoreUSBFailed(boolean delay) {
-            mHandler.removeMessages(msg_usb_init_faild_delay);
-            if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
-                return;
-            }
-            if (delay) {
-                mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, 30000);
-            } else {
-                initUSBFaild();
-            }
-        }
-
-
-        @Override
-        public void startConnectCamera() {
-            openCameraDeviceProt(true);
+        public void historyBackupPictureCount() {
             getInfo();
             if (receiverCamera == null) {
                 registerReceiverCamera();
             }
         }
 
-        public void checkUSBComplete(UsbFile wifiConfigurationFile) {
-            Log.d(TAG, "checkUSBComplete: .....................................");
-            String imei = getPhoneImei(true);
-            DeviceModel deviceModelConnect = null;
-            if ("0".equals(imei)) {
-                if (wifiConfigurationFile == null) {
-                    int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-                    if (style == 0 || style == 1) {
-                        saveDeviceStyle(1); //蜂窝板
-                    } else {
-                        DeviceModel deviceModel = getDeviceModel();
-                        if (deviceModel == null) {
-                            saveDeviceStyle(1);
-                            //蜂窝板
-                        } else {
-                            //wifi版
-                            deviceModelConnect = deviceModel;
-                            saveDeviceStyle(2);
-                        }
-                    }
-                } else {
-                    DeviceModel parseMode = parseUSBFile(wifiConfigurationFile);
-                    DeviceModel deviceModel = getDeviceModel();
-                    if (parseMode == null) {
-                        if (deviceModel == null) {
-                            saveDeviceStyle(1);
-                            //蜂窝板
-                        } else {
-                            deviceModelConnect = deviceModel;
-                            saveDeviceStyle(2);
-                            //wifi版
-                        }
-                    } else {
-                        saveDeviceStyle(2);
-                        saveDeviceModel(parseMode);
-                        deviceModelConnect = parseMode;
-                        //wifi版
-                    }
-                }
-            } else {
-                saveDeviceStyle(1); //蜂窝板
-            }
+        @Override
+        public void storeUSBPictureCount(int count) {
+            runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
+        }
 
-            if (VariableInstance.getInstance().deviceStyle == 1) {
-                initCellularNetWork();
-            } else if (VariableInstance.getInstance().deviceStyle == 2) {
-                registerWifiReceiver();
-                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if (wifiManager != null) {
-                    boolean wifiEnable = wifiManager.isWifiEnabled();
-                    if (wifiEnable) {
-                        if (deviceModelConnect.wifi != null) {
-                            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                                Log.e(TAG, "startConnectCamera: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                                networkConnect();
-                                return;
-                            }
-                            if (deviceModelConnect.pass == null) {
-                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                            } else {
-                                if (deviceModelConnect.pass.length() == 0) {
-                                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                                } else {
-                                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                                }
-                            }
-                        } else {
-                            Log.e(TAG, "startConnectCamera: 当前配置的WiFi文件有错");
-                        }
-                    } else {
-                        wifiManager.setWifiEnabled(true);
-                    }
-                }
 
+        @Override
+        public void storeUSBSaveOnePictureComplete(String speed) {
+            copySpeed = speed;
+            runOnUiThreadText(hasDownloadPictureNumberText, "已下载张数:" + VariableInstance.getInstance().backupPicrureNum + "\n同步到USB速度:" + speed);
+        }
+
+        @Override
+        public void sendInitUSBTimeOutMessage(int position) {
+            Log.d(TAG, "sendInitUSBTimeOutMessage: position =" + position);
+            mHandler.removeMessages(msg_usb_init_faild_delay);
+            if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
+                return;
             }
+            mHandler.sendEmptyMessageDelayed(msg_usb_init_faild_delay, debug ? 1000 : 40000);
+        }
+
+        @Override
+        public void checkProfileFile(UsbFile wifiConfigurationFile) {
 
             int capacity = receiverStoreUSB.getStoreUSBCapacity();
             int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
-            Log.d(TAG, "startConnectCamera: capacity =" + capacity + ",freeSpace =" + freeSpace);
+            Log.d(TAG, "checkProfileFile: capacity =" + capacity + ",freeSpace =" + freeSpace);
             runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
-            Log.d(TAG, "startConnectCamera: deviceStyle =" + VariableInstance.getInstance().deviceStyle);
+
+            Log.d(TAG, "checkProfileFile: .....................................");
+            checkProfileFileMain(wifiConfigurationFile, 1);
+
         }
     };
 
+    private void checkProfileFileMain(UsbFile wifiConfigurationFile, int position) {
+        Log.e(TAG, "checkProfileFileMain: position =" + position + ",wifiConfigurationFile =" + wifiConfigurationFile);
+        ProfileModel profileModel = null;
+        int deviceStyle = LocalProfileHelp.getInstance().checkDeviceStyle();
+        if (deviceStyle == 1 || deviceStyle == 0) {//蜂窝版
+            if (deviceStyle == 1) {
+                Log.e(TAG, "checkProfileFileMain: 蜂窝版里面怎么放了个配置文件");
+            }
+            if (deviceStyle == 0) {
+                Log.e(TAG, "checkProfileFileMain: 未知原因，有配置文件，模块接口没识别到");
+            }
+            String imei = getPhoneImei();
+            Log.d(TAG, "checkProfileFileMain: 11 imei =" + imei);
+            if (imei == null) {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                }
+                imei = getPhoneImei();
+            }
 
-    private void initUSBFaild() {
+            Log.d(TAG, "checkProfileFileMain: 22 imei =" + imei);
+            if (imei == null) {
+                ProfileModel parseMode = parseUSBFile(wifiConfigurationFile);
+                if (parseMode == null) {
+                    Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析");
+                    profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                    if (profileModel == null) {
+                        Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析,本地也没有保存");
+                        return;
+                    }
+                } else {
+                    profileModel = new ProfileModel();
+                    profileModel.SN = parseMode.SN;
+                    profileModel.pass = parseMode.pass;
+                    profileModel.wifi = parseMode.wifi;
+                    LocalProfileHelp.getInstance().saveProfileFile(MainActivity.this, profileModel);
+                }
 
-        if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
+            } else {
+                profileModel = new ProfileModel();
+                profileModel.imei = imei;
+                LocalProfileHelp.getInstance().saveProfileFile(MainActivity.this, profileModel);
+            }
+        } else if (deviceStyle == 2) {//wifi版
+            ProfileModel parseMode = parseUSBFile(wifiConfigurationFile);
+            if (parseMode == null) {
+                Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析");
+                profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                if (profileModel == null) {
+                    Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析,本地也没有保存");
+                    return;
+                }
+            } else {
+                profileModel = new ProfileModel();
+                profileModel.SN = parseMode.SN;
+                profileModel.pass = parseMode.pass;
+                profileModel.wifi = parseMode.wifi;
+                LocalProfileHelp.getInstance().saveProfileFile(MainActivity.this, profileModel);
+            }
+        }
+
+        if (profileModel == null) {
+            Log.e(TAG, "checkProfileFileMain: iemi无法读取,配置文件也无法解析,本地也没有保存,不执行联网 mqtt 无法通信");
             return;
         }
 
-        Log.e(TAG, "initUSBFaild: U盘初始化失败，仍然连接mqtt通信");
-        String imei = getPhoneImei(true);
-        DeviceModel deviceModelConnect = null;
-        if ("0".equals(imei)) {
-            int style = getDeviceStyle(); //0是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
-            if (style == 0 || style == 1) {
-                saveDeviceStyle(1); //蜂窝板
-            } else {
-                DeviceModel deviceModel = getDeviceModel();
-                if (deviceModel == null) {
-                    saveDeviceStyle(1);
-                    //蜂窝板
-                } else {
-                    //wifi版
-                    deviceModelConnect = deviceModel;
-                    saveDeviceStyle(2);
-                }
-            }
-        } else {
-            saveDeviceStyle(1); //蜂窝板
-        }
-
-        Log.e(TAG, "initUSBFaild: deviceStyle =" + VariableInstance.getInstance().deviceStyle);
-
-        if (debug) {
-            VariableInstance.getInstance().deviceStyle = 2;
-            deviceModelConnect = new DeviceModel();
-            deviceModelConnect.SN = "867706050952138";
-        }
-
-        if (VariableInstance.getInstance().deviceStyle == 1) {
-            initCellularNetWork();
-        } else if (VariableInstance.getInstance().deviceStyle == 2) {
-            registerWifiReceiver();
+        if (profileModel.wifi != null) {
             WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             if (wifiManager != null) {
                 boolean wifiEnable = wifiManager.isWifiEnabled();
                 if (wifiEnable) {
-                    if (deviceModelConnect.wifi != null) {
-                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                        if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                            Log.e(TAG, "initUSBFaild: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                            networkConnect();
-                            return;
-                        }
-                        if (deviceModelConnect.pass == null) {
-                            connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                        } else {
-                            if (deviceModelConnect.pass.length() == 0) {
-                                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                            } else {
-                                connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                            }
-                        }
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(profileModel.wifi)) {
+                        Log.e(TAG, "checkProfileFileMain: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                        return;
+                    }
+                    if (profileModel.pass == null) {
+                        connectWifiNoPws(profileModel.wifi, wifiManager);
                     } else {
-                        Log.e(TAG, "initUSBFaild: 当前配置的WiFi文件有错");
+                        if (profileModel.pass.length() == 0) {
+                            connectWifiNoPws(profileModel.wifi, wifiManager);
+                        } else {
+                            connectWifiPws(profileModel.wifi, profileModel.pass, wifiManager);
+                        }
                     }
                 } else {
                     wifiManager.setWifiEnabled(true);
                 }
             }
-
         }
     }
 
-    private ReceiverCamera.CameraScanerListener scannerCameraListener = new ReceiverCamera.CameraScanerListener() {
+    private void initUSBFaild() {
+        if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
+            return;
+        }
+        Log.e(TAG, "initUSBFaild: U盘初始化失败，仍然连接mqtt通信");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                checkProfileFileMain(null, 2);
+            }
+        }).start();
+    }
+
+    private final ReceiverCamera.CameraScanerListener scannerCameraListener = new ReceiverCamera.CameraScanerListener() {
 
         @Override
         public void cameraOperationStart() {
-            getCopyReferenceDate();
-            VariableInstance.getInstance().isScanningCamera = true;
-
+            mHandler.removeMessages(msg_open_device_timeout);
             if (!VariableInstance.getInstance().isUploadingToRemote) {
                 startDownLed(true);
             }
@@ -741,14 +617,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void cameraOperationEnd(int cameraTotalPicture) {
-            openCameraDeviceProt(false);
 
-            VariableInstance.getInstance().isScanningCamera = false;
+            openCameraDeviceProt(false);
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
                 startDownLed(false);
             }
-
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
             int scanerCount = sharedPreferences.getInt("ScanerCount", 0);
@@ -759,9 +633,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
                 editor.putInt("ScanerCount", scanerCount);
                 editor.apply();
-
                 mHandler.sendEmptyMessageDelayed(msg_delay_open_device_prot, 3000);
-                VariableInstance.getInstance().errorLogNameList.add(ErrorName.获取相机图片张数为0可能是无法获取照片信息);
                 sendSet_WakeCamera();
                 return;
             }
@@ -783,21 +655,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (receiverStoreUSB == null) {
                 return false;
             }
-            return receiverStoreUSB.uploadToUSB(localFile, yearMonth);
+
+            boolean uploadResult = receiverStoreUSB.uploadToUSB(localFile, yearMonth);
+
+            return uploadResult;
         }
 
         @Override
         public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
-            operationUtils.addUploadRemoteFile(uploadFileModel, false);
+            remoteOperationUtils.addUploadRemoteFile(uploadFileModel, false);
         }
 
-
-        @Override
-        public void cameraDeviceDetached() {
-            if (receiverStoreUSB != null) {
-                receiverStoreUSB.getUSBPictureCount();
-            }
-        }
 
         @Override
         public void scannerCameraComplete(int needDownloadCount, int cameraTotalPictureCount, String deviceName) {
@@ -812,10 +680,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
         }
 
-        @Override
-        public void cameraDeviceAttached() {
-            mHandler.removeMessages(msg_open_device_timeout);
-        }
 
     };
 
@@ -823,11 +687,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
     RemoteOperationUtils.RemoteOperationListener remoteOperationListener = new RemoteOperationUtils.RemoteOperationListener() {
         @Override
         public void allFileUploadComplete(long totalTime) {
-            Log.d(TAG, "allFileUploadComplete: 所有文件上传完成 totalTime =" + totalTime / 1000 + "s,isScanningCamera =" + VariableInstance.getInstance().isScanningCamera);
+            Log.d(TAG, "allFileUploadComplete: 所有文件上传完成 totalTime =" + totalTime / 1000 + "s");
 
             VariableInstance.getInstance().isUploadingToRemote = false;
 
-            if (!VariableInstance.getInstance().isScanningCamera) {
+            if (!VariableInstance.getInstance().isOperationCamera) {
                 restLed();
             }
             if (totalTime != 0) {
@@ -876,8 +740,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public boolean canStopPictureUploadThread() {
-            Log.e(TAG, "canStopPictureUploadThread: 是否可以停止上传服务器线程  isScanningCamera= " + VariableInstance.getInstance().isScanningCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB + ",isDownloadingUSB = " + VariableInstance.getInstance().isDownloadingUSB);
-            return (!VariableInstance.getInstance().isScanningCamera && !VariableInstance.getInstance().isScanningStoreUSB && !VariableInstance.getInstance().isDownloadingUSB);
+            Log.e(TAG, "canStopPictureUploadThread: 是否可以停止上传服务器线程  isOperationCamera= " + VariableInstance.getInstance().isOperationCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB);
+            return (!VariableInstance.getInstance().isScanningStoreUSB && !VariableInstance.getInstance().isOperationCamera);
         }
 
 
@@ -894,115 +758,265 @@ public class MainActivity extends Activity implements View.OnClickListener {
         sendMessageToMqtt(Set_WakeCamera);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerReceiverCamera() {
         Log.d(TAG, "registerReceiverCamera: ");
         receiverCamera = new ReceiverCamera(getApplicationContext(), scannerCameraListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        intentFilter.addAction(ReceiverCamera.CHECK_PERMISSION);
+        intentFilter.addAction(VariableInstance.GET_STORE_CAMERA_PERMISSION);
         registerReceiver(receiverCamera, intentFilter);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerStoreUSBReceiver() {
         receiverStoreUSB = new ReceiverStoreUSB(getApplicationContext(), storeUSBListener);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        intentFilter.addAction(ReceiverStoreUSB.INIT_STORE_USB_PERMISSION);
+        intentFilter.addAction(VariableInstance.GET_STORE_USB_PERMISSION);
         registerReceiver(receiverStoreUSB, intentFilter);
     }
 
 
     private void registerWifiReceiver() {
-        if (mWifiReceiver != null) return;
-        mWifiReceiver = new WifiReceiver();
+        netWorkReceiver = new NetWorkReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(mWifiReceiver, filter);
+        registerReceiver(netWorkReceiver, filter);
     }
 
 
-    public void initCellularNetWork() {
+    private boolean netWorkConnectBroadConnet;
 
-        Log.d(TAG, "initCellularNetWork: ");
-        if (hasinitCellularNetWork) {
-            return;
+    private void netWorkConnectBroad() {
+        netWorkConnectBroadConnet = true;
+        if (updateUtils == null) {
+            updateUtils = new UpdateUtils(updateListener);
         }
-        hasinitCellularNetWork = true;
 
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkRequest.Builder request = new NetworkRequest.Builder();
-        request.addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-        request.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
-
-        NetworkRequest build = request.build();
-        connectivityManager.requestNetwork(build, new ConnectivityManager.NetworkCallback() {
-            public void onAvailable(Network network) {
-                networkConnect();
-            }
-
+        new Thread(new Runnable() {
             @Override
-            public void onLost(Network network) {
-                super.onLost(network);
-                Log.e(TAG, "Network  onLost: ");
-                netWorkLost();
+            public void run() {
+                int version = UpdateUtils.checkServiceVersion();
 
-                VariableInstance.getInstance().errorLogNameList.add(ErrorName.网络断开);
+                while (version == 0 && netWorkConnectBroadConnet) {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                    }
+                    version = UpdateUtils.checkServiceVersion();
+                }
+
+                mHandler.sendEmptyMessage(msg_network_available);
+
+                AppUtils.AppInfo appInfo = AppUtils.getAppInfo(MyApplication.getContext().getPackageName());
+                int appVerison = appInfo.getVersionCode();
+                Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + version);
+                runOnUiThreadText(serverVersionText, "最新版本：" + version);
+
+                if (version > appVerison) {
+                    updateUtils.startDownloadApk(version);
+                }
             }
-        });
+        }).start();
     }
 
-
-    private void networkConnect() {
-        int yymmdd = Utils.getyyMMddtringInt(System.currentTimeMillis());
-
-        if (hasSendUploadLogcatMessage && yymmdd != sendUploadLogcatMessageYMD) {
-            removeUploadLogcatMessage(11);
-            sendUploadLogcatMessage(5);
-        }
-
-        if (hasSendCloseDeviceMessage && yymmdd != sendCloseDeviceMessageYMD) {
-            removeCloseDeviceMessage(3);
-            sendCloseDeviceMessage(4, sendCloseDeviceMessageDelayTime);
-        }
-        if (hasSendWifiConnectMessage && yymmdd != sendWifiConnectMessageYMD) {
-            removeWifiConnectMessage();
-            sendWifiConnectMessage();
-        }
-        if (hasSendDelayCreateActivity && yymmdd != sendDelayCreateActivityYMD) {
-            removeDelayCreateActivity();
-            sendDelayCreateActivity(sendDelayCreateActivityDelayTime);
-        }
+    private void netWorkDissConnectBroad() {
+        Log.e(TAG, "netWorkDissConnectBroad: ");
+        netWorkConnectBroadConnet = false;
+        VariableInstance.getInstance().remoteServerAvailable = false;
+        VariableInstance.getInstance().remoteServerConnecting = false;
 
 
-        networkAvailable = true;
-        Log.e(TAG, "Network onAvailable: doingInit =" + doingInit);
-        runOnUiThreadText(isConnectNetworkText, "是否连网:true");
-        if (doingInit) {
-            return;
-        }
-        doingInit = true;
-        updateUtils.networkAvailable(MainActivity.this);
-        initAddress();
-    }
-
-    private void netWorkLost() {
-        Log.e(TAG, "netWorkLost: ");
-        mHandler.removeMessages(msg_reload_device_info);
-        networkAvailable = false;
-        doingInit = false;
         VariableInstance.getInstance().ownCloudClient = null;
         runOnUiThreadText(isConnectNetworkText, "是否连网:false");
         runOnUiThreadText(mqttStateText, "mqtt状态:false");
-        operationUtils.stopUploadThread();
+        remoteOperationUtils.stopUploadThread();
         MqttManager.getInstance().release();
         openNetworkLed(false);
         openNetworkLed(true);
         updateUtils.networkLost();
     }
+
+
+    private void networkConnect() {
+        Log.e(TAG, "networkConnect ");
+        runOnUiThreadText(isConnectNetworkText, "是否连网:true");
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    while (VariableInstance.getInstance().remoteServerConnecting) {
+                        try {
+                            Thread.sleep(3000);
+                        } catch (Exception e) {
+                        }
+                    }
+
+                    VariableInstance.getInstance().remoteServerConnecting = true;
+
+                    ServerUrlModel serverUrlModel = communication.getServerUrl();
+                    int count = 0;
+                    while ((serverUrlModel == null || serverUrlModel.responseCode != 200) && netWorkConnectBroadConnet) {
+                        count++;
+                        Log.e(TAG, "run: 访问服务器获取url失败次数 ：" + count);
+                        try {
+                            Thread.sleep(3000);
+                        } catch (Exception e) {
+                        }
+                        updateServerStateUI(false);
+                        serverUrlModel = communication.getServerUrl();
+                    }
+                    Log.e(TAG, "initAddress: serverUrlModel =" + serverUrlModel + ",访问服务器获取url失败次数：" + count);
+                    if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
+                        updateServerStateUI(false);
+                        VariableInstance.getInstance().remoteServerConnecting = false;
+                        return;
+                    }
+
+                    int deviceStyle = LocalProfileHelp.getInstance().checkDeviceStyle();
+
+                    ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                    NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+                    if (activeNetworkInfo != null && activeNetworkInfo.isConnected()) {
+                        int type = activeNetworkInfo.getType();
+                        Log.e(TAG, "initAddress run:  activeNetworkInfo.getType() =" + type);
+                        if (type == ConnectivityManager.TYPE_WIFI) {
+                            deviceStyle = 2;
+                        } else if (type == ConnectivityManager.TYPE_MOBILE) {
+                            deviceStyle = 1;
+                        }
+                    }
+
+
+                    ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                    String imei = null;
+                    if (profileModel == null) {
+                        Log.e(TAG, "initAddress run: 11无法获取到配置信息，无法通信");
+                        VariableInstance.getInstance().remoteServerConnecting = false;
+
+                        if (deviceStyle == 1) {
+                            imei = getPhoneImei();
+                        } else if (deviceStyle == 2) {
+                            try {
+                                Thread.sleep(10000);
+                                profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                            } catch (Exception e) {
+
+                            }
+
+                            if (profileModel == null) {
+                                Log.e(TAG, "initAddress run:444 无法获取到配置信息，无法通信");
+                                return;
+                            } else if (profileModel.SN == null && profileModel.imei == null) {
+                                Log.e(TAG, "initAddress run:5555 无法获取到配置信息，无法通信");
+                                return;
+                            } else {
+                                imei = profileModel.SN;
+                                if (imei == null) {
+                                    imei = profileModel.imei;
+                                }
+                            }
+                            if (imei == null) {
+                                Log.e(TAG, "initAddress run:6666 无法获取到配置信息，无法通信");
+                                return;
+                            }
+                        } else {
+                            Log.e(TAG, "initAddress run:22无法获取到配置信息，无法通信");
+                            return;
+                        }
+
+                        if (imei == null) {
+                            Log.e(TAG, "initAddress run:33 无法获取到配置信息，无法通信");
+                            return;
+                        }
+                    }
+
+                    if (deviceStyle == 1) {
+                        imei = profileModel.imei;
+                    } else if (deviceStyle == 2) {
+                        imei = profileModel.SN;
+                    }
+                    if (imei == null) {
+                        if (profileModel.imei != null) {
+                            imei = profileModel.imei;
+                        }
+                        if (profileModel.SN != null) {
+                            imei = profileModel.SN;
+                        }
+                    }
+                    if (imei == null) {
+                        Log.e(TAG, "initAddress run: 无法获取到配置信息，无法通信");
+                        VariableInstance.getInstance().remoteServerConnecting = false;
+                        return;
+                    }
+
+                    Log.e(TAG, "initAddress run: imei =" + imei);
+                    count = 0;
+
+                    DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
+
+                    while ((deviceInfoModel == null || deviceInfoModel.responseCode != 200) && netWorkConnectBroadConnet) {
+                        count++;
+                        Log.e(TAG, "run: 访问服务器获取设备信息失败次数：" + count);
+                        try {
+                            Thread.sleep(3000);
+                        } catch (Exception e) {
+                        }
+                        updateServerStateUI(false);
+                        deviceInfoModel = communication.getDeviceInfo(imei);
+                    }
+                    Log.e(TAG, "initAddress: deviceInfoModel =" + deviceInfoModel + ",访问服务器获取设备信息失败次数:" + count);
+
+                    networkUpdateUploadModel(deviceInfoModel);
+
+
+                    returnImei = deviceInfoModel.returnImei;
+                    deveceName = deviceInfoModel.deveceName;
+
+
+                    boolean mqttConnect = MqttManager.isConnected();
+                    Log.e(TAG, "run: mqttConnect =" + mqttConnect);
+                    if (!mqttConnect) {
+                        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + imei, "/camera/v1/device/" + returnImei + "/android");
+                        MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
+                    }
+                    mHandler.sendEmptyMessage(msg_activity_heart);
+
+                    VariableInstance.getInstance().ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
+                    VariableInstance.getInstance().ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
+
+                    VariableInstance.getInstance().remoteServerAvailable = remoteOperationUtils.initRemoteDir(deviceInfoModel.deveceName);
+
+                    Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().remoteServerAvailable);
+                    updateServerStateUI(VariableInstance.getInstance().remoteServerAvailable);
+                    if (VariableInstance.getInstance().remoteServerAvailable) {
+                        mHandler.removeMessages(msg_connect_server_timeout);
+                        mHandler.sendEmptyMessage(msg_connect_server_complete);
+                        removeUploadLogcatMessage(9);
+                        remoteOperationUtils.startCameraPictureUploadThread();
+                        remoteOperationUtils.startUploadTestLocatThread(false);
+                    } else {
+                        mHandler.removeMessages(msg_connect_server_timeout);
+                        mHandler.sendEmptyMessage(msg_connect_server_timeout);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "initAddress:远程连接出现异常 = " + e);
+                    updateServerStateUI(false);
+                }
+                VariableInstance.getInstance().remoteServerConnecting = false;
+            }
+        }).start();
+
+
+    }
+
 
     private void runOnUiThreadText(TextView textView, String text) {
         runOnUiThread(new Runnable() {
@@ -1016,135 +1030,34 @@ public class MainActivity extends Activity implements View.OnClickListener {
         });
     }
 
-
-    private ExecutorService initNetworkExecutorService;
-
-    private void initAddress() {
-        if (!networkAvailable) {
-            Log.e(TAG, "initAddress 网络不可用");
+    private void networkUpdateUploadModel(DeviceInfoModel deviceInfoModel) {
+        if (deviceInfoModel == null) {
+            return;
         }
+        if (deviceInfoModel.upload_index != null && !deviceInfoModel.upload_index.isEmpty() && deviceInfoModel.upload_mode != null && !deviceInfoModel.upload_mode.isEmpty()) {
+            SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+            editor.putInt("UploadMode", VariableInstance.getInstance().UploadMode);
+            editor.putString("UploadModeMessage", deviceInfoModel.upload_index);
+            editor.apply();
+            try {
+                VariableInstance.getInstance().UploadMode = Integer.parseInt(deviceInfoModel.upload_mode);
+                if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
+                    VariableInstance.getInstance().uploadSelectIndexList.clear();
+                    String[] data = deviceInfoModel.upload_index.split(",");
+                    if (data != null) {
+                        for (String datum : data) {
+                            try {
+                                VariableInstance.getInstance().uploadSelectIndexList.add(Integer.parseInt(datum));
+                            } catch (Exception e) {
 
-        getInfo();
-
-        try {
-            if (initNetworkExecutorService != null) {
-                initNetworkExecutorService.shutdown();
-            }
-        } catch (Exception e) {
-        }
-        initNetworkExecutorService = null;
-
-        initNetworkExecutorService = Executors.newSingleThreadExecutor();
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ServerUrlModel serverUrlModel = communication.getServerUrl();
-                    Log.e(TAG, "initAddress: serverUrlModel =" + serverUrlModel);
-                    if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
-                        Log.e(TAG, "run: initAddress 无法获取服务器地址");
-                        mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
-                        updateServerStateUI(false);
-                        return;
-                    }
-
-                    String imei = getPhoneImei(false);
-                    if ("0".equals(imei)) {
-                        imei = getPhoneImei(true);
-                    }
-
-                    DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
-
-
-                    if (deviceInfoModel == null || deviceInfoModel.responseCode != 200) {
-                        Log.e(TAG, "run: initAddress 无法获取服务器设备信息");
-                        mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
-                        updateServerStateUI(false);
-                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法获取服务器设备信息);
-                        return;
-                    }
-
-                    mHandler.removeMessages(msg_reload_device_info);
-
-                    Log.e(TAG, "initAddress: deviceInfoModel =" + deviceInfoModel);
-
-                    returnImei = deviceInfoModel.returnImei;
-                    deveceName = deviceInfoModel.deveceName;
-                    EventBus.getDefault().post(return2GImei);
-
-                    if (deviceInfoModel.upload_index != null && !deviceInfoModel.upload_index.isEmpty() && deviceInfoModel.upload_mode != null && !deviceInfoModel.upload_mode.isEmpty()) {
-                        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-                        editor.putInt("UploadMode", VariableInstance.getInstance().UploadMode);
-                        editor.putString("UploadModeMessage", deviceInfoModel.upload_index);
-                        editor.apply();
-                        try {
-                            VariableInstance.getInstance().UploadMode = Integer.parseInt(deviceInfoModel.upload_mode);
-                            if (VariableInstance.getInstance().UploadMode == 3 || VariableInstance.getInstance().UploadMode == 4) {
-                                VariableInstance.getInstance().uploadSelectIndexList.clear();
-                                String[] data = deviceInfoModel.upload_index.split(",");
-                                if (data != null && data.length > 0) {
-                                    for (String datum : data) {
-                                        try {
-                                            VariableInstance.getInstance().uploadSelectIndexList.add(Integer.parseInt(datum));
-                                        } catch (Exception e) {
-
-                                        }
-                                    }
-                                }
                             }
-                        } catch (Exception e) {
-
                         }
                     }
-
-
-                    VariableInstance.getInstance().ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
-                    VariableInstance.getInstance().ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
-
-
-                    VariableInstance.getInstance().isConnectedRemote = operationUtils.initRemoteDir(deviceInfoModel.deveceName);
-                    Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().isConnectedRemote);
-                    updateServerStateUI(VariableInstance.getInstance().isConnectedRemote);
-                    if (VariableInstance.getInstance().isConnectedRemote) {
-                        removeUploadLogcatMessage(9);
-                        mHandler.removeMessages(msg_reload_device_info);
-                        operationUtils.startCameraPictureUploadThread();
-                        operationUtils.startUploadTestLocatThread(false);
-
-
-                    } else {
-                        Log.e(TAG, "initAddress:   配置远程服务器失败，延时10s后继续访问尝试 ");
-                        VariableInstance.getInstance().errorLogNameList.add(ErrorName.配置远程服务器失败延时10s后继续访问尝试);
-                        mHandler.removeMessages(msg_reload_device_info);
-                        mHandler.sendEmptyMessageDelayed(msg_reload_device_info, 10000);
-                    }
-
-
-                } catch (Exception e) {
-                    Log.e(TAG, "initAddress:远程连接出现异常 = " + e);
-                    VariableInstance.getInstance().errorLogNameList.add(ErrorName.远程连接出现异常 + ":" + e.toString());
-                    updateServerStateUI(false);
-                    doingInit = false;
                 }
+            } catch (Exception e) {
+
             }
-        };
-
-        initNetworkExecutorService.execute(runnable);
-    }
-
-
-    private void initMqtt() {
-        if (phoneImei == null) {
-            phoneImei = uuidString;
         }
-
-        Log.e(TAG, "initMqtt: returnImei =" + returnImei + ",phoneImei =" + phoneImei);
-
-        MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + phoneImei, "/camera/v1/device/" + returnImei + "/android");
-
-        MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
     }
 
 
@@ -1157,22 +1070,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (receiverStoreUSB != null) {
             unregisterReceiver(receiverStoreUSB);
         }
-        if (mWifiReceiver != null) {
-            unregisterReceiver(mWifiReceiver);
+        if (netWorkReceiver != null) {
+            unregisterReceiver(netWorkReceiver);
         }
 
         mHandler.removeCallbacksAndMessages(null);
 
         openCameraDeviceProt(false);
-        if (operationUtils != null) operationUtils.stopUploadThread();
+        if (remoteOperationUtils != null) remoteOperationUtils.stopUploadThread();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
         EventBus.getDefault().unregister(this);
         MqttManager.getInstance().release();
-
-        hasinitCellularNetWork = false;
-        networkAvailable = false;
 
         LogcatHelper.getInstance().stopTestLogcat();
         LogcatHelper.getInstance().stopMainLogcat();
@@ -1198,8 +1108,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void receiveMqttMessage(String message) {
         if (message == null) return;
-
-        Log.d(TAG, "receiveMqttMessage: message =" + message);
 
         mqttStateText.setText("mqtt状态:true");
         if (message.contains(UploadMode3)) {
@@ -1253,9 +1161,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 getInfo();
                 sendMessageToMqtt("ZQ\r\n");
                 break;
-            case return2GImei:
-                initMqtt();
-                break;
             case AppShutdownAck:
                 AppShutdownAck();
                 break;
@@ -1274,15 +1179,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
             break;
             case Set_UploadLocat:
-                if (operationUtils != null) {
-                    operationUtils.startUploadMainLocatThread(false);
+                if (remoteOperationUtils != null) {
+                    remoteOperationUtils.startUploadMainLocatThread(false);
                 }
                 break;
             case Set_ResetApk: {
                 if (!isUpdating) {
-                    if (receiverStoreUSB != null) {
-                        receiverStoreUSB.usbDissConnect(receiverStoreUSB.mUsbDevice);
-                    }
                     restartDevice();
                 }
             }
@@ -1311,6 +1213,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case Update_InstallAPKFaild:
                 sendMessageToMqtt(Update_InstallAPKFaild);
                 break;
+            case Debug_finish:
+                finish();
+                break;
+            case Debug_reset:
+                LocalProfileHelp.getInstance().resetBackup();
+                break;
         }
     }
 
@@ -1323,10 +1231,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return;
         }
         VariableInstance.getInstance().isUpdatingBetaApk = true;
-
-        if (networkAvailable) {
-            updateUtils.checkBetaApk(MainActivity.this);
+        if (updateUtils == null) {
+            updateUtils = new UpdateUtils(updateListener);
         }
+        updateUtils.checkBetaApk(MainActivity.this);
+
     }
 
     private void AppShutdownAck() {
@@ -1346,34 +1255,23 @@ public class MainActivity extends Activity implements View.OnClickListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-
-
-                while (VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isDownloadingUSB || VariableInstance.getInstance().isScanningStoreUSB) {
-
+                while (VariableInstance.getInstance().isOperationCamera || VariableInstance.getInstance().isScanningStoreUSB) {
                     try {
                         Log.e(TAG, "run: 等待格式化");
                         Thread.sleep(2000);
                     } catch (InterruptedException e) {
 
                     }
-
                 }
-
                 openCameraDeviceProt(false);
                 Log.e(TAG, "formatUSB: start .......................................");
                 VariableInstance.getInstance().isFormatingUSB.formatState = all ? 1 : 2;
                 runOnUiThreadText(formatUSBt, "开始删除USB图片");
 
-                if (VariableInstance.getInstance().usbFileNameList.size() > 0) {
-                    VariableInstance.getInstance().copyReferenceDate = VariableInstance.getInstance().usbFileNameList.get(0);
-                    saveCopyReferenceDate(VariableInstance.getInstance().copyReferenceDate);
+
+                if (remoteOperationUtils != null) {
+                    remoteOperationUtils.stopUploadThread();
                 }
-
-
-                VariableInstance.getInstance().usbFileNameList.clear();
-
-
-                if (operationUtils != null) operationUtils.stopUploadThread();
 
                 if (receiverStoreUSB != null) {
 
@@ -1393,9 +1291,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
                 Utils.resetDir(VariableInstance.getInstance().LogcatDir);
 
-                if (receiverCamera != null) {
-                    receiverCamera.storeUSBDetached();
-                }
+
                 VariableInstance.getInstance().isFormatingUSB.formatState = 0;
                 if (isUpdating) {
                     return;
@@ -1428,7 +1324,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (receiverCamera != null) {
                     receiverCamera.formatCamera();
                 }
-
                 sendCloseDeviceMessage(3, CLOSE_DEVICE_DELAY_TIME);
                 openCameraDeviceProt(false);
                 openCameraDeviceProt(true);
@@ -1443,7 +1338,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void sendMessageToMqtt(String message) {
-        Log.d(TAG, "sendMessageToMqtt: message =" + message);
         if (returnImei != null) {
             MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
         }
@@ -1538,14 +1432,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private int capacity = 0;
     private int freeSpace = 0;
-    private int UpanPictureCount = 0;
+
     private long UploadUseTime;
     private String UploadSpeed;
 
     private String serverGetInfo() {
         int capacityA = 0;
         int freeSpaceA = 0;
-        int PhotoSumA = 0;
+
 
         if (receiverStoreUSB != null) {
             capacityA = receiverStoreUSB.getStoreUSBCapacity();
@@ -1557,10 +1451,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 freeSpace = freeSpaceA;
             }
 
-            PhotoSumA = VariableInstance.getInstance().LastPictureCount;
-            if (PhotoSumA != 0) {
-                UpanPictureCount = PhotoSumA;
-            }
         }
 
         String uploadModelString;
@@ -1595,7 +1485,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         if (copySpeed == null) copySpeed = "0";
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + UpanPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + VariableInstance.getInstance().isInitUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (operationUtils == null ? 0 : operationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().downdCameraPicrureNum + ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + VariableInstance.getInstance().currentUSBPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (remoteOperationUtils == null ? 0 : remoteOperationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().backupPicrureNum + ";";
         return info;
     }
 
@@ -1639,53 +1529,23 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-
-    String phoneImei;
-
     @SuppressLint("HardwareIds")
-    private String getPhoneImei(boolean init) {
-        Log.e(TAG, "getPhoneImei: init =" + init);
-        String imei = "0";
-        if (init) {
-            try {
-                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                imei = telephonyManager.getDeviceId();
-                Log.d(TAG, "getPhoneImei:1111 imei =" + imei);
-                if (imei == null) {
-                    imei = "0";
-                }
-                Log.d(TAG, "getPhoneImei:2222 imei =" + imei);
-            } catch (Exception | Error e) {
-                Log.e(TAG, "getPhoneImei:3333 Exception =" + e);
-                imei = "0";
-            }
-        } else {
-            DeviceModel deviceModel = getDeviceModel();
-            if (deviceModel == null || deviceModel.SN == null || deviceModel.SN.length() == 0) {
-                imei = "0";
-                Log.e(TAG, "getPhoneImei: 444444");
-            } else {
-                imei = deviceModel.SN;
-            }
+    private String getPhoneImei() {
+        String imei = null;
+        try {
+            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            imei = telephonyManager.getDeviceId();
+        } catch (Exception | Error e) {
+            Log.e(TAG, "getPhoneImei: Exception =" + e);
         }
-        Log.d(TAG, "getPhoneImei:555555 imei =" + imei);
-
-        if (debug) imei = "867706050952138";
-
-        if (!"0".equals(imei)) {
-            runOnUiThreadText(accessNumberText, "入网号:" + imei);
-        } else {
-            VariableInstance.getInstance().errorLogNameList.add(ErrorName.无法获取设备IEMI);
-        }
-
-        phoneImei = imei;
+        if (debug) imei = "202302050000001";
         return imei;
     }
 
 
     private void openCameraDeviceProt(boolean open) {
         Log.e(TAG, "openCameraDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
-        if (openDeviceProtFlag == true && open) return;
+        if (openDeviceProtFlag && open) return;
 
         openDeviceProtFlag = open;
         runOnUiThreadText(cameraStateText, "相机状态:" + openDeviceProtFlag);
@@ -1743,26 +1603,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
             formatUSB(true);
         } else if (view.getId() == R.id.formatCameraBt) {
             formatCamera(true);
-        } else if (view.getId() == R.id.catErrorLogcat) {
-            messageTextString = "";
-            try {
-                for (String error : VariableInstance.getInstance().errorLogNameList) {
-                    messageTextString = messageTextString + "\n" + error + "\n";
-                    messageText.setText(messageTextString);
-                }
-            } catch (Exception e) {
-            }
         }
     }
 
 
-    class DeviceModel {
-        public String wifi;
-        public String pass;
-        public String SN;
-    }
-
-    private DeviceModel parseUSBFile(UsbFile wifiConfigurationFile) {
+    private ProfileModel parseUSBFile(UsbFile wifiConfigurationFile) {
+        if (wifiConfigurationFile == null) {
+            return null;
+        }
         InputStream instream = null;
         String wifiName = null;
         String pass = null;
@@ -1823,74 +1671,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
         if (wifiName == null || SN == null) return null;
 
-        DeviceModel deviceModel = new DeviceModel();
+        ProfileModel deviceModel = new ProfileModel();
         deviceModel.wifi = wifiName;
         deviceModel.pass = pass;
         deviceModel.SN = SN;
-        return deviceModel;
-    }
-
-
-    private void saveCopyReferenceDate(String copyReferenceDate) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putString("copyReferenceDate", copyReferenceDate);
-        editor.apply();
-    }
-
-    private void getCopyReferenceDate() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        VariableInstance.getInstance().copyReferenceDate = sharedPreferences.getString("copyReferenceDate", null);
-    }
-
-    private void saveDeviceStyle(int style) {
-        if (debug) style = 1;
-
-        VariableInstance.getInstance().deviceStyle = style;
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putInt("devicestyle", style);
-        editor.apply();
-    }
-
-    private int getDeviceStyle() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        int style = sharedPreferences.getInt("devicestyle", 0);
-
-        if (debug) style = 1;
-
-        VariableInstance.getInstance().deviceStyle = style;
-
-
-        return style;
-    }
-
-    private void saveDeviceModel(DeviceModel deviceModel) {
-        if (deviceModel == null) return;
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putString("wifiName", deviceModel.wifi);
-        editor.putString("wifiPass", deviceModel.pass);
-        editor.putString("deviceSN", deviceModel.SN);
-        editor.apply();
-    }
-
-    private DeviceModel getDeviceModel() {
-
-        if (debug) {
-            DeviceModel deviceModel = new DeviceModel();
-            deviceModel.SN = "867706050952138";
-            return deviceModel;
-        }
-
-
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        String wifiName = sharedPreferences.getString("wifiName", null);
-        String wifiPass = sharedPreferences.getString("wifiPass", null);
-        String deviceSN = sharedPreferences.getString("deviceSN", null);
-
-        if (wifiName == null) return null;
-        DeviceModel deviceModel = new DeviceModel();
-        deviceModel.wifi = wifiName;
-        deviceModel.pass = wifiPass;
-        deviceModel.SN = deviceSN;
         return deviceModel;
     }
 
@@ -1927,7 +1711,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             VariableInstance.getInstance().uploadSelectIndexList.clear();
             String[] data = mssage.split(",");
-            if (data != null && data.length > 0) {
+            if (data != null) {
                 for (String datum : data) {
                     try {
                         VariableInstance.getInstance().uploadSelectIndexList.add(Integer.parseInt(datum));
@@ -1944,13 +1728,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         boolean canCloseDevice;
 
 
-        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 " + ",isUploadingToRemote=" + VariableInstance.getInstance().isUploadingToRemote + ",isScanningCamera =" + VariableInstance.getInstance().isScanningCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB + ",isDownloadingUSB=" + VariableInstance.getInstance().isDownloadingUSB + ",pictureIsThreadStop=" + operationUtils.pictureIsThreadStop + ",initingUSB=" + VariableInstance.getInstance().initingUSB + ",isUpdating=" + isUpdating);
+        Log.e(TAG, "canCloseDevice: 是否可以关闭设备 " + ",isUploadingToRemote=" + VariableInstance.getInstance().isUploadingToRemote + ",isOperationCamera =" + VariableInstance.getInstance().isOperationCamera + ",isScanningStoreUSB =" + VariableInstance.getInstance().isScanningStoreUSB + ",isUpdating=" + isUpdating + ",remoteServerConnecting=" + VariableInstance.getInstance().remoteServerConnecting);
 
-        if (VariableInstance.getInstance().isUploadingToRemote || VariableInstance.getInstance().isScanningCamera || VariableInstance.getInstance().isScanningStoreUSB || VariableInstance.getInstance().isDownloadingUSB || !operationUtils.pictureIsThreadStop || VariableInstance.getInstance().initingUSB || isUpdating) {
-            canCloseDevice = false;
-        } else {
-            canCloseDevice = true;
-        }
+        canCloseDevice = !VariableInstance.getInstance().isUploadingToRemote && !VariableInstance.getInstance().isOperationCamera && !VariableInstance.getInstance().isScanningStoreUSB && remoteOperationUtils.pictureIsThreadStop && !isUpdating && !VariableInstance.getInstance().remoteServerConnecting;
         Log.e(TAG, "canCloseDevice: 是否可以关闭设备 =" + canCloseDevice);
         return canCloseDevice;
     }
@@ -2036,43 +1816,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void wifiEnabledBroadcast() {
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if (wifiManager == null) return;
-        DeviceModel deviceModelConnect = getDeviceModel();
-        if (deviceModelConnect == null) {
-            Log.e(TAG, "onReceive: WIFI_STATE_ENABLED deviceModelConnect = null");
-            return;
-        }
-        if (deviceModelConnect.wifi != null) {
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(deviceModelConnect.wifi)) {
-                Log.e(TAG, "initStoreUSBComplete: 当前自动链接上WiFi " + wifiInfo.getSSID());
-                mHandler.removeMessages(msg_wifi_disconnected);
-                removeWifiConnectMessage();
-                sendWifiConnectMessage();
-
-                return;
-            }
-            if (deviceModelConnect.pass == null) {
-                connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-            } else {
-                if (deviceModelConnect.pass.length() == 0) {
-                    connectWifiNoPws(deviceModelConnect.wifi, wifiManager);
-                } else {
-                    connectWifiPws(deviceModelConnect.wifi, deviceModelConnect.pass, wifiManager);
-                }
-            }
-        } else {
-            Log.e(TAG, "WIFI_STATE_ENABLED: 当前配置的WiFi文件有错");
-        }
-
-    }
-
-    private class WifiReceiver extends BroadcastReceiver {
+    private class NetWorkReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-
             Bundle bundle = intent.getExtras();
             int statusInt = bundle.getInt("wifi_state");
             switch (statusInt) {
@@ -2082,7 +1828,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            wifiEnabledBroadcast();
+                            checkProfileFileMain(null, 3);
                         }
                     }).start();
                     break;
@@ -2096,35 +1842,38 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
-                    Log.d(TAG, "onReceive: 断开wifi  ");
-                    mHandler.removeMessages(msg_wifi_disconnected);
-                    removeWifiConnectMessage();
-                    sendWifiConnectMessage();
+                    Log.d(TAG, "NetWorkReceiver: 网络断开广播");
+                    mHandler.removeMessages(msg_network_connect);
+                    mHandler.removeMessages(msg_network_disconnect);
                 } else if (info.getState().equals(NetworkInfo.State.CONNECTED)) {
-                    if (info.getType() == ConnectivityManager.TYPE_WIFI) {
-                        Log.d(TAG, "onReceive: 连接wifi ");
-                        mHandler.removeMessages(msg_wifi_disconnected);
-                        removeWifiConnectMessage();
-                        sendWifiConnectMessage();
-                    }
+                    Log.d(TAG, "NetWorkReceiver: 网络连接广播");
+                    mHandler.removeMessages(msg_network_connect);
+                    mHandler.sendEmptyMessageDelayed(msg_network_connect, 2000);
                 }
             }
         }
     }
 
 
-    private static final int msg_reload_device_info = 1;
     private static final int msg_start_upload_local_logcat_to_remote = 2;
     private static final int msg_send_ShutDown = 3;
-    private static final int msg_wifi_disconnected = 5;
-    private static final int msg_wifi_connected = 6;
+    private static final int msg_network_connect = 4;
+    private static final int msg_network_disconnect = 5;
+    private static final int msg_network_available = 6;
+
     private static final int msg_delay_creta_acitivity = 7;
     private static final int msg_delay_open_device_prot = 8;
     private static final int msg_usb_init_faild_delay = 9;
     private static final int msg_open_device_timeout = 10;
 
+    private static final int msg_connect_server_timeout = 11;
+    private static final int msg_connect_server_complete = 12;
+
+    private static final int msg_activity_heart = 13;
+
+
     private static class MyHandler extends Handler {
-        private WeakReference<MainActivity> weakReference;
+        private final WeakReference<MainActivity> weakReference;
 
         MyHandler(MainActivity activity) {
             weakReference = new WeakReference<>(activity);
@@ -2137,39 +1886,36 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 return;
             }
             switch (msg.what) {
-                case msg_reload_device_info:
-                    activity.initAddress();
-                    break;
-
                 case msg_start_upload_local_logcat_to_remote:
-                    activity.hasSendUploadLogcatMessage = false;
                     if (activity.canCloseDevice()) {
-                        activity.operationUtils.startUploadMainLocatThread(true);
+                        activity.remoteOperationUtils.startUploadMainLocatThread(true);
                     } else {
                         activity.removeUploadLogcatMessage(10);
                         activity.sendUploadLogcatMessage(6);
                     }
                     break;
                 case msg_send_ShutDown:
-                    activity.hasSendCloseDeviceMessage = false;
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-
+                    if (true)//TODO hu
+                    {
+                        activity.sendMessageToMqtt("测试阶段，不关机");
+                        return;
+                    }
                     Utils.closeAndroid();
                     break;
-                case msg_wifi_disconnected:
-                    activity.netWorkLost();
+                case msg_network_connect:
+                    activity.netWorkConnectBroad();
                     break;
-                case msg_wifi_connected:
+                case msg_network_disconnect:
+                    activity.netWorkDissConnectBroad();
+                    break;
+                case msg_network_available:
                     activity.networkConnect();
-                    activity.hasSendWifiConnectMessage = false;
                     break;
+
                 case msg_delay_creta_acitivity:
-                    activity.hasSendDelayCreateActivity = false;
                     activity.delayCreate();
-                    break;
-                case msg_delay_open_device_prot:
-                    activity.openCameraDeviceProt(true);
                     break;
                 case msg_usb_init_faild_delay:
                     activity.initUSBFaild();
@@ -2179,7 +1925,86 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         activity.receiverCamera.openDeviceTimeOut();
                     }
                     break;
+
+                case msg_delay_open_device_prot:
+                    activity.openCameraDeviceProt(true);
+                    break;
+                case msg_connect_server_timeout:
+                    activity.openCameraDeviceProt(true);
+                    break;
+                case msg_connect_server_complete:
+                    activity.openCameraDeviceProt(true);
+                    break;
+                case msg_activity_heart:
+                    int isAppRunning = 0;
+                    int uid = getPackageUid(activity, apkServerPackageName);
+                    if (uid > 0) {
+                        boolean rstA = isAppRunning(activity, apkServerPackageName);
+                        boolean rstB = isProcessRunning(activity, uid);
+                        if (rstA || rstB) {
+                            isAppRunning = 1;
+                        } else {
+                            //指定包名的程序未在运行中
+                            isAppRunning = 2;
+                        }
+                    } else {
+                        //应用未安装
+                        isAppRunning = 3;
+                    }
+                    activity.mHandler.sendEmptyMessageDelayed(msg_activity_heart, 5000);
+                    activity.sendMessageToMqtt("应用心跳包,isAppRunning =" + isAppRunning + ";");
+                    break;
             }
         }
     }
+
+
+    public static boolean isAppRunning(Context context, String packageName) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> list = am.getRunningTasks(100);
+        if (list.size() <= 0) {
+            return false;
+        }
+        for (ActivityManager.RunningTaskInfo info : list) {
+            if (info.baseActivity.getPackageName().equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int getPackageUid(Context context, String packageName) {
+        try {
+            ApplicationInfo applicationInfo = context.getPackageManager().getApplicationInfo(packageName, 0);
+            if (applicationInfo != null) {
+                Log.d(TAG, "getPackageUid: " + applicationInfo.uid);
+                return applicationInfo.uid;
+            }
+        } catch (Exception e) {
+            return -1;
+        }
+        return -1;
+    }
+
+    /**
+     * 判断某一 uid 的程序是否有正在运行的进程，即是否存活
+     * Created by cafeting on 2017/2/4.
+     *
+     * @param context 上下文
+     * @param uid     已安装应用的 uid
+     * @return true 表示正在运行，false 表示没有运行
+     */
+    public static boolean isProcessRunning(Context context, int uid) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> runningServiceInfos = am.getRunningServices(200);
+        if (runningServiceInfos.size() > 0) {
+            for (ActivityManager.RunningServiceInfo appProcess : runningServiceInfos) {
+                if (uid == appProcess.uid) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }

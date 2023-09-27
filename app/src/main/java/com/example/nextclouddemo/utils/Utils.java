@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Utils {
-    private static final String TAG = "MainActivitylog";
+    private static final String TAG = "remotelog_Utils";
     private static final long minMemory = 1024 * 1024 * 500;
 
     public static void checkSDAvailableSize() {
@@ -237,13 +237,12 @@ public class Utils {
             os.close();
             suProcess.waitFor();
         } catch (IOException | InterruptedException e) {
-             Log.e(TAG, "formatUSB: e ="+e );
+            Log.e(TAG, "formatUSB: e =" + e);
         }
     }
 
 
-
-    public static void test( ) {
+    public static void test() {
         String usbDevicePath = "/dev/sdX1";  // 替换为你的 U 盘设备路径
         String mountPoint = "/mnt/usb";  // 替换为你的挂载点路径
 

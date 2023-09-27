@@ -16,7 +16,7 @@ import java.net.URL;
 
 public class Communication {
 
-    private static final String TAG = "MainActivitylog";
+    private static final String TAG = "remotelog_Communication";
 
     public Communication() {
 
@@ -75,7 +75,7 @@ public class Communication {
                 buffer.append(line);
             }
             String content = buffer.toString();
-            Log.d(TAG, "run:getAccout content = " + content);
+
             JSONObject jsonObject = new JSONObject(content);
             JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
             jsonObject = new JSONObject(jsonArray.getString(0));

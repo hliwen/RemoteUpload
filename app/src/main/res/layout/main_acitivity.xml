@@ -279,11 +279,7 @@
             android:layout_height="wrap_content"
             android:text="@string/formatcamera" />
 
-        <Button
-            android:id="@+id/catErrorLogcat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/catErrorLog" />
+
     </LinearLayout>
 
     <ScrollView
