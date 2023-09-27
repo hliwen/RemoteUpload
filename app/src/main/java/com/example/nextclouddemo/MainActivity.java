@@ -493,13 +493,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 
             Log.d(TAG, "checkProfileFile: .....................................");
-            checkProfileFileMain(wifiConfigurationFile, 1);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    checkProfileFileMain(wifiConfigurationFile, 1);
+                }
+            }).start();
 
         }
     };
 
     private void checkProfileFileMain(UsbFile wifiConfigurationFile, int position) {
-        Log.e(TAG, "checkProfileFileMain: position =" + position + ",wifiConfigurationFile =" + wifiConfigurationFile);
+        Log.e(TAG, "checkProfileFileMain: start  position =" + position + ",wifiConfigurationFile =" + wifiConfigurationFile);
         ProfileModel profileModel = null;
         int deviceStyle = LocalProfileHelp.getInstance().checkDeviceStyle();
         if (deviceStyle == 1 || deviceStyle == 0) {//蜂窝版
@@ -526,7 +531,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析");
                     profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
                     if (profileModel == null) {
-                        Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析,本地也没有保存");
+                        Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析,本地也没有保存 position ="+position);
                         return;
                     }
                 } else {
@@ -548,7 +553,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析");
                 profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
                 if (profileModel == null) {
-                    Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析,本地也没有保存");
+                    Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析,本地也没有保存 positon="+position);
                     return;
                 }
             } else {
@@ -561,7 +566,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         if (profileModel == null) {
-            Log.e(TAG, "checkProfileFileMain: iemi无法读取,配置文件也无法解析,本地也没有保存,不执行联网 mqtt 无法通信");
+            Log.e(TAG, "checkProfileFileMain: iemi无法读取,配置文件也无法解析,本地也没有保存,不执行联网 mqtt 无法通信 posion ="+position);
             return;
         }
 
@@ -572,7 +577,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (wifiEnable) {
                     WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                     if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(profileModel.wifi)) {
-                        Log.e(TAG, "checkProfileFileMain: 当前自动链接上WiFi " + wifiInfo.getSSID());
+                        Log.e(TAG, "checkProfileFileMain: 当前自动链接上WiFi " + wifiInfo.getSSID()+",position="+position);
                         return;
                     }
                     if (profileModel.pass == null) {
@@ -589,6 +594,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
             }
         }
+
+        Log.e(TAG, "checkProfileFileMain: end  position =" + position + ",wifiConfigurationFile =" + wifiConfigurationFile);
     }
 
     private void initUSBFaild() {
