@@ -531,7 +531,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析");
                     profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
                     if (profileModel == null) {
-                        Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析,本地也没有保存 position ="+position);
+                        Log.e(TAG, "checkProfileFileMain: 读取不到imei,配置文件也无法解析,本地也没有保存 position =" + position);
                         return;
                     }
                 } else {
@@ -553,7 +553,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析");
                 profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
                 if (profileModel == null) {
-                    Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析,本地也没有保存 positon="+position);
+                    Log.e(TAG, "checkProfileFileMain: 配置文件也无法解析,本地也没有保存 positon=" + position);
                     return;
                 }
             } else {
@@ -566,7 +566,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         if (profileModel == null) {
-            Log.e(TAG, "checkProfileFileMain: iemi无法读取,配置文件也无法解析,本地也没有保存,不执行联网 mqtt 无法通信 posion ="+position);
+            Log.e(TAG, "checkProfileFileMain: iemi无法读取,配置文件也无法解析,本地也没有保存,不执行联网 mqtt 无法通信 posion =" + position);
             return;
         }
 
@@ -577,7 +577,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (wifiEnable) {
                     WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                     if (wifiInfo != null && wifiInfo.getSSID() != null && wifiInfo.getSSID().contains(profileModel.wifi)) {
-                        Log.e(TAG, "checkProfileFileMain: 当前自动链接上WiFi " + wifiInfo.getSSID()+",position="+position);
+                        Log.e(TAG, "checkProfileFileMain: 当前自动链接上WiFi " + wifiInfo.getSSID() + ",position=" + position);
                         return;
                     }
                     if (profileModel.pass == null) {
@@ -1958,7 +1958,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         //应用未安装
                         isAppRunning = 3;
                     }
-                    activity.mHandler.sendEmptyMessageDelayed(msg_activity_heart, 5000);
+                    activity.mHandler.sendEmptyMessageDelayed(msg_activity_heart, 10000);
                     activity.sendMessageToMqtt("应用心跳包,isAppRunning =" + isAppRunning + ";");
                     break;
             }
@@ -1984,7 +1984,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         try {
             ApplicationInfo applicationInfo = context.getPackageManager().getApplicationInfo(packageName, 0);
             if (applicationInfo != null) {
-                Log.d(TAG, "getPackageUid: " + applicationInfo.uid);
                 return applicationInfo.uid;
             }
         } catch (Exception e) {
