@@ -16,9 +16,12 @@ import com.example.nextclouddemo.utils.Utils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -175,7 +178,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
     }
 
     private void usbConnect(UsbDevice usbDevice) {
-        Log.d(TAG, "usbConnect: start ...................... " );
+        Log.d(TAG, "usbConnect: start ...................... ");
         if (usbDevice == null) {
             Log.e(TAG, "usbConnect: usbDevice == null");
             return;
@@ -229,7 +232,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         Log.e(TAG, "usbConnect: 当前设设备为U盘");
                         UsbMassStorageDevice device = getUsbMass(usbDevice);
                         if (device == null) {
-                           Log.d(TAG, "run: usbConnect continue 111111111");
+                            Log.d(TAG, "run: usbConnect continue 111111111");
                             continue;
                         }
                         try {
@@ -256,7 +259,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                                 } else if (usbFileItem.getName().contains(VariableInstance.getInstance().LogcatDirName)) {
                                     storeUSBLogcatDirUsbFile = usbFileItem;
                                 } else if (usbFileItem.getName().contains(VariableInstance.getInstance().wifiConfigurationFileName)) {
-                                     Log.d(TAG, "usbConnect run: 找到配置文件 start");
+                                    Log.d(TAG, "usbConnect run: 找到配置文件 start");
                                     if (storeUSBListener != null) {
                                         storeUSBListener.checkProfileFile(usbFileItem);
                                     }
@@ -281,7 +284,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                             storeUSBFileSystem = fileSystem;
                             VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
 
-                            Log.d(TAG, "run:usbConnect storeUSBDeviceID = "+ VariableInstance.getInstance().storeUSBDeviceID );
+                            Log.d(TAG, "run:usbConnect storeUSBDeviceID = " + VariableInstance.getInstance().storeUSBDeviceID);
 
                         } catch (Exception e) {
                             Log.e(TAG, "usbConnect 111 Exception =" + e);
@@ -354,7 +357,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             return;
         }
 
-        List<String> picturePathList = new ArrayList<>();
+        List<String> picturePathList = Collections.synchronizedList(new ArrayList<>());
         if (storeUSBPictureDirUsbFile != null) {
             try {
                 UsbFile[] dateFileList = storeUSBPictureDirUsbFile.listFiles();
@@ -385,31 +388,52 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
         }
         VariableInstance.getInstance().currentUSBPictureCount = picturePathList.size();
-        Log.e(TAG, "intiBackupUSBPictureList: U盘当前照片张数：" + picturePathList.size());
+        Log.e(TAG, "intiBackupUSBPictureList: U盘当前照片张数：" + VariableInstance.getInstance().currentUSBPictureCount);
 
         if (storeUSBListener != null) {
-            storeUSBListener.storeUSBPictureCount(picturePathList.size());
+            storeUSBListener.storeUSBPictureCount(VariableInstance.getInstance().currentUSBPictureCount);
+        }
+
+        if (storeUSBPictureDirUsbFile != null && VariableInstance.getInstance().cyclicDeletion && VariableInstance.getInstance().currentUSBPictureCount > VariableInstance.getInstance().MAX_NUM) {
+            Collections.sort(picturePathList, new NewToOldComparator());
+            List<String> delectList = picturePathList.subList(VariableInstance.getInstance().MAX_NUM, picturePathList.size());
+            cyclicDeletionPicture(delectList);
+        }
+    }
+
+    public class NewToOldComparator implements Comparator<String> {
+        @Override
+        public int compare(String o1, String o2) {
+            return o2.compareTo(o1);
         }
     }
 
 
-    private void delectUSBPicture(UsbFile usbFile, Vector<String> delectPicturePathList) {
-
-        try {
-            UsbFile[] usbFileList = usbFile.listFiles();
-            for (UsbFile usbFileItem : usbFileList) {
-                if (usbFileItem.isDirectory()) {
-                    delectUSBPicture(usbFileItem, delectPicturePathList);
-                } else {
-                    String name = usbFileItem.getName();
-                    if (delectPicturePathList.contains(name)) {
-                        usbFileDelete(usbFileItem);
+    public void cyclicDeletionPicture(List<String> delectList) {
+        if (storeUSBPictureDirUsbFile != null && delectList != null && delectList.size() > 0) {
+            try {
+                UsbFile[] dateFileList = storeUSBPictureDirUsbFile.listFiles();
+                for (UsbFile dateUsbFile : dateFileList) {
+                    if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
+                        return;
+                    }
+                    if (dateUsbFile.isDirectory()) {
+                        UsbFile[] pictureFileList = dateUsbFile.listFiles();
+                        for (UsbFile pictureUsbFile : pictureFileList) {
+                            if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
+                                return;
+                            }
+                            String name = pictureUsbFile.getName();
+                            if (name != null && delectList.contains(name)) {
+                                usbFileDelete(pictureUsbFile);
+                            }
+                        }
                     }
                 }
+            } catch (Exception e) {
             }
-        } catch (Exception e) {
-
         }
+
     }
 
     private void usbFileDelete(UsbFile usbFile) {
