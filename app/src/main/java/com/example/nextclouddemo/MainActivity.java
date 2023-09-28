@@ -61,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -209,6 +210,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
         return false;
     }
 
+    private void uninstallapk() {
+        Process process = null;
+        DataOutputStream dataOutputStream = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            String command = "pm uninstall com.remoteupload.apkserver" + "\n";
+            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            dataOutputStream.flush();
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
+
     private void installAPKServer() {
         new Thread(new Runnable() {
             @Override
@@ -247,11 +273,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                             sendDelayCreateActivity(3000);
                         } else {
                             Log.e(TAG, "installAPKServer: 安装服务apk失败");
+                            uninstallapk();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
+                        uninstallapk();
                         removeDelayCreateActivity();
                         sendDelayCreateActivity(3000);
                     } finally {
@@ -282,7 +310,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mHandler = new MyHandler(MainActivity.this);
 
         removeDelayCreateActivity();
-        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 0) {
+        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 230927) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -994,7 +1022,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + imei, "/camera/v1/device/" + returnImei + "/android");
                         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
                     }
-                    mHandler.sendEmptyMessage(msg_activity_heart);
+
 
                     VariableInstance.getInstance().ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, MainActivity.this, true);
                     VariableInstance.getInstance().ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
@@ -1876,8 +1904,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_connect_server_timeout = 11;
     private static final int msg_connect_server_complete = 12;
 
-    private static final int msg_activity_heart = 13;
-
 
     private static class MyHandler extends Handler {
         private final WeakReference<MainActivity> weakReference;
@@ -1942,75 +1968,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_connect_server_complete:
                     activity.openCameraDeviceProt(true);
                     break;
-                case msg_activity_heart:
-                    int isAppRunning = 0;
-                    int uid = getPackageUid(activity, apkServerPackageName);
-                    if (uid > 0) {
-                        boolean rstA = isAppRunning(activity, apkServerPackageName);
-                        boolean rstB = isProcessRunning(activity, uid);
-                        if (rstA || rstB) {
-                            isAppRunning = 1;
-                        } else {
-                            //指定包名的程序未在运行中
-                            isAppRunning = 2;
-                        }
-                    } else {
-                        //应用未安装
-                        isAppRunning = 3;
-                    }
-                    activity.mHandler.sendEmptyMessageDelayed(msg_activity_heart, 10000);
-                    activity.sendMessageToMqtt("应用心跳包,isAppRunning =" + isAppRunning + ";");
-                    break;
             }
         }
     }
 
-
-    public static boolean isAppRunning(Context context, String packageName) {
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> list = am.getRunningTasks(100);
-        if (list.size() <= 0) {
-            return false;
-        }
-        for (ActivityManager.RunningTaskInfo info : list) {
-            if (info.baseActivity.getPackageName().equals(packageName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static int getPackageUid(Context context, String packageName) {
-        try {
-            ApplicationInfo applicationInfo = context.getPackageManager().getApplicationInfo(packageName, 0);
-            if (applicationInfo != null) {
-                return applicationInfo.uid;
-            }
-        } catch (Exception e) {
-            return -1;
-        }
-        return -1;
-    }
-
-    /**
-     * 判断某一 uid 的程序是否有正在运行的进程，即是否存活
-     * Created by cafeting on 2017/2/4.
-     *
-     * @param context 上下文
-     * @param uid     已安装应用的 uid
-     * @return true 表示正在运行，false 表示没有运行
-     */
-    public static boolean isProcessRunning(Context context, int uid) {
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningServiceInfo> runningServiceInfos = am.getRunningServices(200);
-        if (runningServiceInfos.size() > 0) {
-            for (ActivityManager.RunningServiceInfo appProcess : runningServiceInfos) {
-                if (uid == appProcess.uid) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
 }
