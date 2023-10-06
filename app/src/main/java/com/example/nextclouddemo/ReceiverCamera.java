@@ -262,14 +262,14 @@ public class ReceiverCamera extends BroadcastReceiver {
             Log.d(TAG, "usbConnect: return 1 ");
             return;
         }
-        Log.e(TAG, "usbConnect: productName =" + device.getProductName());
+        String usbProductName = device.getProductName();
+        Log.e(TAG, "usbConnect: usbProductName =" + usbProductName);
 
         if (device.getDeviceId() == -1 || device.getDeviceId() == VariableInstance.getInstance().storeUSBDeviceID) {
             Log.d(TAG, "usbConnect: return 2  device.getDeviceId() =" + device.getDeviceId());
             return;
         }
-        String usbProductName = device.getProductName();
-        Log.e(TAG, "usbConnect: usbProductName =" + usbProductName);
+
 
         if (usbProductName == null) {
             Log.d(TAG, "usbConnect: return 3");
@@ -306,7 +306,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                             return;
                         }
                         requestPermissionCount++;
-                        Log.e(TAG, "usbConnect: 无法扫描相机，权限未获取,productName" + device.getProductName() + ",requestPermissionCount=" + requestPermissionCount);
+                        Log.e(TAG, "usbConnect: 无法扫描相机，权限未获取,productName:" + device.getProductName() + ",requestPermissionCount=" + requestPermissionCount);
                         @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(VariableInstance.GET_STORE_CAMERA_PERMISSION), 0);
                         usbManager.requestPermission(device, pendingIntent);
                         return;
@@ -480,14 +480,12 @@ public class ReceiverCamera extends BroadcastReceiver {
             mtpDevice.close();
             return;
         }
+        Log.e(TAG, "mtpDeviceScaner: UploadMode =" + VariableInstance.getInstance().UploadMode + ",uploadSelectIndexList =" + VariableInstance.getInstance().uploadSelectIndexList);
 
         List<PictureInfo> backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
         List<PictureInfo> uploadPictureInfoList = Collections.synchronizedList(new ArrayList<>());
         //1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
         for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
-
-            Log.e(TAG, "mtpDeviceScaner: UploadMode =" + VariableInstance.getInstance().UploadMode + ",uploadSelectIndexList =" + VariableInstance.getInstance().uploadSelectIndexList);
-
             if (cameraDeviceID == -1) {
                 downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
                 return;
@@ -593,7 +591,6 @@ public class ReceiverCamera extends BroadcastReceiver {
             return false;
         }
         if (systemTime - yymmdd > 3) {
-            Log.e(TAG, "checkNeedUpload: 超过三天的缓存照片不上传");
             return false;
         }
 

@@ -107,13 +107,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String Debug_reset = "Debug_reset;";
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
-    private static final int NETWORK_WAIT_TIME = 2 * 60 * 1000;
+    private static final int NETWORK_WAIT_TIME = 5 * 60 * 1000;
     private String returnImei;
     private String deveceName;
 
     private boolean isUpdating;
 
-    private boolean openDeviceProtFlag;
+    private boolean openDeviceProtFlag = true;
     private int signalStrengthValue;
     private int appVerison;
     private int cameraPictureCount;
@@ -300,6 +300,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    private MyServer myServer;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -308,6 +310,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.main_acitivity);
         openCameraDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
+
+
+        startService(new Intent(MainActivity.this, MyServer.class));
 
         removeDelayCreateActivity();
         if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 230927) {
@@ -485,6 +490,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void historyBackupPictureCount() {
             getInfo();
+            removeUploadLogcatMessage(7);
+            sendUploadLogcatMessage(5);
             if (receiverCamera == null) {
                 registerReceiverCamera();
             }
@@ -492,6 +499,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void storeUSBPictureCount(int count) {
+            removeUploadLogcatMessage(8);
+            sendUploadLogcatMessage(7);
             runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
         }
 
@@ -882,6 +891,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.e(TAG, "networkConnect ");
         runOnUiThreadText(isConnectNetworkText, "是否连网:true");
 
+        removeUploadLogcatMessage(12);
+        sendUploadLogcatMessage(12);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -915,7 +927,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         return;
                     }
 
-                    int deviceStyle = LocalProfileHelp.getInstance().checkDeviceStyle();
+                    int deviceStyle = 0;
+                    String imei = null;
 
                     ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                     NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
@@ -926,66 +939,67 @@ public class MainActivity extends Activity implements View.OnClickListener {
                             deviceStyle = 2;
                         } else if (type == ConnectivityManager.TYPE_MOBILE) {
                             deviceStyle = 1;
+
                         }
                     }
 
-
-                    ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
-                    String imei = null;
-                    if (profileModel == null) {
-                        Log.e(TAG, "initAddress run: 11无法获取到配置信息，无法通信");
-                        VariableInstance.getInstance().remoteServerConnecting = false;
-
-                        if (deviceStyle == 1) {
-                            imei = getPhoneImei();
-                        } else if (deviceStyle == 2) {
+                    if (deviceStyle == 1) {
+                        imei = getPhoneImei();
+                        int checktime = 0;
+                        while (imei == null && netWorkConnectBroadConnet && checktime < 20) {
                             try {
-                                Thread.sleep(10000);
-                                profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                                Thread.sleep(5000);
                             } catch (Exception e) {
 
                             }
+                            checktime++;
+                            imei = getPhoneImei();
+                            Log.e(TAG, "initAddress run: imei =" + imei + ",checktime =" + checktime);
+                        }
 
+                        if (imei == null) {
+                            ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
                             if (profileModel == null) {
-                                Log.e(TAG, "initAddress run:444 无法获取到配置信息，无法通信");
+                                Log.e(TAG, "initAddress run: 11无法获取到配置信息，无法通信");
+                                VariableInstance.getInstance().remoteServerConnecting = false;
                                 return;
-                            } else if (profileModel.SN == null && profileModel.imei == null) {
-                                Log.e(TAG, "initAddress run:5555 无法获取到配置信息，无法通信");
-                                return;
-                            } else {
+                            }
+                            imei = profileModel.imei;
+                            if (imei == null) {
+                                imei = profileModel.SN;
+                            }
+                        }
+                        if (imei != null) {
+                            ProfileModel profileModel = new ProfileModel();
+                            profileModel.imei = imei;
+                            LocalProfileHelp.getInstance().saveProfileFile(MainActivity.this, profileModel);
+                        }
+                    } else {
+                        ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                        if (profileModel != null) {
+                            imei = profileModel.SN;
+                            if (imei == null) {
+                                imei = profileModel.imei;
+                            }
+                        }
+                        int checktime = 0;
+                        while (netWorkConnectBroadConnet && imei == null) {
+                            try {
+                                Thread.sleep(5000);
+                            } catch (Exception e) {
+                            }
+                            profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                            if (profileModel != null) {
                                 imei = profileModel.SN;
                                 if (imei == null) {
                                     imei = profileModel.imei;
                                 }
                             }
-                            if (imei == null) {
-                                Log.e(TAG, "initAddress run:6666 无法获取到配置信息，无法通信");
-                                return;
-                            }
-                        } else {
-                            Log.e(TAG, "initAddress run:22无法获取到配置信息，无法通信");
-                            return;
-                        }
-
-                        if (imei == null) {
-                            Log.e(TAG, "initAddress run:33 无法获取到配置信息，无法通信");
-                            return;
+                            checktime++;
+                            Log.e(TAG, "initAddress run:111 imei =" + imei + ",checktime =" + checktime);
                         }
                     }
 
-                    if (deviceStyle == 1) {
-                        imei = profileModel.imei;
-                    } else if (deviceStyle == 2) {
-                        imei = profileModel.SN;
-                    }
-                    if (imei == null) {
-                        if (profileModel.imei != null) {
-                            imei = profileModel.imei;
-                        }
-                        if (profileModel.SN != null) {
-                            imei = profileModel.SN;
-                        }
-                    }
                     if (imei == null) {
                         Log.e(TAG, "initAddress run: 无法获取到配置信息，无法通信");
                         VariableInstance.getInstance().remoteServerConnecting = false;
@@ -1099,6 +1113,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopService(new Intent(MainActivity.this, MyServer.class));
         if (receiverCamera != null) {
             unregisterReceiver(receiverCamera);
         }
@@ -1497,7 +1512,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1506,7 +1522,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1570,6 +1587,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         try {
             TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             imei = telephonyManager.getDeviceId();
+//            imei = "202302050000001";//TODO hu
         } catch (Exception | Error e) {
             Log.e(TAG, "getPhoneImei: Exception =" + e);
         }
@@ -1874,8 +1892,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
             }
 
-            if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-                NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+            if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+                NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
                     Log.d(TAG, "NetWorkReceiver: 网络断开广播");
                     mHandler.removeMessages(msg_network_connect);
@@ -1930,11 +1948,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                    if (true)//TODO hu
-                    {
-                        activity.sendMessageToMqtt("测试阶段，不关机");
-                        return;
-                    }
+//                    if (true)//TODO hu
+//                    {
+//                        activity.sendMessageToMqtt("测试阶段，不关机");
+//                        return;
+//                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:

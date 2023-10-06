@@ -123,7 +123,7 @@ public class VariableInstance {
         if (deviceName == null) {
             return true;
         }
-        if (deviceName.contains("802.11n NIC") || deviceName.contains("USB Optical Mouse") || deviceName.contains("USB Charger") || deviceName.startsWith("EC25") || deviceName.startsWith("EG25") || deviceName.startsWith("EC20") || deviceName.startsWith("EC200T")) {
+        if (deviceName.contains("802.11n NIC") || deviceName.contains("USB Optical Mouse") || deviceName.contains("USB Charger")  || deviceName.contains("Usb Mouse") || deviceName.startsWith("EC25") || deviceName.startsWith("EG25") || deviceName.startsWith("EC20") || deviceName.startsWith("EC200T")) {
             return true;
         }
         return false;

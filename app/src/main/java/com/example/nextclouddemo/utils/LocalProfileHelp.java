@@ -299,8 +299,7 @@ public class LocalProfileHelp {
                         }
 
                         String pictureName = usbFile.getName();
-                        String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-                        if (pictureFormatFile(FileEnd)) {
+                        if (pictureFormatFile(pictureName)) {
                             if (!usbPictureList.contains(pictureName)) {
                                 usbPictureList.add(pictureName);
                             }
@@ -333,8 +332,6 @@ public class LocalProfileHelp {
         if (pictureFormatFile(pictureName)) {
             if (!usbPictureList.contains(pictureName)) {
                 usbPictureList.add(pictureName);
-
-
                 File file = new File(usbFilePath);
                 if (!file.exists()) {
                     try {
@@ -432,10 +429,11 @@ public class LocalProfileHelp {
         return deviceStyle;
     }
 
-    private boolean pictureFormatFile(String FileEnd) {
-        if (FileEnd == null || FileEnd.trim().length() == 0) {
+    private boolean pictureFormatFile(String pictureName) {
+        if (pictureName == null || pictureName.trim().length() == 0) {
             return false;
         }
+        String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
         return FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3") || FileEnd.equals("jpg");
     }
 
