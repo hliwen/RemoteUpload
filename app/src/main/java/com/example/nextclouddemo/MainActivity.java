@@ -142,6 +142,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private TextView hasDownloadPictureNumberText;
     private TextView serverStateText;
     private TextView phoneNumberText;
+    private TextView imeiNumberText;
 
     private TextView currentVersionText;
     private TextView serverVersionText;
@@ -269,6 +270,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         }
                         if (!builder.toString().contains("Failure")) {
                             Log.e(TAG, "installAPKServer: 安装服务apk成功");
+                            startRemoteActivity();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
@@ -297,6 +299,29 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
             }
         }).start();
+    }
+
+
+    private void startRemoteActivity() {
+        Log.d(TAG, "startServerActivity: ");
+        DataOutputStream dataOutputStream = null;
+        try {
+            Process process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            String command = " am start -W -n com.remoteupload.apkserver/com.remoteupload.apkserver.MainActivity";
+            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            dataOutputStream.flush();
+
+        } catch (Exception e) {
+
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (IOException e) {
+            }
+        }
     }
 
 
@@ -337,6 +362,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         remoteNameText = findViewById(R.id.remoteNameText);
         hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
         serverStateText = findViewById(R.id.serverStateText);
+        imeiNumberText = findViewById(R.id.imeiNumberText);
         phoneNumberText = findViewById(R.id.phoneNumberText);
         currentVersionText = findViewById(R.id.currentVersionText);
         serverVersionText = findViewById(R.id.serverVersionText);
@@ -1011,6 +1037,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                     DeviceInfoModel deviceInfoModel = communication.getDeviceInfo(imei);
 
+                    runOnUiThreadText(imeiNumberText, "imei:" + imei);
+
                     while ((deviceInfoModel == null || deviceInfoModel.responseCode != 200) && netWorkConnectBroadConnet) {
                         count++;
                         Log.e(TAG, "run: 访问服务器获取设备信息失败次数：" + count);
@@ -1033,6 +1061,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     boolean mqttConnect = MqttManager.isConnected();
                     Log.e(TAG, "run: mqttConnect =" + mqttConnect);
                     if (!mqttConnect) {
+
+
+
                         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + imei, "/camera/v1/device/" + returnImei + "/android");
                         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
                     }
@@ -1592,6 +1623,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Log.e(TAG, "getPhoneImei: Exception =" + e);
         }
         if (debug) imei = "202302050000001";
+
+        runOnUiThreadText(imeiNumberText, "imei:" + imei);
         return imei;
     }
 
@@ -1703,6 +1736,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 } else if (datum.startsWith("SN:")) {
                     try {
                         SN = datum.substring(3);
+                        runOnUiThreadText(imeiNumberText, "imei:" + SN);
                     } catch (Exception e) {
 
                     }

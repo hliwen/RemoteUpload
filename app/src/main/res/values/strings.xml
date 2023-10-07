@@ -58,6 +58,7 @@
     <string name="cameraScanerErroMessageText">相机扫描异常信息</string>
     <string name="catErrorLog">查看异常</string>
     <string name="phone_number">卡号：</string>
+    <string name="imei">imei</string>
 
 
 </resources>
