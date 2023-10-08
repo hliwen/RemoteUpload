@@ -184,6 +184,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                     boolean installSucceed = Utils.installApk(apkPath);
                     if (installSucceed) {
+                        sendBroadcastToServer("安装serverApk成功");
                         Utils.startRemoteActivity();
                         removeDelayCreateActivity();
                         sendDelayCreateActivity(3000);
@@ -195,10 +196,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         }
                         installSucceed = Utils.installApk(apkPath);
                         if (installSucceed) {
+                            sendBroadcastToServer("安装serverApk成功");
                             Utils.startRemoteActivity();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
+                            sendBroadcastToServer("安装serverApk失败");
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         }
@@ -222,7 +225,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         startService(new Intent(MainActivity.this, MyServer.class));
 
         removeDelayCreateActivity();
-        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).equals("v1.0.10")) {
+        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).equals("v1.0.11")) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -381,6 +384,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             isUpdating = true;
             runOnUiThreadText(updateResultText, "开始升级");
             removeUploadLogcatMessage(1);
+            sendBroadcastToServer("startUpdate");
         }
 
         @Override
@@ -390,6 +394,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(updateResultText, "升级" + (succeed ? "成功" : "失败"));
             removeUploadLogcatMessage(2);
             sendUploadLogcatMessage(2);
+            sendBroadcastToServer("endUpdate：" + succeed);
         }
     };
 
@@ -402,6 +407,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (receiverCamera == null) {
                 registerReceiverCamera();
             }
+            sendBroadcastToServer("historyBackupPictureCount");
         }
 
         @Override
@@ -409,6 +415,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             removeUploadLogcatMessage(8);
             sendUploadLogcatMessage(7);
             runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
+            sendBroadcastToServer("storeUSBPictureCount：count=" + count);
         }
 
 
@@ -547,7 +554,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return;
         }
 
-
+        sendBroadcastToServer("initUSBFaild");
         if (receiverCamera == null) {
             registerReceiverCamera();
         }
@@ -570,11 +577,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 startDownLed(true);
             }
             removeUploadLogcatMessage(3);
+            sendBroadcastToServer("cameraOperationStart");
         }
 
         @Override
         public void cameraOperationEnd(int cameraTotalPicture) {
-
+            sendBroadcastToServer("cameraOperationEnd：cameraTotalPicture ="+cameraTotalPicture);
             openCameraDeviceProt(false, 8);
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
@@ -635,6 +643,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + needDownloadCount);
             runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + cameraTotalPictureCount);
             runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
+            sendBroadcastToServer("scannerCameraComplete");
         }
 
 
@@ -660,6 +669,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             removeUploadLogcatMessage(5);
             sendUploadLogcatMessage(4);
+            sendBroadcastToServer("allFileUploadComplete");
         }
 
         @Override
@@ -693,6 +703,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             removeCloseDeviceMessage(1);
             sendCloseDeviceMessage(1, CLOSE_DEVICE_DELAY_TIME);
             sendMessageToMqtt(UploadEndUploadUseTime + UploadUseTime + ";");
+            sendBroadcastToServer("uploadLogcatComplete");
         }
 
         @Override
@@ -962,6 +973,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     VariableInstance.getInstance().remoteServerAvailable = remoteOperationUtils.initRemoteDir(deviceInfoModel.deveceName);
 
                     Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().remoteServerAvailable);
+                    sendBroadcastToServer("配置远程服务器是否成功："+VariableInstance.getInstance().remoteServerAvailable);
                     updateServerStateUI(VariableInstance.getInstance().remoteServerAvailable);
                     if (VariableInstance.getInstance().remoteServerAvailable) {
                         mHandler.removeMessages(msg_connect_server_timeout);
@@ -1515,10 +1527,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         openDeviceProtFlag = open;
         runOnUiThreadText(cameraStateText, "相机状态:" + openDeviceProtFlag);
-
+        sendBroadcastToServer("openCameraDeviceProt："+positon);
         if (debug) return;
         if (open) {
-
             if (receiverCamera == null) {
                 registerReceiverCamera();
             }
@@ -1830,6 +1841,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    private void sendBroadcastToServer(String fucntion) {
+        Intent intent = new Intent("sendBroadcastToServer");
+        intent.putExtra("fucntion", fucntion);
+        sendOrderedBroadcast(intent, null);
+    }
+
 
     private static final int msg_start_upload_local_logcat_to_remote = 2;
     private static final int msg_send_ShutDown = 3;
@@ -1870,6 +1887,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
+                    activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
                     if (true)//TODO hu
                     {
