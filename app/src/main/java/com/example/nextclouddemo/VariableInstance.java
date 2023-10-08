@@ -59,6 +59,7 @@ public class VariableInstance {
 
     public boolean remoteServerAvailable;
     public boolean remoteServerConnecting;
+    public boolean serverApkInitingUSB;
 
 
     private VariableInstance() {

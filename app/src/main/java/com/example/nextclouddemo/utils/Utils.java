@@ -21,6 +21,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -338,4 +339,45 @@ public class Utils {
         }
     }
 
+    public static boolean installApk(String apkPath) {
+        BufferedReader es = null;
+        DataOutputStream os = null;
+
+        boolean succeed = false;
+        try {
+            Process process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+            String command = "pm install -r " + apkPath + "\n";
+            os.write(command.getBytes(StandardCharsets.UTF_8));
+            os.flush();
+            os.writeBytes("exit\n");
+            os.flush();
+
+            process.waitFor();
+            es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            StringBuilder builder = new StringBuilder();
+            while ((line = es.readLine()) != null) {
+                builder.append(line);
+            }
+            if (!builder.toString().contains("Failure")) {
+                succeed = true;
+            }
+        } catch (Exception e) {
+
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+                if (es != null) {
+                    es.close();
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
+            }
+        }
+        return succeed;
+    }
 }

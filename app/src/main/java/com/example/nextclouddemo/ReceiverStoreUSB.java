@@ -219,6 +219,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     return;
                 }
 
+
                 int interfaceCount = usbDevice.getInterfaceCount();
                 Log.e(TAG, "usbConnect run:获取接口数量 interfaceCount = " + interfaceCount);
 
@@ -230,6 +231,18 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     }
                     if (usbInterface.getInterfaceClass() == UsbConstants.USB_CLASS_MASS_STORAGE) {
                         Log.e(TAG, "usbConnect: 当前设设备为U盘");
+
+                        int count = 0;
+                        while (VariableInstance.getInstance().serverApkInitingUSB && count < 20) {
+                            Log.e(TAG, "usbConnect: 守护apk 正在操作U盘,等待3S");
+                            try {
+                                Thread.sleep(3000);
+                            } catch (InterruptedException e) {
+
+                            }
+                            count++;
+                        }
+
                         UsbMassStorageDevice device = getUsbMass(usbDevice);
                         if (device == null) {
                             Log.d(TAG, "run: usbConnect continue 111111111");

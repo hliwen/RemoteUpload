@@ -103,8 +103,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String Update_InstallAPKStart = "Update,InstallAPKStart;";
     public static final String Update_InstallAPKSucceed = "Update,InstallAPKSucceed;";
     public static final String Update_InstallAPKFaild = "Update,InstallAPKFaild;";
-    public static final String Debug_finish = "Debug_finish;";
-    public static final String Debug_reset = "Debug_reset;";
+
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
     private static final int NETWORK_WAIT_TIME = 5 * 60 * 1000;
@@ -242,58 +241,33 @@ public class MainActivity extends Activity implements View.OnClickListener {
             public void run() {
 
                 String apkPath = "/storage/emulated/0/Download/apkServer.apk";
-                boolean copyResult = copyAPKServer(apkPath, "apkServer.apk", MainActivity.this);
+                boolean copyResult = copyAPKServer(apkPath, "app-release.apk", MainActivity.this);
                 if (!copyResult) {
                     Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
                     return;
                 }
                 File apkFile = new File(apkPath);
                 if (apkFile.exists()) {
-                    BufferedReader es = null;
-                    DataOutputStream os = null;
-                    try {
-                        Process process = Runtime.getRuntime().exec("su");
-                        os = new DataOutputStream(process.getOutputStream());
-                        String command = "pm install -r " + apkPath + "\n";
-                        os.write(command.getBytes(StandardCharsets.UTF_8));
-                        os.flush();
-                        os.writeBytes("exit\n");
-                        os.flush();
 
-                        process.waitFor();
-                        es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-                        String line;
-                        StringBuilder builder = new StringBuilder();
-                        while ((line = es.readLine()) != null) {
-                            builder.append(line);
+                    boolean installSucceed = Utils.installApk(apkPath);
+                    if (installSucceed) {
+                        startRemoteActivity();
+                        removeDelayCreateActivity();
+                        sendDelayCreateActivity(3000);
+                    } else {
+                        uninstallapk();
+                        try {
+                            Thread.sleep(3000);
+                        } catch (InterruptedException e) {
                         }
-                        if (!builder.toString().contains("Failure")) {
-                            Log.e(TAG, "installAPKServer: 安装服务apk成功");
+                        installSucceed = Utils.installApk(apkPath);
+                        if (installSucceed) {
                             startRemoteActivity();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
-                            Log.e(TAG, "installAPKServer: 安装服务apk失败");
-                            uninstallapk();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
-                        uninstallapk();
-                        removeDelayCreateActivity();
-                        sendDelayCreateActivity(3000);
-                    } finally {
-                        try {
-                            if (os != null) {
-                                os.close();
-                            }
-                            if (es != null) {
-                                es.close();
-                            }
-                        } catch (IOException e) {
-                            Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
                         }
                     }
                 }
@@ -325,8 +299,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private MyServer myServer;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -335,12 +307,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.main_acitivity);
         openCameraDeviceProt(false);
         mHandler = new MyHandler(MainActivity.this);
-
+        openNetworkLed(true);
 
         startService(new Intent(MainActivity.this, MyServer.class));
 
         removeDelayCreateActivity();
-        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) > 230927) {
+        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) == 231008) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -466,7 +438,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
-        openNetworkLed(true);
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
@@ -850,6 +821,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerWifiReceiver() {
         netWorkReceiver = new NetWorkReceiver();
         IntentFilter filter = new IntentFilter();
@@ -1063,7 +1035,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (!mqttConnect) {
 
 
-
                         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + imei, "/camera/v1/device/" + returnImei + "/android");
                         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
                     }
@@ -1174,7 +1145,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 LogcatHelper.getInstance().stopTestLogcatRename();
             }
         }, 300);
-
+        stopService(new Intent(MainActivity.this, MyServer.class));
         Log.e(TAG, "onDestroy: .................................................");
     }
 
@@ -1294,12 +1265,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case Update_InstallAPKFaild:
                 sendMessageToMqtt(Update_InstallAPKFaild);
                 break;
-            case Debug_finish:
-                finish();
-                break;
-            case Debug_reset:
-                LocalProfileHelp.getInstance().resetBackup();
-                break;
+
         }
     }
 
@@ -1543,8 +1509,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1553,8 +1518,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1906,32 +1870,36 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private class NetWorkReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Bundle bundle = intent.getExtras();
-            int statusInt = bundle.getInt("wifi_state");
-            switch (statusInt) {
 
-                case WifiManager.WIFI_STATE_ENABLED:
-                    Log.d(TAG, "onReceive: WIFI_STATE_ENABLED");
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            checkProfileFileMain(null, 3);
-                        }
-                    }).start();
-                    break;
-                case WifiManager.WIFI_STATE_DISABLED:
-                    Log.d(TAG, "onReceive: WIFI_STATE_DISABLED");
-                    break;
-                default:
-                    break;
-            }
+            if (intent == null) return;
+            String action = intent.getAction();
+            if (action == null) return;
 
-            if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+            if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
+                Bundle bundle = intent.getExtras();
+                int statusInt = bundle.getInt("wifi_state");
+                switch (statusInt) {
+                    case WifiManager.WIFI_STATE_ENABLED:
+                        Log.d(TAG, "onReceive: WIFI_STATE_ENABLED");
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                checkProfileFileMain(null, 3);
+                            }
+                        }).start();
+                        break;
+                    case WifiManager.WIFI_STATE_DISABLED:
+                        Log.d(TAG, "onReceive: WIFI_STATE_DISABLED");
+                        break;
+                    default:
+                        break;
+                }
+            } else if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                 NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
                 if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {
                     Log.d(TAG, "NetWorkReceiver: 网络断开广播");
                     mHandler.removeMessages(msg_network_connect);
-                    mHandler.removeMessages(msg_network_disconnect);
+                    mHandler.sendEmptyMessage(msg_network_disconnect);
                 } else if (info.getState().equals(NetworkInfo.State.CONNECTED)) {
                     Log.d(TAG, "NetWorkReceiver: 网络连接广播");
                     mHandler.removeMessages(msg_network_connect);
@@ -1982,11 +1950,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-//                    if (true)//TODO hu
-//                    {
-//                        activity.sendMessageToMqtt("测试阶段，不关机");
-//                        return;
-//                    }
+                    if (true)//TODO hu
+                    {
+                        activity.sendMessageToMqtt("测试阶段，不关机");
+                        return;
+                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:
