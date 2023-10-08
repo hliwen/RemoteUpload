@@ -25,7 +25,8 @@ public class BootReceiver extends BroadcastReceiver {
             context.startActivity(intent);
         } else if (action.equals("Initing_USB")) {
             boolean initing = intent.getBooleanExtra("BroadcastInitingUSB", false);
-            Log.e("remotelog_BootReceiver", "onReceive: BroadcastInitingUSB initing =" + initing);
+            int position = intent.getIntExtra("position", 0);
+            Log.e("remotelog_BootReceiver", "onReceive: BroadcastInitingUSB initing =" + initing + ",position =" + position);
             VariableInstance.getInstance().serverApkInitingUSB = initing;
         } else if (action.equals("resetBackupData")) {
             LocalProfileHelp.getInstance().resetBackup();

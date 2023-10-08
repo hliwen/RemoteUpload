@@ -168,80 +168,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private String messageTextString;
 
 
-    private boolean isAppInstalled(Context context, String packageName) {
-        try {
-            context.getPackageManager().getApplicationInfo(packageName, 0);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private int getServerVersion(Context context, String packageName) {
-        try {
-            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
-            return packageInfo.versionCode;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    private boolean copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
-        File file = new File(localPath);
-        if (file.exists()) {
-            file.delete();
-        }
-        try {
-            InputStream is = context.getResources().getAssets().open(ASSETS_NAME);
-            FileOutputStream fos = new FileOutputStream(localPath);
-            byte[] buffer = new byte[2048];
-            int count = 0;
-            while ((count = is.read(buffer)) > 0) {
-                fos.write(buffer, 0, count);
-            }
-            fos.close();
-            is.close();
-            return true;
-        } catch (Exception e) {
-
-        }
-        return false;
-    }
-
-    private void uninstallapk() {
-        Process process = null;
-        DataOutputStream dataOutputStream = null;
-        try {
-            process = Runtime.getRuntime().exec("su");
-            dataOutputStream = new DataOutputStream(process.getOutputStream());
-            String command = "pm uninstall com.remoteupload.apkserver" + "\n";
-            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
-            dataOutputStream.flush();
-            dataOutputStream.writeBytes("exit\n");
-            dataOutputStream.flush();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-
-        } finally {
-            try {
-                if (dataOutputStream != null) {
-                    dataOutputStream.close();
-                }
-            } catch (Exception e) {
-            }
-        }
-    }
-
     private void installAPKServer() {
         new Thread(new Runnable() {
             @Override
             public void run() {
 
                 String apkPath = "/storage/emulated/0/Download/apkServer.apk";
-                boolean copyResult = copyAPKServer(apkPath, "app-release.apk", MainActivity.this);
+                boolean copyResult = Utils.copyAPKServer(apkPath, "app-release.apk", MainActivity.this);
                 if (!copyResult) {
                     Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
                     return;
@@ -251,18 +184,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                     boolean installSucceed = Utils.installApk(apkPath);
                     if (installSucceed) {
-                        startRemoteActivity();
+                        Utils.startRemoteActivity();
                         removeDelayCreateActivity();
                         sendDelayCreateActivity(3000);
                     } else {
-                        uninstallapk();
+                        Utils.uninstallapk();
                         try {
                             Thread.sleep(3000);
                         } catch (InterruptedException e) {
                         }
                         installSucceed = Utils.installApk(apkPath);
                         if (installSucceed) {
-                            startRemoteActivity();
+                            Utils.startRemoteActivity();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
@@ -276,43 +209,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void startRemoteActivity() {
-        Log.d(TAG, "startServerActivity: ");
-        DataOutputStream dataOutputStream = null;
-        try {
-            Process process = Runtime.getRuntime().exec("su");
-            dataOutputStream = new DataOutputStream(process.getOutputStream());
-            String command = " am start -W -n com.remoteupload.apkserver/com.remoteupload.apkserver.MainActivity";
-            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
-            dataOutputStream.flush();
-
-        } catch (Exception e) {
-
-        } finally {
-            try {
-                if (dataOutputStream != null) {
-                    dataOutputStream.close();
-                }
-            } catch (IOException e) {
-            }
-        }
-    }
-
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main_acitivity);
-        openCameraDeviceProt(false);
+        openCameraDeviceProt(false, 6);
         mHandler = new MyHandler(MainActivity.this);
         openNetworkLed(true);
 
         startService(new Intent(MainActivity.this, MyServer.class));
 
         removeDelayCreateActivity();
-        if (isAppInstalled(MainActivity.this, apkServerPackageName) && getServerVersion(MainActivity.this, apkServerPackageName) == 231008) {
+        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).equals("v1.0.10")) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -636,6 +546,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (VariableInstance.getInstance().storeUSBDeviceID != -1) {
             return;
         }
+
+
+        if (receiverCamera == null) {
+            registerReceiverCamera();
+        }
+        openCameraDeviceProt(true, 7);
         Log.e(TAG, "initUSBFaild: U盘初始化失败，仍然连接mqtt通信");
         new Thread(new Runnable() {
             @Override
@@ -659,7 +575,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void cameraOperationEnd(int cameraTotalPicture) {
 
-            openCameraDeviceProt(false);
+            openCameraDeviceProt(false, 8);
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
                 startDownLed(false);
@@ -1128,7 +1044,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         mHandler.removeCallbacksAndMessages(null);
 
-        openCameraDeviceProt(false);
+        openCameraDeviceProt(false, 9);
         if (remoteOperationUtils != null) remoteOperationUtils.stopUploadThread();
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -1310,7 +1226,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
                     }
                 }
-                openCameraDeviceProt(false);
+                openCameraDeviceProt(false, 10);
                 Log.e(TAG, "formatUSB: start .......................................");
                 VariableInstance.getInstance().isFormatingUSB.formatState = all ? 1 : 2;
                 runOnUiThreadText(formatUSBt, "开始删除USB图片");
@@ -1372,8 +1288,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     receiverCamera.formatCamera();
                 }
                 sendCloseDeviceMessage(3, CLOSE_DEVICE_DELAY_TIME);
-                openCameraDeviceProt(false);
-                openCameraDeviceProt(true);
+                openCameraDeviceProt(false, 11);
+                openCameraDeviceProt(true, 12);
             }
         }).start();
     }
@@ -1593,8 +1509,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void openCameraDeviceProt(boolean open) {
-        Log.e(TAG, "openCameraDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
+    private void openCameraDeviceProt(boolean open, int positon) {
+        Log.e(TAG, "openCameraDeviceProt: 连接相机通信端口 led: " + (open ? "打开" : "关闭") + ",positon =" + positon + ", 当前状态" + (openDeviceProtFlag ? "打开" : "关闭") + "-------------------------------------------");
         if (openDeviceProtFlag && open) return;
 
         openDeviceProtFlag = open;
@@ -1602,6 +1518,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         if (debug) return;
         if (open) {
+
+            if (receiverCamera == null) {
+                registerReceiverCamera();
+            }
+
             LedControl.writeGpio('b', 2, 1);
             mHandler.removeMessages(msg_open_device_timeout);
             mHandler.sendEmptyMessageDelayed(msg_open_device_timeout, 20000);
@@ -1640,8 +1561,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.rescanerBt) {
-            openCameraDeviceProt(false);
-            openCameraDeviceProt(true);
+            openCameraDeviceProt(false, 1);
+            openCameraDeviceProt(true, 2);
         } else if (view.getId() == R.id.guanjiBt) {
             Utils.closeAndroid();
         } else if (view.getId() == R.id.openProtActivityBt) {
@@ -1980,13 +1901,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
 
                 case msg_delay_open_device_prot:
-                    activity.openCameraDeviceProt(true);
+                    activity.openCameraDeviceProt(true, 3);
                     break;
                 case msg_connect_server_timeout:
-                    activity.openCameraDeviceProt(true);
+                    activity.openCameraDeviceProt(true, 4);
                     break;
                 case msg_connect_server_complete:
-                    activity.openCameraDeviceProt(true);
+                    activity.openCameraDeviceProt(true, 5);
                     break;
             }
         }

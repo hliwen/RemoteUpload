@@ -3,6 +3,7 @@ package com.example.nextclouddemo.utils;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Build;
@@ -19,8 +20,11 @@ import androidx.core.content.PermissionChecker;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -380,4 +384,108 @@ public class Utils {
         }
         return succeed;
     }
+
+    public static int getServerVersionCode(Context context, String packageName) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
+            return packageInfo.versionCode;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static String getServerVersionName(Context context, String packageName) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
+            return packageInfo.packageName;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "0";
+    }
+
+    public static void uninstallapk() {
+        Process process = null;
+        DataOutputStream dataOutputStream = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            String command = "pm uninstall com.remoteupload.apkserver" + "\n";
+            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            dataOutputStream.flush();
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
+
+
+    public static void startRemoteActivity() {
+        Log.d(TAG, "startServerActivity: ");
+        DataOutputStream dataOutputStream = null;
+        try {
+            Process process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            String command = " am start -W -n com.remoteupload.apkserver/com.remoteupload.apkserver.MainActivity";
+            dataOutputStream.write(command.getBytes(Charset.forName("utf-8")));
+            dataOutputStream.flush();
+
+        } catch (Exception e) {
+
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+    }
+
+    public static boolean isAppInstalled(Context context, String packageName) {
+        try {
+            context.getPackageManager().getApplicationInfo(packageName, 0);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+
+    public static boolean copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
+        File file = new File(localPath);
+        if (file.exists()) {
+            file.delete();
+        }
+        try {
+            InputStream is = context.getResources().getAssets().open(ASSETS_NAME);
+            FileOutputStream fos = new FileOutputStream(localPath);
+            byte[] buffer = new byte[2048];
+            int count = 0;
+            while ((count = is.read(buffer)) > 0) {
+                fos.write(buffer, 0, count);
+            }
+            fos.close();
+            is.close();
+            return true;
+        } catch (Exception e) {
+
+        }
+        return false;
+    }
+
 }

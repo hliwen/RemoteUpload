@@ -243,6 +243,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                             count++;
                         }
 
+                        Log.e(TAG, "usbConnect: 当前设设备为U盘 count =" + count);
+
                         UsbMassStorageDevice device = getUsbMass(usbDevice);
                         if (device == null) {
                             Log.d(TAG, "run: usbConnect continue 111111111");
@@ -263,6 +265,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         Partition partition = device.getPartitions().get(0);
                         FileSystem fileSystem = partition.getFileSystem();
                         UsbFile usbRootFolder = fileSystem.getRootDirectory();
+                        storeUSBFileSystem = fileSystem;
 
                         try {
                             UsbFile[] usbFileList = usbRootFolder.listFiles();
@@ -294,7 +297,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                             }
 
 
-                            storeUSBFileSystem = fileSystem;
+
                             VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
 
                             Log.d(TAG, "run:usbConnect storeUSBDeviceID = " + VariableInstance.getInstance().storeUSBDeviceID);
