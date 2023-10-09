@@ -311,13 +311,22 @@ public class RemoteOperationUtils {
         if (VariableInstance.getInstance().isUploadToday) {
             try {
                 String fileDay = fileName.substring(0, fileName.indexOf("-"));
+                int yymmdd = 0;
+                try {
+                    yymmdd = Integer.parseInt(fileDay);
+                } catch (Exception e) {
 
-                @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd");
-                Date date = dateFormat.parse(fileDay);
-                long timeDifference = Math.abs(System.currentTimeMillis() - date.getTime());
-                long days = timeDifference / (32 * 60 * 60 * 1000);
-                if (days > 1) {
-                    Log.e(TAG, "uploadImageFileToRemote: 只上传当天的照片，当前照片不是当天的，不上传 照片路径：" + file.getAbsolutePath());
+                }
+                int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
+                if (systemTime == 900101) {
+                    if (file.exists()) {
+                        file.delete();
+                    }
+                    return;
+                }
+
+                if (systemTime - yymmdd > 3) {
+                    Log.e(TAG, "uploadImageFileToRemote: 只上传最近3天的照片，当前照片不是最近3天不上传， 照片路径：" + file.getAbsolutePath());
                     if (file.exists()) {
                         file.delete();
                     }
