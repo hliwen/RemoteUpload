@@ -134,6 +134,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private TextView mqttStateText;
     private TextView UpanPictureCountText;
     private TextView uploadNumberText;
+    private TextView backupNumberText;
     private TextView uploadUseTimeText;
     private TextView hasUploadpictureNumberText;
     private TextView uploadModelText;
@@ -240,6 +241,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         UpanSpaceText = findViewById(R.id.UpanSpaceText);
         UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
         uploadNumberText = findViewById(R.id.uploadNumberText);
+        backupNumberText = findViewById(R.id.backupNumberText);
         uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
         hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
         mqttStateText = findViewById(R.id.mqttStateText);
@@ -582,7 +584,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void cameraOperationEnd(int cameraTotalPicture) {
-            sendBroadcastToServer("cameraOperationEnd：cameraTotalPicture ="+cameraTotalPicture);
+            sendBroadcastToServer("cameraOperationEnd：cameraTotalPicture =" + cameraTotalPicture);
             openCameraDeviceProt(false, 8);
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
@@ -626,6 +628,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             return uploadResult;
         }
 
+
         @Override
         public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
             remoteOperationUtils.addUploadRemoteFile(uploadFileModel, false);
@@ -633,14 +636,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
         @Override
-        public void scannerCameraComplete(int needDownloadCount, int cameraTotalPictureCount, String deviceName) {
+        public void scannerCameraComplete(int needDownloadCount, int needUpload, int cameraTotalPictureCount, String deviceName) {
             Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
 
             copyTotalNum = needDownloadCount;
             cameraPictureCount = cameraTotalPictureCount;
             cameraName = deviceName;
 
-            runOnUiThreadText(uploadNumberText, "本次从相机同步到U盘数量:" + needDownloadCount);
+            runOnUiThreadText(uploadNumberText, "本次从相机同步到服务器数量:" + needUpload);
+            runOnUiThreadText(backupNumberText, "本次从相机同步到U盘数量:" + needDownloadCount);
             runOnUiThreadText(cameraPictureCountText, "相机照片总数：" + cameraTotalPictureCount);
             runOnUiThreadText(cameraDeviceText, "相机名称：" + deviceName);
             sendBroadcastToServer("scannerCameraComplete");
@@ -973,7 +977,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     VariableInstance.getInstance().remoteServerAvailable = remoteOperationUtils.initRemoteDir(deviceInfoModel.deveceName);
 
                     Log.d(TAG, "initAddress:   配置远程服务器是否成功 =" + VariableInstance.getInstance().remoteServerAvailable);
-                    sendBroadcastToServer("配置远程服务器是否成功："+VariableInstance.getInstance().remoteServerAvailable);
+                    sendBroadcastToServer("配置远程服务器是否成功：" + VariableInstance.getInstance().remoteServerAvailable);
                     updateServerStateUI(VariableInstance.getInstance().remoteServerAvailable);
                     if (VariableInstance.getInstance().remoteServerAvailable) {
                         mHandler.removeMessages(msg_connect_server_timeout);
@@ -1527,7 +1531,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         openDeviceProtFlag = open;
         runOnUiThreadText(cameraStateText, "相机状态:" + openDeviceProtFlag);
-        sendBroadcastToServer("openCameraDeviceProt："+positon);
+        sendBroadcastToServer("openCameraDeviceProt：" + positon);
         if (debug) return;
         if (open) {
             if (receiverCamera == null) {
@@ -1842,6 +1846,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void sendBroadcastToServer(String fucntion) {
+        if (true)//TODO hu
+            return;
         Intent intent = new Intent("sendBroadcastToServer");
         intent.putExtra("fucntion", fucntion);
         sendOrderedBroadcast(intent, null);
@@ -1889,11 +1895,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.sendShutDown = false;
                     activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                    if (true)//TODO hu
+               /*     if (true)//TODO hu
                     {
                         activity.sendMessageToMqtt("测试阶段，不关机");
                         return;
-                    }
+                    }*/
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:

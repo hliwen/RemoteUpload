@@ -414,7 +414,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 for (int i : pictureHandlesItem) {
                     if (cameraDeviceID == -1) {
                         Log.d(TAG, "mtpDeviceScaner: cameraDeviceID == -1");
-                        downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                        downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                         return;
                     }
                     MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
@@ -475,7 +475,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         VariableInstance.getInstance().isConnectCamera = true;
         Log.d(TAG, "mtpDeviceScaner:  相机总共照片 =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
         if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
-            downloadFlieListener.scannerCameraComplete(0, cameraTotalPicture, usbDevice.getProductName());
+            downloadFlieListener.scannerCameraComplete(0, 0, cameraTotalPicture, usbDevice.getProductName());
             usbDeviceConnection.close();
             mtpDevice.close();
             return;
@@ -487,14 +487,14 @@ public class ReceiverCamera extends BroadcastReceiver {
         //1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
         for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
             if (cameraDeviceID == -1) {
-                downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                 return;
             }
             for (int i = 0; i < cameraPictureInfo.jpgPictureInfos.size(); i++) {
                 Integer integer = i + 1;
                 PictureInfo jpgPictureInfo = cameraPictureInfo.jpgPictureInfos.get(i);
                 if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
                 if (VariableInstance.getInstance().UploadMode == 1) {
@@ -526,7 +526,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                 if (cameraDeviceID == -1) {
                     Log.e(TAG, "mtpDeviceScaner: cameraDeviceID == -1");
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
                 if (VariableInstance.getInstance().UploadMode == 1) {
@@ -562,7 +562,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Collections.sort(backupPictureInfoList, new order());
         Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
+        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
         Log.e(TAG, "mtpDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
         for (PictureInfo pictureInfo : uploadPictureInfoList) {
             if (cameraDeviceID == -1) {
@@ -728,7 +728,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
 
         if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
-            downloadFlieListener.scannerCameraComplete(0, cameraTotalPicture, usbDevice.getProductName());
+            downloadFlieListener.scannerCameraComplete(0, 0, cameraTotalPicture, usbDevice.getProductName());
             return;
         }
 
@@ -739,14 +739,14 @@ public class ReceiverCamera extends BroadcastReceiver {
         //1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
         for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
             if (cameraDeviceID == -1) {
-                downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                 return;
             }
             for (int i = 0; i < cameraPictureInfo.jpgPictureInfos.size(); i++) {
                 Integer integer = i + 1;
                 PictureInfo jpgPictureInfo = cameraPictureInfo.jpgPictureInfos.get(i);
                 if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
                 if (VariableInstance.getInstance().UploadMode == 1) {
@@ -778,7 +778,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 PictureInfo rowPictureInfo = cameraPictureInfo.rowPictureInfos.get(i);
 
                 if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
                 if (VariableInstance.getInstance().UploadMode == 1) {
@@ -814,7 +814,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Collections.sort(backupPictureInfoList, new order());
         Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
+        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), cameraTotalPicture, uploadPictureInfoList.size(), usbDevice.getProductName());
         Log.e(TAG, "usbDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
 
         for (PictureInfo pictureInfo : uploadPictureInfoList) {
@@ -842,13 +842,13 @@ public class ReceiverCamera extends BroadcastReceiver {
         for (UsbFile usbFileItem : usbFileList) {
             if (usbFileItem.isDirectory()) {
                 if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
                 readPicFileFromUSBFile(usbDevice, fileSystem, usbFileItem, cameraPictureInfoList);
             } else {
                 if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, usbDevice.getProductName());
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
 
@@ -1058,7 +1058,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         boolean uploadToUSB(File localFile, String yearMonth);
 
 
-        void scannerCameraComplete(int needDownloadConut, int pictureCont, String deviceName);
+        void scannerCameraComplete(int needDownloadConut, int needUpload, int pictureCont, String deviceName);
 
 
     }

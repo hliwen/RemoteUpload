@@ -39,6 +39,7 @@
     <string name="formattf">FormatTF</string>
     <string name="formatcamera">格式化相机</string>
     <string name="uploadusetimetext">本次同步到服务器耗时</string>
+    <string name="backupNumberText">本次从相机同步到服务器数量</string>
     <string name="uploadnumbertext">本次从相机同步到U盘数量</string>
     <string name="camerastatetext">相机状态</string>
     <string name="isconnectnetworktext">是否连网</string>

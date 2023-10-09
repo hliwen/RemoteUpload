@@ -184,6 +184,17 @@
                 android:layout_marginTop="1dp"
                 android:background="#ffffff"
                 android:onClick="onClickHandler"
+                android:text="@string/backupNumberText"
+                android:textColor="#000000"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/backupNumberText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:background="#ffffff"
+                android:onClick="onClickHandler"
                 android:text="@string/uploadnumbertext"
                 android:textColor="#000000"
                 android:textSize="11sp" />
@@ -315,9 +326,9 @@
     <TextView
         android:id="@+id/shutDownTimeText"
         android:layout_width="wrap_content"
-        android:textColor="@color/purple_500"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
+        android:textColor="@color/purple_500"
         android:textSize="20sp" />
 
 </RelativeLayout>
