@@ -104,9 +104,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String Update_InstallAPKSucceed = "Update,InstallAPKSucceed;";
     public static final String Update_InstallAPKFaild = "Update,InstallAPKFaild;";
 
-    private static final int UPPOAD_LOGCAT_DELAY_TIME = 2 * 60 * 1000;
-    private static final int CLOSE_DEVICE_DELAY_TIME = 3 * 60 * 1000;
-    private static final int NETWORK_WAIT_TIME = 5 * 60 * 1000;
+    private static final int UPPOAD_LOGCAT_DELAY_TIME = 5 * 60 * 1000;
+    private static final int CLOSE_DEVICE_DELAY_TIME = 2 * 60 * 1000;
+    private static final int NETWORK_WAIT_TIME = 3 * 60 * 1000;
     private String returnImei;
     private String deveceName;
 
@@ -404,8 +404,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void historyBackupPictureCount() {
             getInfo();
-            removeUploadLogcatMessage(7);
-            sendUploadLogcatMessage(5);
+            removeUploadLogcatMessage(3);
+            sendUploadLogcatMessage(3);
             if (receiverCamera == null) {
                 registerReceiverCamera();
             }
@@ -414,8 +414,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void storeUSBPictureCount(int count) {
-            removeUploadLogcatMessage(8);
-            sendUploadLogcatMessage(7);
+            removeUploadLogcatMessage(4);
+            sendUploadLogcatMessage(4);
             runOnUiThreadText(UpanPictureCountText, "U盘图片总数:" + count);
             sendBroadcastToServer("storeUSBPictureCount：count=" + count);
         }
@@ -578,7 +578,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (!VariableInstance.getInstance().isUploadingToRemote) {
                 startDownLed(true);
             }
-            removeUploadLogcatMessage(3);
+            removeUploadLogcatMessage(5);
             sendBroadcastToServer("cameraOperationStart");
         }
 
@@ -610,8 +610,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             editor.apply();
 
             if (!VariableInstance.getInstance().isUploadingToRemote) {
-                removeUploadLogcatMessage(4);
-                sendUploadLogcatMessage(3);
+                removeUploadLogcatMessage(6);
+                sendUploadLogcatMessage(5);
             }
             getInfo();
         }
@@ -671,8 +671,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             getInfo();
 
-            removeUploadLogcatMessage(5);
-            sendUploadLogcatMessage(4);
+            removeUploadLogcatMessage(7);
+            sendUploadLogcatMessage(6);
             sendBroadcastToServer("allFileUploadComplete");
         }
 
@@ -680,7 +680,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         public void pictureUploadStart() {
             Log.d(TAG, "fileUploadStart: ");
             VariableInstance.getInstance().isUploadingToRemote = true;
-            removeUploadLogcatMessage(6);
+            removeUploadLogcatMessage(8);
             startDownLed(false);
         }
 
@@ -820,8 +820,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.e(TAG, "networkConnect ");
         runOnUiThreadText(isConnectNetworkText, "是否连网:true");
 
-        removeUploadLogcatMessage(12);
-        sendUploadLogcatMessage(12);
+        removeUploadLogcatMessage(9);
+        sendUploadLogcatMessage(7);
 
         new Thread(new Runnable() {
             @Override
@@ -982,7 +982,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (VariableInstance.getInstance().remoteServerAvailable) {
                         mHandler.removeMessages(msg_connect_server_timeout);
                         mHandler.sendEmptyMessage(msg_connect_server_complete);
-                        removeUploadLogcatMessage(9);
+                        removeUploadLogcatMessage(10);
                         remoteOperationUtils.startCameraPictureUploadThread();
                         remoteOperationUtils.startUploadTestLocatThread(false);
                     } else {
@@ -1887,8 +1887,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     if (activity.canCloseDevice()) {
                         activity.remoteOperationUtils.startUploadMainLocatThread(true);
                     } else {
-                        activity.removeUploadLogcatMessage(10);
-                        activity.sendUploadLogcatMessage(6);
+                        activity.removeUploadLogcatMessage(11);
+                        activity.sendUploadLogcatMessage(8);
                     }
                     break;
                 case msg_send_ShutDown:
@@ -1925,6 +1925,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
 
                 case msg_delay_open_device_prot:
+                    activity.removeUploadLogcatMessage(12);
+                    activity.sendUploadLogcatMessage(9);
                     activity.openCameraDeviceProt(true, 3);
                     break;
                 case msg_connect_server_timeout:
