@@ -439,12 +439,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void checkProfileFile(UsbFile wifiConfigurationFile) {
-
-            int capacity = receiverStoreUSB.getStoreUSBCapacity();
-            int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
-            Log.d(TAG, "checkProfileFile: capacity =" + capacity + ",freeSpace =" + freeSpace);
-            runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
-
             Log.d(TAG, "checkProfileFile: .....................................");
             new Thread(new Runnable() {
                 @Override
@@ -452,6 +446,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     checkProfileFileMain(wifiConfigurationFile, 1);
                 }
             }).start();
+
+        }
+
+        @Override
+        public void storegeUSBSpaceInitData() {
+            int capacity = receiverStoreUSB.getStoreUSBCapacity();
+            int freeSpace = receiverStoreUSB.getStoreUSBFreeSpace();
+            Log.d(TAG, "storegeUSBSpaceInitData: capacity =" + capacity + ",freeSpace =" + freeSpace);
+            runOnUiThreadText(UpanSpaceText, "U盘空间:" + "\ncapacity:" + capacity + "\nfreeSpace:" + freeSpace);
 
         }
     };

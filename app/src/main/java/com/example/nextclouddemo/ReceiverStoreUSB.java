@@ -267,6 +267,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         UsbFile usbRootFolder = fileSystem.getRootDirectory();
                         storeUSBFileSystem = fileSystem;
 
+                        if (storeUSBListener != null) {
+                            storeUSBListener.storegeUSBSpaceInitData();
+                        }
+
                         try {
                             UsbFile[] usbFileList = usbRootFolder.listFiles();
                             for (UsbFile usbFileItem : usbFileList) {
@@ -295,7 +299,6 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                                 Log.e(TAG, "usbConnect: 备份USB无法创建存储照片的目录");
                                 continue;
                             }
-
 
 
                             VariableInstance.getInstance().storeUSBDeviceID = usbDevice.getDeviceId();
@@ -733,6 +736,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         void sendInitUSBTimeOutMessage(int position);
 
         void checkProfileFile(UsbFile wifiConfigurationFile);
+
+        void storegeUSBSpaceInitData();
 
         void historyBackupPictureCount();
 
