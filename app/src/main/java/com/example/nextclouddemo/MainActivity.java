@@ -571,6 +571,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             mHandler.removeMessages(msg_open_device_timeout);
             if (netWorkConnectBroadConnet) {
                 setLEDState(2);
+            } else {
+                setLEDState(1);
             }
 
             removeUploadLogcatMessage(5);
@@ -582,8 +584,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
             sendBroadcastToServer("cameraOperationEnd：cameraTotalPicture =" + cameraTotalPicture);
             openCameraDeviceProt(false, 8);
 
-            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isUploadingToRemote) {
-                setLEDState(3);
+            if (netWorkConnectBroadConnet) {
+                if (!VariableInstance.getInstance().isUploadingToRemote && !VariableInstance.getInstance().isScanningStoreUSB) {
+                    setLEDState(3);
+                }
+            } else {
+                setLEDState(1);
             }
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
@@ -656,8 +662,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             VariableInstance.getInstance().isUploadingToRemote = false;
 
-            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isOperationCamera) {
-                setLEDState(3);
+            if (netWorkConnectBroadConnet) {
+                if (!VariableInstance.getInstance().isOperationCamera && !VariableInstance.getInstance().isScanningStoreUSB) {
+                    setLEDState(3);
+                }
+            } else {
+                setLEDState(1);
             }
 
             if (totalTime != 0) {
@@ -679,6 +689,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             removeUploadLogcatMessage(8);
             if (netWorkConnectBroadConnet) {
                 setLEDState(2);
+            } else {
+                setLEDState(1);
             }
         }
 
@@ -686,8 +698,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         public void pictureUploadEnd(boolean uploadResult) {
             Log.d(TAG, "fileUploadEnd: uploadResult =" + uploadResult);
             VariableInstance.getInstance().isUploadingToRemote = false;
-            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isOperationCamera) {
-                setLEDState(3);
+            if (netWorkConnectBroadConnet) {
+                if (!VariableInstance.getInstance().isOperationCamera && !VariableInstance.getInstance().isScanningStoreUSB) {
+                    setLEDState(3);
+                }
+            } else {
+                setLEDState(1);
             }
         }
 
@@ -772,11 +788,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             updateUtils = new UpdateUtils(updateListener);
         }
 
-        if (VariableInstance.getInstance().isOperationCamera || VariableInstance.getInstance().isUploadingToRemote) {
-            setLEDState(2);
-        } else {
-            setLEDState(3);
-        }
+
 
         new Thread(new Runnable() {
             @Override
@@ -830,6 +842,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         removeUploadLogcatMessage(9);
         sendUploadLogcatMessage(7);
+
+        if (VariableInstance.getInstance().isOperationCamera || VariableInstance.getInstance().isUploadingToRemote || VariableInstance.getInstance().isScanningStoreUSB) {
+            setLEDState(2);
+        } else {
+            setLEDState(3);
+        }
 
         new Thread(new Runnable() {
             @Override
