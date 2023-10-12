@@ -696,7 +696,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             sendMessageToMqtt(UploadEndUploadUseTime + UploadUseTime + ";");
             sendBroadcastToServer("uploadLogcatComplete");
 
-            setLEDState(3);
+            if (netWorkConnectBroadConnet) {
+                setLEDState(3);
+            } else {
+                setLEDState(1);
+            }
         }
 
         @Override
@@ -759,7 +763,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (updateUtils == null) {
             updateUtils = new UpdateUtils(updateListener);
         }
-
 
 
         new Thread(new Runnable() {
