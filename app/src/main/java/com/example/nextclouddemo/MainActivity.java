@@ -3,14 +3,11 @@ package com.example.nextclouddemo;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.hardware.usb.UsbManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -30,7 +27,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.blankj.utilcode.util.ActivityUtils;
 import com.blankj.utilcode.util.AppUtils;
 import com.example.gpiotest.GpioActivity;
 import com.example.gpiotest.LedControl;
@@ -54,18 +50,11 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
@@ -224,6 +213,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         openNetworkLed(true);
 
         startService(new Intent(MainActivity.this, MyServer.class));
+
+        setLEDState(1);
 
         removeDelayCreateActivity();
         if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).equals("v1.0.11")) {
@@ -578,9 +569,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void cameraOperationStart() {
             mHandler.removeMessages(msg_open_device_timeout);
-            if (!VariableInstance.getInstance().isUploadingToRemote) {
-                startDownLed(true);
+            if (netWorkConnectBroadConnet) {
+                setLEDState(2);
             }
+
             removeUploadLogcatMessage(5);
             sendBroadcastToServer("cameraOperationStart");
         }
@@ -590,8 +582,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             sendBroadcastToServer("cameraOperationEnd：cameraTotalPicture =" + cameraTotalPicture);
             openCameraDeviceProt(false, 8);
 
-            if (!VariableInstance.getInstance().isUploadingToRemote) {
-                startDownLed(false);
+            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isUploadingToRemote) {
+                setLEDState(3);
             }
 
             SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
@@ -664,9 +656,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
             VariableInstance.getInstance().isUploadingToRemote = false;
 
-            if (!VariableInstance.getInstance().isOperationCamera) {
-                restLed();
+            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isOperationCamera) {
+                setLEDState(3);
             }
+
             if (totalTime != 0) {
                 UploadUseTime = totalTime / 1000;
             }
@@ -684,13 +677,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Log.d(TAG, "fileUploadStart: ");
             VariableInstance.getInstance().isUploadingToRemote = true;
             removeUploadLogcatMessage(8);
-            startDownLed(false);
+            if (netWorkConnectBroadConnet) {
+                setLEDState(2);
+            }
         }
 
         @Override
         public void pictureUploadEnd(boolean uploadResult) {
             Log.d(TAG, "fileUploadEnd: uploadResult =" + uploadResult);
             VariableInstance.getInstance().isUploadingToRemote = false;
+            if (netWorkConnectBroadConnet && !VariableInstance.getInstance().isOperationCamera) {
+                setLEDState(3);
+            }
         }
 
 
@@ -774,6 +772,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
             updateUtils = new UpdateUtils(updateListener);
         }
 
+        if (VariableInstance.getInstance().isOperationCamera || VariableInstance.getInstance().isUploadingToRemote) {
+            setLEDState(2);
+        } else {
+            setLEDState(3);
+        }
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -807,6 +811,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         VariableInstance.getInstance().remoteServerAvailable = false;
         VariableInstance.getInstance().remoteServerConnecting = false;
 
+        setLEDState(1);
 
         VariableInstance.getInstance().ownCloudClient = null;
         runOnUiThreadText(isConnectNetworkText, "是否连网:false");
@@ -1559,21 +1564,29 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    private void startDownLed(boolean start) {
-        Log.d(TAG, "startDownLed: 下载 led: " + (start ? "打开" : "关闭"));
-        if (debug) return;
-        if (start) {
-            LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_TIMER);
-        } else {
-            LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_HEARTBEAT);
-        }
-    }
 
-    private void restLed() {
-        Log.d(TAG, "restLed:  恢复 led ------");
+    private void setLEDState(int state) {
+        Log.e(TAG, "setLEDState: state =" + state);
         if (debug) return;
-        LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_NONE);
-        LedControl.nativeEnableLed(LedControl.LED_RED_BRIGHTNESS_PATH, LedControl.LED_OFF);
+
+        switch (state) {
+            case 1://快闪
+            {
+                LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_HEARTBEAT);
+            }
+            break;
+            case 2://慢闪
+            {
+                LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_TIMER);
+            }
+            break;
+            case 3://常亮
+            {
+                LedControl.nativeEnableLed(LedControl.LED_RED_TRIGGER_PATH, LedControl.LED_NONE);
+                LedControl.nativeEnableLed(LedControl.LED_RED_BRIGHTNESS_PATH, LedControl.LED_OFF);
+            }
+            break;
+        }
     }
 
     @Override
