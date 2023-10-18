@@ -175,22 +175,27 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     boolean installSucceed = Utils.installApk(apkPath);
                     if (installSucceed) {
                         sendBroadcastToServer("安装serverApk成功");
+                        Log.w(TAG, "run: 安装serverApk成功");
                         Utils.startRemoteActivity();
                         removeDelayCreateActivity();
                         sendDelayCreateActivity(3000);
                     } else {
+                        Log.w(TAG, "run: 安装失败，卸载serverApk");
                         Utils.uninstallapk();
                         try {
                             Thread.sleep(3000);
                         } catch (InterruptedException e) {
                         }
                         installSucceed = Utils.installApk(apkPath);
+
                         if (installSucceed) {
+                            Log.w(TAG, "run:安装serverApk成功");
                             sendBroadcastToServer("安装serverApk成功");
                             Utils.startRemoteActivity();
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
                         } else {
+                            Log.w(TAG, "run:安装serverApk失败");
                             sendBroadcastToServer("安装serverApk失败");
                             removeDelayCreateActivity();
                             sendDelayCreateActivity(3000);
@@ -217,7 +222,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setLEDState(1);
 
         removeDelayCreateActivity();
-        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).equals("v1.0.11")) {
+        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.11")) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -419,6 +424,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         @Override
+        public void requestPermissionUSBStart() {
+            mHandler.removeMessages(msg_usb_request_permission_timeout);
+            mHandler.sendEmptyMessageDelayed(msg_usb_request_permission_timeout, 10000);
+        }
+
+        @Override
+        public void getPermissionUSB() {
+            mHandler.removeMessages(msg_usb_request_permission_timeout);
+        }
+
+        @Override
         public void sendInitUSBTimeOutMessage(int position) {
             Log.d(TAG, "sendInitUSBTimeOutMessage: position =" + position);
             mHandler.removeMessages(msg_usb_init_faild_delay);
@@ -455,10 +471,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         ProfileModel profileModel = null;
         int deviceStyle = LocalProfileHelp.getInstance().checkDeviceStyle();
         if (deviceStyle == 1 || deviceStyle == 0) {//蜂窝版
-            if (deviceStyle == 1) {
+            if (deviceStyle == 1 && wifiConfigurationFile != null) {
                 Log.e(TAG, "checkProfileFileMain: 蜂窝版里面怎么放了个配置文件");
             }
-            if (deviceStyle == 0) {
+            if (deviceStyle == 0 && wifiConfigurationFile != null) {
                 Log.e(TAG, "checkProfileFileMain: 未知原因，有配置文件，模块接口没识别到");
             }
             String imei = getPhoneImei();
@@ -1459,8 +1475,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
             UploadSpeed = "0";
         }
 
+        boolean initUSB;
+        if (VariableInstance.getInstance().storeUSBDeviceID == -1) {
+            initUSB = false;
+        } else {
+            initUSB = true;
+        }
+
         if (copySpeed == null) copySpeed = "0";
-        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + VariableInstance.getInstance().currentUSBPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (remoteOperationUtils == null ? 0 : remoteOperationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().backupPicrureNum + ";";
+        String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + VariableInstance.getInstance().currentUSBPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + initUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (remoteOperationUtils == null ? 0 : remoteOperationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().backupPicrureNum + ";";
         return info;
     }
 
@@ -1871,6 +1894,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int msg_connect_server_timeout = 11;
     private static final int msg_connect_server_complete = 12;
+    private static final int msg_usb_request_permission_timeout = 13;
 
 
     private static class MyHandler extends Handler {
@@ -1899,11 +1923,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.sendShutDown = false;
                     activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-               /*     if (true)//TODO hu
-                    {
-                        activity.sendMessageToMqtt("测试阶段，不关机");
-                        return;
-                    }*/
+//                    if (true)//TODO hu
+//                    {
+//                        activity.sendMessageToMqtt("测试阶段，不关机");
+//                        return;
+//                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:
@@ -1938,6 +1962,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_connect_server_complete:
                     activity.openCameraDeviceProt(true, 5);
+                    break;
+                case msg_usb_request_permission_timeout:
+                    if (activity.receiverStoreUSB != null) {
+                        activity.receiverStoreUSB.initStoreUSBDevicea();
+                    }
                     break;
             }
         }

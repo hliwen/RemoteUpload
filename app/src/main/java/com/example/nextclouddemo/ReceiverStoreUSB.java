@@ -60,7 +60,20 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         String action = intent.getAction();
 
         switch (action) {
-            case UsbManager.ACTION_USB_DEVICE_ATTACHED:
+            case UsbManager.ACTION_USB_DEVICE_ATTACHED: {
+                UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (usbDevice == null) {
+                    Log.e(TAG, "ReceiverStoreUSB onReceive: action =" + action + ",usbDevice == null");
+                    return;
+                }
+                Log.e(TAG, "ReceiverStoreUSB onReceive: action =" + action + ", getProductName =" + usbDevice.getProductName());
+                if (VariableInstance.getInstance().isStroreUSBDevice(usbDevice.getProductName())) {
+                    usbConnect(usbDevice);
+                } else {
+                    Log.e(TAG, "ReceiverStoreUSB onReceive: 111 action =" + action + ", getProductName =" + usbDevice.getProductName());
+                }
+            }
+            break;
             case VariableInstance.GET_STORE_USB_PERMISSION: {
                 UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (usbDevice == null) {
@@ -69,6 +82,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                 }
                 Log.e(TAG, "ReceiverStoreUSB onReceive: action =" + action + ", getProductName =" + usbDevice.getProductName());
                 if (VariableInstance.getInstance().isStroreUSBDevice(usbDevice.getProductName())) {
+                    Log.e(TAG, "onReceive: 存储USB授权成功");
+                    if (storeUSBListener != null) {
+                        storeUSBListener.getPermissionUSB();
+                    }
                     usbConnect(usbDevice);
                 } else {
                     Log.e(TAG, "ReceiverStoreUSB onReceive: 111 action =" + action + ", getProductName =" + usbDevice.getProductName());
@@ -208,9 +225,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                     }
                     requestPermissionCount++;
 
+                    if (storeUSBListener != null) {
+                        storeUSBListener.requestPermissionUSBStart();
+                    }
                     Log.e(TAG, "usbConnect: 当前设备没有授权,productName :" + usbDevice.getProductName());
                     @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(VariableInstance.GET_STORE_USB_PERMISSION), 0);
                     usbManager.requestPermission(usbDevice, pendingIntent);
+
+
                     VariableInstance.getInstance().isScanningStoreUSB = false;
 
                     if (storeUSBListener != null) {
@@ -745,6 +767,10 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
 
 
         void storeUSBSaveOnePictureComplete(String speed);
+
+        void requestPermissionUSBStart();
+
+        void getPermissionUSB();
 
 
     }

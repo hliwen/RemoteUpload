@@ -369,7 +369,7 @@ public class Utils {
                 succeed = true;
             }
         } catch (Exception e) {
-
+            Log.e(TAG, "installAPKServer: 安装服务apk失败：" + e);
         } finally {
             try {
                 if (os != null) {
@@ -399,7 +399,7 @@ public class Utils {
     public static String getServerVersionName(Context context, String packageName) {
         try {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
-            return packageInfo.packageName;
+            return packageInfo.versionName;
 
         } catch (Exception e) {
             e.printStackTrace();

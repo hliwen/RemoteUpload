@@ -29,7 +29,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -398,31 +397,37 @@ public class ReceiverCamera extends BroadcastReceiver {
             return;
         }
 
+
         int[] storageIds = mtpDevice.getStorageIds();
         if (storageIds == null || storageIds.length == 0) {
             Log.e(TAG, "mtpDeviceScaner: 数码相机存储卷不可用 storageIds == null 结束扫描");
             return;
         }
+
+
         Log.e(TAG, "mtpDeviceScaner: 设备一共几个盘符，storageIds.length =" + storageIds.length);
         List<SameDayPicutreInfo> cameraPictureInfoList = Collections.synchronizedList(new ArrayList<>());
         for (int storageId : storageIds) {
-            int[] pictureHandlesItem = mtpDevice.getObjectHandles(storageId, 0, 0);
-            if (pictureHandlesItem == null) {
+
+
+            int[] objectHandles = mtpDevice.getObjectHandles(storageId, 0, 0);
+            if (objectHandles == null) {
                 Log.e(TAG, "mtpDeviceScaner: 获取当前盘符全部照片数组 storageId =" + storageId + ",pictureHandlesItem = null");
             } else {
-                Log.e(TAG, "mtpDeviceScaner: 获取当前盘符全部照片数组 storageId =" + storageId + ",pictureHandlesItem=" + pictureHandlesItem.length);
-                for (int i : pictureHandlesItem) {
+                Log.e(TAG, "mtpDeviceScaner: 获取当前盘符全部照片数组  pictureHandlesItem=" + objectHandles.length);
+                for (int handle : objectHandles) {
                     if (cameraDeviceID == -1) {
                         Log.d(TAG, "mtpDeviceScaner: cameraDeviceID == -1");
                         downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                         return;
                     }
-                    MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(i);
+                    MtpObjectInfo mtpObjectInfo = mtpDevice.getObjectInfo(handle);
 
                     if (mtpObjectInfo == null) {
-                        Log.e(TAG, "mtpDeviceScaner: mtpObjectInfo == null,当前文件信息无法获取");
+                        Log.e(TAG, "mtpDeviceScaner:  mtpObjectInfo ==null 当前文件信息无法获取");
                         continue;
                     }
+
 
                     long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
                     int yymmdd = Utils.getyyMMddtringInt(createDate);
@@ -436,7 +441,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                     if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
                         if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
-                            boolean delectResult = mtpDevice.deleteObject(i);
+                            boolean delectResult = mtpDevice.deleteObject(handle);
                             if (!delectResult) {
                                 Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
                             }
@@ -444,7 +449,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                         } else if (VariableInstance.getInstance().isFormaringCamera.formatState == 2) {
                             int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
                             if (systemTime != 900101 && systemTime - yymmdd < VariableInstance.FormatCameraDay) {
-                                boolean delectResult = mtpDevice.deleteObject(i);
+                                boolean delectResult = mtpDevice.deleteObject(handle);
                                 if (!delectResult) {
                                     Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
                                 }
@@ -462,14 +467,18 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
 
                     if (rowFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, false);
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, handle, null, null, false);
                         sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
                     } else if (jPGFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, i, null, null, true);
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, handle, null, null, true);
                         sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
                     }
+
+
                 }
             }
+
+
         }
 
         VariableInstance.getInstance().isConnectCamera = true;
