@@ -222,7 +222,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setLEDState(1);
 
         removeDelayCreateActivity();
-        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.11")) {
+        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.13")) {
             sendDelayCreateActivity(3000);
         } else {
             Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -432,6 +432,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         @Override
         public void getPermissionUSB() {
             mHandler.removeMessages(msg_usb_request_permission_timeout);
+        }
+
+        @Override
+        public void checkServerUSBOpenration() {
+            sendOrderedBroadcast(new Intent("checkServerUSBOpenration"), null);
         }
 
         @Override

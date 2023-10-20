@@ -257,11 +257,14 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
                         int count = 0;
                         while (VariableInstance.getInstance().serverApkInitingUSB && count < 20) {
                             Log.e(TAG, "usbConnect: 守护apk 正在操作U盘,等待3S");
+
+
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException e) {
 
                             }
+                            storeUSBListener.checkServerUSBOpenration();
                             count++;
                         }
 
@@ -771,6 +774,8 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         void requestPermissionUSBStart();
 
         void getPermissionUSB();
+
+        void checkServerUSBOpenration();
 
 
     }
