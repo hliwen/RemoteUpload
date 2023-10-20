@@ -996,7 +996,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         mHandler.sendEmptyMessage(msg_connect_server_complete);
                         removeUploadLogcatMessage(10);
                         remoteOperationUtils.startCameraPictureUploadThread();
-                        remoteOperationUtils.startUploadTestLocatThread(false);
+
                     } else {
                         mHandler.removeMessages(msg_connect_server_timeout);
                         mHandler.sendEmptyMessage(msg_connect_server_timeout);
@@ -1080,13 +1080,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
         EventBus.getDefault().unregister(this);
         MqttManager.getInstance().release();
 
-        LogcatHelper.getInstance().stopTestLogcat();
+
         LogcatHelper.getInstance().stopMainLogcat();
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 LogcatHelper.getInstance().stopMainLogcat();
-                LogcatHelper.getInstance().stopTestLogcatRename();
+
             }
         }, 300);
         stopService(new Intent(MainActivity.this, MyServer.class));
@@ -1484,6 +1484,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         if (copySpeed == null) copySpeed = "0";
         String info = "4gCcid," + getPhoneNumber() + ";UploadSpeed," + UploadSpeed + ";4gCsq," + getSignalStrength() + ";SdFree," + freeSpace + ";SdFull," + capacity + ";PhotoSum," + VariableInstance.getInstance().currentUSBPictureCount + ";PhotoUploadThisTime," + VariableInstance.getInstance().uploadRemorePictureNum + ";UploadMode," + uploadModelString + ";UploadUseTime," + UploadUseTime + ";Version," + appVerison + ";initUSB," + initUSB + ";connectCamera," + VariableInstance.getInstance().isConnectCamera + ";cameraPictureCount," + cameraPictureCount + ";cameraName," + cameraName + ";waitUploadPhoto," + (remoteOperationUtils == null ? 0 : remoteOperationUtils.pictureFileListCache.size()) + ";copySpeed," + copySpeed + ";copyTotalNum," + copyTotalNum + ";copyCompleteNum," + VariableInstance.getInstance().backupPicrureNum + ";";
+
+        Log.d(TAG, "serverGetInfo: info =" + info);
         return info;
     }
 

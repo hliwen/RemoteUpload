@@ -19,11 +19,11 @@ public class LogcatHelper {
     private static final String TAG = "remotelog_LogcatHelper";
     private static LogcatHelper INSTANCE = null;
 
-    public LogDumper mLogDumperTest = null;
+
     public LogDumper mLogDumperMain = null;
     private int mPId;
 
-    private String logcatFileTestPath;
+
     private String logcatFileMainPath;
 
 
@@ -59,59 +59,22 @@ public class LogcatHelper {
 
 
     public void start() {
-        String testName = "logcat" + getFileName() + "_test.txt";
         String mainName = "logcat" + getFileName() + ".txt";
 
-        logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + testName;
         logcatFileMainPath = VariableInstance.getInstance().LogcatDir + "/" + mainName;
 
-        Log.d(TAG, "startLogHelper: \n logcatFileTestPath =" + logcatFileTestPath + "\n logcatFileMainPath =" + logcatFileMainPath);
+        Log.d(TAG, "startLogHelper:   logcatFileMainPath =" + logcatFileMainPath);
 
-        if (mLogDumperTest == null) {
-            mLogDumperTest = new LogDumper(String.valueOf(mPId), logcatFileTestPath);
-        }
 
         if (mLogDumperMain == null) {
             mLogDumperMain = new LogDumper(String.valueOf(mPId), logcatFileMainPath);
         }
 
-        mLogDumperTest.start();
         mLogDumperMain.start();
     }
 
 
-    public void stopTestLogcat() {
-        Log.e(TAG, "stopTestLogcat: logcatFileTestPath =" + logcatFileTestPath);
-        if (mLogDumperTest != null) {
 
-            mLogDumperTest.stopLogs();
-            mLogDumperTest = null;
-        }
-    }
-
-    public void stopTestLogcatRename(){
-        try {
-            File testLogcatFile = new File(logcatFileTestPath);
-            if (testLogcatFile != null && testLogcatFile.exists()) {
-                String fileName = testLogcatFile.getName();
-                int lastIndex = fileName.lastIndexOf(".");
-                if (lastIndex != -1) {
-                    fileName = fileName.substring(0, lastIndex);
-                }
-                if (fileName.trim().contains("logcat1970")) {
-                    Log.e(TAG, "stopTestLogcat: 日志开始时1970，需要重命名");
-                    fileName = "logcat" + getFileName() + "_test";
-                    if (!fileName.trim().contains("logcat1970")) {
-                        Log.e(TAG, "stopTestLogcat: 已经同步到网络时间，重命名日志文件");
-                        logcatFileTestPath = VariableInstance.getInstance().LogcatDir + "/" + fileName + ".txt";
-                        File file = new File(logcatFileTestPath);
-                        testLogcatFile.renameTo(file);
-                    }
-                }
-            }
-        } catch (Exception e) {
-        }
-    }
 
     public void stopMainLogcat() {
         Log.e(TAG, "stopMainLogcat: logcatFileMainPath =" + logcatFileMainPath);
@@ -121,7 +84,7 @@ public class LogcatHelper {
         }
     }
 
-    public void stopMainLogcatRename(){
+    public void stopMainLogcatRename() {
         try {
             File mainLogcatFile = new File(logcatFileMainPath);
             if (mainLogcatFile != null && mainLogcatFile.exists()) {
@@ -143,11 +106,6 @@ public class LogcatHelper {
             }
         } catch (Exception e) {
         }
-    }
-
-    public String getTestLogcatPath() {
-        Log.e(TAG, "getTestLogcatPath: logcatFileTestPath =" + logcatFileTestPath);
-        return logcatFileTestPath;
     }
 
     public String getMainLogcatPath() {
