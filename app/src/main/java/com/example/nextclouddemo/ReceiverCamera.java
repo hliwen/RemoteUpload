@@ -388,6 +388,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         }
 
         MtpDevice mtpDevice = new MtpDevice(usbDevice);
+
         if (mtpDevice == null) {
             Log.e(TAG, "mtpDeviceScaner 数码相机打开失败 mtpDevice == null 初始usb设备为mtp设备失败，结束扫描");
             return;
@@ -823,7 +824,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Collections.sort(backupPictureInfoList, new order());
         Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), cameraTotalPicture, uploadPictureInfoList.size(), usbDevice.getProductName());
+        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(),cameraTotalPicture, usbDevice.getProductName());
         Log.e(TAG, "usbDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
 
         for (PictureInfo pictureInfo : uploadPictureInfoList) {
@@ -865,7 +866,8 @@ public class ReceiverCamera extends BroadcastReceiver {
                 int yymmdd = Utils.getyyMMddtringInt(createDate);
                 String name = usbFileItem.getName();
                 String pictureName = yymmdd + "-" + name;
-                String FileEnd = pictureName.substring(name.lastIndexOf(".") + 1).toLowerCase();
+
+                String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
 
                 if (!pictureFormatFile(FileEnd)) {
                     continue;
@@ -1048,7 +1050,8 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
+            return true;
         return false;
     }
 

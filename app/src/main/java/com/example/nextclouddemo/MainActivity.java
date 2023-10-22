@@ -50,10 +50,13 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import me.jahnen.libaums.core.fs.UsbFile;
@@ -1458,7 +1461,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1467,7 +1471,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1624,6 +1629,93 @@ public class MainActivity extends Activity implements View.OnClickListener {
         } else if (view.getId() == R.id.formatCameraBt) {
             formatCamera(true);
         }
+    }
+
+
+    private void addaf(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String[] aa = getMountPoints();
+                if (aa != null)
+                    for (String s : aa) {
+                        Log.e(TAG, "run:adfasdf s = " + s);
+                    }
+            }
+        }).start();
+
+        if (true)
+            return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                DataOutputStream dataOutputStream = null;
+                BufferedReader es = null;
+                try {
+                    Process process = Runtime.getRuntime().exec("blkid");
+                    dataOutputStream = new DataOutputStream(process.getOutputStream());
+//                String runCommand = "busybox mkdosfs -F 32 /dev/block/sda";
+//                        String runCommand = "blkid";
+//                        dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
+                    process.waitFor();
+//                        dataOutputStream.flush();
+
+                    es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                    String line;
+                    StringBuilder builder = new StringBuilder();
+                    while ((line = es.readLine()) != null) {
+                        builder.append(line);
+                        Log.e(TAG, "onClick: adfasdf line =" + line);
+                    }
+
+                    Log.e(TAG, "onClick:adfasdf blkid =" + builder.toString());
+                } catch (Exception e) {
+                    Log.e(TAG, "onClick:adfasdf Exception: " + e);
+                } finally {
+                    try {
+                        if (dataOutputStream != null) {
+                            dataOutputStream.close();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "onClick:adfasdf Exception: " + e);
+                    }
+                }
+            }
+        }).start();
+
+    }
+
+    public static String[] getMountPoints() {
+        String[] mountPoints = null;
+        try {
+            Process process = Runtime.getRuntime().exec("ls /dev/block/");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            StringBuilder output = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+                Log.d(TAG, "getMountPoints:adfasdf line =" + line);
+            }
+            process.waitFor();
+
+            String mountOutput = output.toString();
+            String[] mountLines = mountOutput.split("\n");
+
+            mountPoints = new String[mountLines.length];
+
+            // 解析挂载点
+            for (int i = 0; i < mountLines.length; i++) {
+                String mountLine = mountLines[i];
+                String[] parts = mountLine.split(" ");
+                if (parts.length > 2) {
+                    String mountPoint = parts[2];
+                    mountPoints[i] = mountPoint;
+                }
+            }
+        } catch (Exception e) {
+           Log.e(TAG, "adfasdf getMountPoints: Exception ="+e );
+        }
+        return mountPoints;
     }
 
 
