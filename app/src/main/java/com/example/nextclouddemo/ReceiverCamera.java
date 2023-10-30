@@ -343,13 +343,15 @@ public class ReceiverCamera extends BroadcastReceiver {
 
                     downloadFlieListener.cameraOperationStart();
                     if (isStorageModel) {
+                        VariableInstance.getInstance().isSONYCamera = true;
                         usbDeviceScaner(device);
                     }
                     if (isMtpModel) {
+                        VariableInstance.getInstance().isSONYCamera = false;
                         mtpDeviceScaner(device);
                     }
                     VariableInstance.getInstance().isOperationCamera = false;
-                    VariableInstance.getInstance().isFormaringCamera.formatState = 0;
+                    VariableInstance.getInstance().isFormaringCamera = false;
                     downloadFlieListener.cameraOperationEnd(cameraTotalPicture);
 
                 } catch (Exception e) {
@@ -358,6 +360,70 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
         });
 
+    }
+
+
+    public int isSONYCamera() {//1:isMtpModel 2:isStorageModel
+        if (usbManager == null) {
+            usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+        }
+
+        if (usbManager == null) {
+            Log.d(TAG, "isSONYCamera:usbManager==null ");
+            return 0;
+        }
+        HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
+        if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
+            Log.e(TAG, "isSONYCamera:  没有检测到有设备列表");
+            return 0;
+        }
+        Collection<UsbDevice> usbDevices = connectedUSBDeviceList.values();
+        if (usbDevices == null) {
+            Log.e(TAG, "isSONYCamera:  没有检测到有设备接入");
+            return 0;
+        }
+
+        Log.e(TAG, "isSONYCamera: usbDevices.size =" + usbDevices.size());
+
+        for (UsbDevice usbDevice : usbDevices) {
+            if (usbDevice == null) {
+                continue;
+            }
+
+            String usbProductName = usbDevice.getProductName();
+
+            Log.e(TAG, "isSONYCamera: 当前设备名称：" + usbProductName);
+
+            if (usbProductName == null) {
+                continue;
+            }
+
+            usbProductName = usbProductName.trim();
+
+            if (VariableInstance.getInstance().isOthreDevice(usbProductName)) {
+                continue;
+            }
+
+            try {
+                for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
+                    UsbInterface usbInterface = usbDevice.getInterface(i);
+                    if (usbInterface == null) {
+                        continue;
+                    }
+
+                    switch (usbInterface.getInterfaceClass()) {
+                        case UsbConstants.USB_CLASS_STILL_IMAGE:
+                            return 1;
+                        case UsbConstants.USB_CLASS_MASS_STORAGE:
+                            return 2;
+                        default:
+                            break;
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+        return 0;
     }
 
 
@@ -440,23 +506,13 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
                     cameraTotalPicture++;
 
-                    if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
-                        if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
-                            boolean delectResult = mtpDevice.deleteObject(handle);
-                            if (!delectResult) {
-                                Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
-                            }
-                            continue;
-                        } else if (VariableInstance.getInstance().isFormaringCamera.formatState == 2) {
-                            int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
-                            if (systemTime != 900101 && systemTime - yymmdd < VariableInstance.FormatCameraDay) {
-                                boolean delectResult = mtpDevice.deleteObject(handle);
-                                if (!delectResult) {
-                                    Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
-                                }
-                            }
+                    if (VariableInstance.getInstance().isFormaringCamera) {
+                        boolean delectResult = mtpDevice.deleteObject(handle);
+                        if (!delectResult) {
+                            Log.e(TAG, "mtpDeviceScaner: 格式化过程中，删除照片失败，name = " + mtpObjectInfo.getName());
                         }
                         continue;
+
                     }
 
                     SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
@@ -484,7 +540,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         VariableInstance.getInstance().isConnectCamera = true;
         Log.d(TAG, "mtpDeviceScaner:  相机总共照片 =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             downloadFlieListener.scannerCameraComplete(0, 0, cameraTotalPicture, usbDevice.getProductName());
             usbDeviceConnection.close();
             mtpDevice.close();
@@ -621,7 +677,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
 
     private void mtpBackUpToUSB(MtpDevice mtpDevice, PictureInfo pictureInfo) {
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             Log.e(TAG, "mtpBackUpToUSB: 正在格式化相机，不做处理");
             return;
         }
@@ -659,7 +715,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
     private void mtpBackUpToRemote(MtpDevice mtpDevice, PictureInfo pictureInfo) {
 
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             Log.e(TAG, "mtpBackUpToRemote: 正在格式化相机，不做处理");
             return;
         }
@@ -737,7 +793,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         Log.d(TAG, "usbDeviceScaner:  相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
 
 
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             downloadFlieListener.scannerCameraComplete(0, 0, cameraTotalPicture, usbDevice.getProductName());
             return;
         }
@@ -824,7 +880,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Collections.sort(backupPictureInfoList, new order());
         Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(),cameraTotalPicture, usbDevice.getProductName());
+        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
         Log.e(TAG, "usbDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
 
         for (PictureInfo pictureInfo : uploadPictureInfoList) {
@@ -875,25 +931,12 @@ public class ReceiverCamera extends BroadcastReceiver {
                 cameraTotalPicture++;
 
 
-                if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
-                    if (VariableInstance.getInstance().isFormaringCamera.formatState == 1) {
-                        try {
-                            usbFile.delete();
-                        } catch (IOException e) {
-                            Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
-                        }
-                    } else if (VariableInstance.getInstance().isFormaringCamera.formatState == 2) {
-                        int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
-                        if (systemTime == 900101 && systemTime - yymmdd < VariableInstance.FormatCameraDay) {
-                            continue;
-                        }
-                        try {
-                            usbFile.delete();
-                        } catch (Throwable e) {
-                            Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
-                        }
+                if (VariableInstance.getInstance().isFormaringCamera) {
+                    try {
+                        usbFile.delete();
+                    } catch (IOException e) {
+                        Log.e(TAG, "readPicFileFromUSBFile: usbFile.delete IOException =" + e);
                     }
-                    continue;
                 }
 
                 SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
@@ -918,7 +961,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     private void usbBackUpToUSB(PictureInfo pictureInfo) {
         Log.d(TAG, "usbBackUpToUSB: start pictureInfo =" + pictureInfo);
 
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             Log.e(TAG, "usbBackUpToUSB: 正在格式化相机，不做处理");
             return;
         }
@@ -976,7 +1019,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     private void usbBackUpToRemote(PictureInfo pictureInfo) {
         Log.d(TAG, "usbBackUpToRemote: start pictureInfo =" + pictureInfo);
 
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+        if (VariableInstance.getInstance().isFormaringCamera) {
             Log.e(TAG, "usbBackUpToRemote: 正在格式化相机，不做处理");
             return;
         }
@@ -1050,8 +1093,7 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     private boolean rowFormatFile(String FileEnd) {
-        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3")))
-            return true;
+        if ((FileEnd.equals("nif") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("crw") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3"))) return true;
         return false;
     }
 

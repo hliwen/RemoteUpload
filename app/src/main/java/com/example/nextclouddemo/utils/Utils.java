@@ -488,4 +488,41 @@ public class Utils {
         return false;
     }
 
+
+    public static List<String> getDeviceBlockList() {
+        List<String> devBlock = new ArrayList<>();
+        Process process = null;
+        try {
+            process = Runtime.getRuntime().exec("ls /dev/block/");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Log.d(TAG, "getDeviceBlockList:  block =" + line);
+                if (line.startsWith("sd")) {
+                    if (!devBlock.contains(line.trim())) {
+                        devBlock.add(line.trim());
+                    }
+                }
+            }
+            process.waitFor();
+        } catch (Exception e) {
+            Log.e(TAG, "getDeviceBlockList: Exception =" + e);
+        }
+        return devBlock;
+    }
+
+
+    public static  void setenforce() {
+        try {
+            Process formatProcess = Runtime.getRuntime().exec("setenforce 0");
+
+            Log.e(TAG, "setenforce : waitFor start");
+            int exitCode = formatProcess.waitFor();
+            Log.e(TAG, "setenforce : waitFor end exitCode=" + exitCode);
+        } catch (Exception e) {
+
+            Log.d(TAG, "run: setenforce  1Exception=" + e);
+        }
+    }
+
 }

@@ -57,6 +57,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import me.jahnen.libaums.core.fs.UsbFile;
@@ -99,7 +100,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int UPPOAD_LOGCAT_DELAY_TIME = 5 * 60 * 1000;
     private static final int CLOSE_DEVICE_DELAY_TIME = 2 * 60 * 1000;
     private static final int NETWORK_WAIT_TIME = 3 * 60 * 1000;
+
+    private static final String FormatFlagBroadcast = "FormatFlagBroadcast";
+
     private String returnImei;
+    private String deviceImei;
     private String deveceName;
 
     private boolean isUpdating;
@@ -135,6 +140,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private TextView serverStateText;
     private TextView phoneNumberText;
     private TextView imeiNumberText;
+    private TextView shutDownTimeText;
 
     private TextView currentVersionText;
     private TextView serverVersionText;
@@ -216,63 +222,68 @@ public class MainActivity extends Activity implements View.OnClickListener {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main_acitivity);
+        shutDownTimeText = findViewById(R.id.shutDownTimeText);
+
         openCameraDeviceProt(false, 6);
         mHandler = new MyHandler(MainActivity.this);
         openNetworkLed(true);
 
-        startService(new Intent(MainActivity.this, MyServer.class));
 
-        setLEDState(1);
+        if (!checkFormatFlag()) {
+            startService(new Intent(MainActivity.this, MyServer.class));
 
-        removeDelayCreateActivity();
-        if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.13")) {
-            sendDelayCreateActivity(3000);
-        } else {
-            Log.d(TAG, "onCreate: 需要等待安装守护线程");
-            sendDelayCreateActivity(30000);
-            installAPKServer();
+            setLEDState(1);
+
+            removeDelayCreateActivity();
+            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.21")) {
+                sendDelayCreateActivity(3000);
+            } else {
+                Log.d(TAG, "onCreate: 需要等待安装守护线程");
+                sendDelayCreateActivity(30000);
+                installAPKServer();
+            }
+
+            messageText = findViewById(R.id.messageText);
+            accessNumberText = findViewById(R.id.accessNumberText);
+            cameraStateText = findViewById(R.id.cameraStateText);
+            isConnectNetworkText = findViewById(R.id.isConnectNetworkText);
+            UpanSpaceText = findViewById(R.id.UpanSpaceText);
+            UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
+            uploadNumberText = findViewById(R.id.uploadNumberText);
+            backupNumberText = findViewById(R.id.backupNumberText);
+            uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
+            hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
+            mqttStateText = findViewById(R.id.mqttStateText);
+            uploadModelText = findViewById(R.id.uploadModelText);
+            remoteNameText = findViewById(R.id.remoteNameText);
+            hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
+            serverStateText = findViewById(R.id.serverStateText);
+            imeiNumberText = findViewById(R.id.imeiNumberText);
+            phoneNumberText = findViewById(R.id.phoneNumberText);
+            currentVersionText = findViewById(R.id.currentVersionText);
+            serverVersionText = findViewById(R.id.serverVersionText);
+            downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
+            updateResultText = findViewById(R.id.updateResultText);
+            cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
+            cameraDeviceText = findViewById(R.id.cameraDeviceText);
+
+
+            guanjiBt = findViewById(R.id.guanjiBt);
+            rescanerBt = findViewById(R.id.rescanerBt);
+            openProtActivityBt = findViewById(R.id.openProtActivityBt);
+            clearViewBt = findViewById(R.id.clearViewBt);
+            formatUSBt = findViewById(R.id.formatUSBt);
+            formatCameraBt = findViewById(R.id.formatCameraBt);
+
+
+            guanjiBt.setOnClickListener(this);
+            rescanerBt.setOnClickListener(this);
+            openProtActivityBt.setOnClickListener(this);
+            clearViewBt.setOnClickListener(this);
+            formatUSBt.setOnClickListener(this);
+            formatCameraBt.setOnClickListener(this);
+
         }
-
-        messageText = findViewById(R.id.messageText);
-        accessNumberText = findViewById(R.id.accessNumberText);
-        cameraStateText = findViewById(R.id.cameraStateText);
-        isConnectNetworkText = findViewById(R.id.isConnectNetworkText);
-        UpanSpaceText = findViewById(R.id.UpanSpaceText);
-        UpanPictureCountText = findViewById(R.id.UpanPictureCountText);
-        uploadNumberText = findViewById(R.id.uploadNumberText);
-        backupNumberText = findViewById(R.id.backupNumberText);
-        uploadUseTimeText = findViewById(R.id.uploadUseTimeText);
-        hasUploadpictureNumberText = findViewById(R.id.hasUploadpictureNumberText);
-        mqttStateText = findViewById(R.id.mqttStateText);
-        uploadModelText = findViewById(R.id.uploadModelText);
-        remoteNameText = findViewById(R.id.remoteNameText);
-        hasDownloadPictureNumberText = findViewById(R.id.hasDownloadPictureNumberText);
-        serverStateText = findViewById(R.id.serverStateText);
-        imeiNumberText = findViewById(R.id.imeiNumberText);
-        phoneNumberText = findViewById(R.id.phoneNumberText);
-        currentVersionText = findViewById(R.id.currentVersionText);
-        serverVersionText = findViewById(R.id.serverVersionText);
-        downloadAppProgressText = findViewById(R.id.downloadAppProgressText);
-        updateResultText = findViewById(R.id.updateResultText);
-        cameraPictureCountText = findViewById(R.id.cameraPictureCountText);
-        cameraDeviceText = findViewById(R.id.cameraDeviceText);
-
-
-        guanjiBt = findViewById(R.id.guanjiBt);
-        rescanerBt = findViewById(R.id.rescanerBt);
-        openProtActivityBt = findViewById(R.id.openProtActivityBt);
-        clearViewBt = findViewById(R.id.clearViewBt);
-        formatUSBt = findViewById(R.id.formatUSBt);
-        formatCameraBt = findViewById(R.id.formatCameraBt);
-
-
-        guanjiBt.setOnClickListener(this);
-        rescanerBt.setOnClickListener(this);
-        openProtActivityBt.setOnClickListener(this);
-        clearViewBt.setOnClickListener(this);
-        formatUSBt.setOnClickListener(this);
-        formatCameraBt.setOnClickListener(this);
-
     }
 
     private void sendDelayCreateActivity(int delayTime) {
@@ -361,6 +372,22 @@ public class MainActivity extends Activity implements View.OnClickListener {
         registerWifiReceiver();
         registerStoreUSBReceiver();
 
+    }
+
+
+    private boolean checkFormatFlag() {
+
+        if (getFormatStoregeUSBFlag()) {
+            saveFormatStoregeUSBFlag(false);
+            formatStoregeUSB();
+            return true;
+        } else if (getFormatCameraFlag()) {
+            saveFormatCameraFlag(false);
+            formatSONYCamera();
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -977,6 +1004,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     networkUpdateUploadModel(deviceInfoModel);
 
 
+                    deviceImei = imei;
+
                     returnImei = deviceInfoModel.returnImei;
                     deveceName = deviceInfoModel.deveceName;
 
@@ -984,10 +1013,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     boolean mqttConnect = MqttManager.isConnected();
                     Log.e(TAG, "run: mqttConnect =" + mqttConnect);
                     if (!mqttConnect) {
-
-
                         MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + imei, "/camera/v1/device/" + returnImei + "/android");
                         MqttManager.getInstance().subscribe("/camera/v2/device/" + returnImei + "/android/send", 1);
+                    }
+
+
+                    if (getShowFormatResultFlag()) {
+                        saveShowFormatResultFlag(false);
+
+                        if (getFormatResultFlag()) {
+                            saveFormatResultFlag(false);
+                            sendMessageToMqtt("格式化成功;");
+                        } else {
+                            sendMessageToMqtt("格式化失败;");
+                        }
                     }
 
 
@@ -1094,7 +1133,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             @Override
             public void run() {
                 LogcatHelper.getInstance().stopMainLogcat();
-
             }
         }, 300);
         stopService(new Intent(MainActivity.this, MyServer.class));
@@ -1137,17 +1175,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case FormatUSB:
             case FormatTF:
             case Set_FormatUdisk_All:
-                formatUSB(true);
+                formatUSB();
                 break;
             case FormatCamera:
             case Set_FormatCamera_All:
-                formatCamera(true);
+                formatCamera();
                 break;
             case Set_FormatUdisk_2weeks:
-                formatUSB(false);
+                formatUSB();
                 break;
             case Set_FormatCamera_2weeks:
-                formatCamera(false);
+                formatCamera();
                 break;
             case Upload:
                 break;
@@ -1246,80 +1284,261 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void formatUSB(boolean all) {
-        if (VariableInstance.getInstance().isFormatingUSB.formatState != 0) {
-            Log.d(TAG, "正在格式化USB，无需重复操作");
-            return;
-        }
+    private void saveFormatStoregeUSBFlag(boolean format) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("formatUSB", format);
+        editor.apply();
+    }
+
+    private boolean getFormatStoregeUSBFlag() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getBoolean("formatUSB", false);
+    }
+
+    private void saveFormatCameraFlag(boolean format) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("formatCamera", format);
+        editor.apply();
+    }
+
+    private boolean getFormatCameraFlag() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getBoolean("formatCamera", false);
+    }
+
+
+    private void saveFormatResultFlag(boolean format) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("FormatResult", format);
+        editor.apply();
+    }
+
+    private boolean getFormatResultFlag() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getBoolean("FormatResult", false);
+    }
+
+    private void saveShowFormatResultFlag(boolean format) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("showFormatResult", format);
+        editor.apply();
+    }
+
+    private boolean getShowFormatResultFlag() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getBoolean("showFormatResult", false);
+    }
+
+
+    private void formatSONYCamera() {
+        saveShowFormatResultFlag(true);
+        mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 120000);
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (VariableInstance.getInstance().isOperationCamera || VariableInstance.getInstance().isScanningStoreUSB) {
+
+
+                boolean formatSucced = false;
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+
+                }
+
+
+                Log.e(TAG, "run: formatSONYCamera 开始查找节点");
+                List<String> usbBlocks = Utils.getDeviceBlockList();
+                for (String block : usbBlocks) {
+                    Log.e(TAG, "formatSONYCamera 没打开相机前 block =" + block);
+                }
+
+                LedControl.writeGpio('b', 2, 1);
+
+                try {
+                    Thread.sleep(15000);
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "run:formatSONYCamera sleep InterruptedException:" + e);
+                }
+
+                List<String> cameraBlocks = Utils.getDeviceBlockList();
+
+
+                for (String block : cameraBlocks) {
+
+                    if (usbBlocks.contains(block)) {
+                        Log.e(TAG, "formatSONYCamera 打开相机后 当前节点是U盘 =" + block);
+                        continue;
+                    }
+                    Log.e(TAG, "formatSONYCamera  格式化 block =" + block);
+
+                    DataOutputStream dataOutputStream = null;
                     try {
-                        Log.e(TAG, "run: 等待格式化");
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
+                        Process formatProcess = Runtime.getRuntime().exec("su");
+                        dataOutputStream = new DataOutputStream(formatProcess.getOutputStream());
+                        String runCommand = "busybox mkdosfs -F 32 /dev/block/" + block;
+                        dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
+                        dataOutputStream.flush();
 
-                    }
-                }
-                openCameraDeviceProt(false, 10);
-                Log.e(TAG, "formatUSB: start .......................................");
-                VariableInstance.getInstance().isFormatingUSB.formatState = all ? 1 : 2;
-                runOnUiThreadText(formatUSBt, "开始删除USB图片");
+                        formatSucced = true;
 
-
-                if (remoteOperationUtils != null) {
-                    remoteOperationUtils.stopUploadThread();
-                }
-
-                if (receiverStoreUSB != null) {
-
-                    boolean exception = receiverStoreUSB.formatStoreUSB();
-                    runOnUiThreadText(formatUSBt, exception ? "格式化USB失败" : "格式化USB成功");
-
-                    Log.e(TAG, "formatUSB: " + (exception ? "格式化USB失败" : "格式化USB成功"));
-
-                    if (exception) {
-                        sendMessageToMqtt("ZR\r\n");
-                    } else {
-                        sendMessageToMqtt("ZQ\r\n");
+                        Log.d(TAG, "run: formatSONYCamera  busybox mkdosfs -F 32 block :" + block + "，完成");
+                    } catch (Exception e) {
+                        Log.d(TAG, "run: formatSONYCamera  busybox mkdosfs -F 32 Exception :" + e);
+                    } finally {
+                        try {
+                            if (dataOutputStream != null) {
+                                dataOutputStream.close();
+                            }
+                        } catch (Exception e) {
+                            Log.d(TAG, "run: formatSONYCamera dataOutputStream.close Exception :" + e);
+                        }
                     }
                 }
 
-                Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-                Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+                saveFormatResultFlag(formatSucced);
+                Log.d(TAG, "run: formatSONYCamera 格式化完成 formatSucced:" + formatSucced);
+                mHandler.removeMessages(msg_formatusb_timeout);
+                mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
+            }
+        }).start();
+
+    }
+
+    private void formatStoregeUSB() {
+        saveShowFormatResultFlag(true);
+        mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 120000);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Utils.setenforce();
+                boolean formatSucced = false;
+                try {
+                    List<String> devBlock = Utils.getDeviceBlockList();
+                    if (devBlock.size() < 1) {
+                        try {
+                            Thread.sleep(3000);
+                        } catch (Exception e) {
+
+                        }
+                        devBlock = Utils.getDeviceBlockList();
+
+                        if (devBlock.size() < 1) {
+                            try {
+                                Thread.sleep(3000);
+                            } catch (Exception e) {
+
+                            }
+                            devBlock = Utils.getDeviceBlockList();
+                        }
+                    }
 
 
-                VariableInstance.getInstance().isFormatingUSB.formatState = 0;
+                    Log.d(TAG, "run: formatStoregeUSB sd devBlock.size  =" + devBlock.size());
+
+
+                    for (String block : devBlock) {
+                        Log.e(TAG, "formatStoregeUSB: sd block =" + block);
+                        DataOutputStream dataOutputStream = null;
+                        try {
+                            Process formatProcess = Runtime.getRuntime().exec("su");
+                            dataOutputStream = new DataOutputStream(formatProcess.getOutputStream());
+                            String runCommand = "busybox mkdosfs -F 32 /dev/block/" + block;
+                            dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
+                            dataOutputStream.flush();
+
+                            formatSucced = true;
+                        } catch (Exception e) {
+                            Log.d(TAG, "run: formatStoregeUSB  busybox mkdosfs -F 32 Exception :" + e);
+                        } finally {
+                            try {
+                                if (dataOutputStream != null) {
+                                    dataOutputStream.close();
+                                }
+                            } catch (Exception e) {
+                                Log.d(TAG, "run: formatStoregeUSB dataOutputStream.close Exception :" + e);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.d(TAG, "run: formatStoregeUSB Exception :" + e);
+                }
+
+
+                saveFormatResultFlag(formatSucced);
+                Log.d(TAG, "run: formatStoregeUSB 格式化完成 formatSucced:" + formatSucced);
+                mHandler.removeMessages(msg_formatusb_timeout);
+                mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
+
+            }
+        }).start();
+
+    }
+
+    private void formatUSB() {
+        VariableInstance.getInstance().isFormatingUSB = true;
+        saveFormatStoregeUSBFlag(true);
+        sendOrderedBroadcast(new Intent(FormatFlagBroadcast), null);
+        MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, FormatFlagBroadcast);
+
+        Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
+        Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
+        Utils.resetDir(VariableInstance.getInstance().LogcatDir);
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
                 if (isUpdating) {
                     return;
                 }
                 restartDevice();
             }
-        }).start();
+        }, 2000);
     }
 
 
-    private void restartDevice() {
-        try {
-            Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
-            proc.waitFor();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private void formatCamera(boolean all) {
-        if (VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+    private void formatCamera() {
+        if (receiverStoreUSB == null) {
             return;
         }
-        Log.e(TAG, "formatCamera: start ......................................... delect all =" + all);
+
+
+        int cameraType = receiverCamera.isSONYCamera();
+        Log.e(TAG, "formatCamera: cameraType =" + cameraType);
+
+        MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, "cameraType:" + cameraType + ",isConnectCamera:" + VariableInstance.getInstance().isConnectCamera);
+
+        if (!VariableInstance.getInstance().isConnectCamera && cameraType == 0) {
+            Log.e(TAG, "formatCamera:相机还未初始化，不执行格式化");
+            return;
+        }
+
+        if (VariableInstance.getInstance().isSONYCamera || cameraType == 2) {
+            VariableInstance.getInstance().isFormaringCamera = true;
+            saveFormatCameraFlag(true);
+            sendOrderedBroadcast(new Intent(FormatFlagBroadcast), null);
+            MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, FormatFlagBroadcast);
+
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (isUpdating) {
+                        return;
+                    }
+                    restartDevice();
+                }
+            }, 2000);
+            return;
+        }
+
+        if (VariableInstance.getInstance().isFormaringCamera) {
+            return;
+        }
+
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                VariableInstance.getInstance().isFormaringCamera.formatState = all ? 1 : 2;
+                VariableInstance.getInstance().isFormaringCamera = true;
                 if (receiverCamera != null) {
                     receiverCamera.formatCamera();
                 }
@@ -1330,6 +1549,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }).start();
     }
 
+    private void restartDevice() {
+        try {
+            Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
+            proc.waitFor();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 
     private void getInfo() {
         sendMessageToMqtt(serverGetInfo());
@@ -1337,9 +1564,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void sendMessageToMqtt(String message) {
-        if (returnImei != null) {
-            MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+        if (MqttManager.isConnected()) {
+            if (returnImei != null) {
+                MqttManager.getInstance().publish("/camera/v2/device/" + returnImei + "/android/receive", 1, message);
+            }
+        } else {
+            if (netWorkConnectBroadConnet && returnImei != null) {
+                Message message1 = new Message();
+                message1.what = msg_resend_mqtt;
+                message1.obj = message;
+                mHandler.sendMessageDelayed(message1, 1000);
+                android.util.Log.d(TAG, "publishMessage: mqtt 未连接 重发 message =" + message);
+            }
         }
+
     }
 
     @SuppressLint("SetTextI18n")
@@ -1461,8 +1699,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1471,8 +1708,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
-                uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1625,97 +1861,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
             messageTextString = "";
             messageText.setText(messageTextString);
         } else if (view.getId() == R.id.formatUSBt) {
-            formatUSB(true);
+            formatUSB();
         } else if (view.getId() == R.id.formatCameraBt) {
-            formatCamera(true);
+            formatCamera();
         }
-    }
-
-
-    private void addaf(){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String[] aa = getMountPoints();
-                if (aa != null)
-                    for (String s : aa) {
-                        Log.e(TAG, "run:adfasdf s = " + s);
-                    }
-            }
-        }).start();
-
-        if (true)
-            return;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                DataOutputStream dataOutputStream = null;
-                BufferedReader es = null;
-                try {
-                    Process process = Runtime.getRuntime().exec("blkid");
-                    dataOutputStream = new DataOutputStream(process.getOutputStream());
-//                String runCommand = "busybox mkdosfs -F 32 /dev/block/sda";
-//                        String runCommand = "blkid";
-//                        dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
-                    process.waitFor();
-//                        dataOutputStream.flush();
-
-                    es = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                    String line;
-                    StringBuilder builder = new StringBuilder();
-                    while ((line = es.readLine()) != null) {
-                        builder.append(line);
-                        Log.e(TAG, "onClick: adfasdf line =" + line);
-                    }
-
-                    Log.e(TAG, "onClick:adfasdf blkid =" + builder.toString());
-                } catch (Exception e) {
-                    Log.e(TAG, "onClick:adfasdf Exception: " + e);
-                } finally {
-                    try {
-                        if (dataOutputStream != null) {
-                            dataOutputStream.close();
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "onClick:adfasdf Exception: " + e);
-                    }
-                }
-            }
-        }).start();
-
-    }
-
-    public static String[] getMountPoints() {
-        String[] mountPoints = null;
-        try {
-            Process process = Runtime.getRuntime().exec("ls /dev/block/");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            StringBuilder output = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                Log.d(TAG, "getMountPoints:adfasdf line =" + line);
-            }
-            process.waitFor();
-
-            String mountOutput = output.toString();
-            String[] mountLines = mountOutput.split("\n");
-
-            mountPoints = new String[mountLines.length];
-
-            // 解析挂载点
-            for (int i = 0; i < mountLines.length; i++) {
-                String mountLine = mountLines[i];
-                String[] parts = mountLine.split(" ");
-                if (parts.length > 2) {
-                    String mountPoint = parts[2];
-                    mountPoints[i] = mountPoint;
-                }
-            }
-        } catch (Exception e) {
-           Log.e(TAG, "adfasdf getMountPoints: Exception ="+e );
-        }
-        return mountPoints;
     }
 
 
@@ -1994,6 +2143,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int msg_connect_server_timeout = 11;
     private static final int msg_connect_server_complete = 12;
     private static final int msg_usb_request_permission_timeout = 13;
+    private static final int msg_formatusb_timeout = 14;
+
+    private static final int msg_resend_mqtt = 15;
 
 
     private static class MyHandler extends Handler {
@@ -2022,11 +2174,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.sendShutDown = false;
                     activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-//                    if (true)//TODO hu
-//                    {
-//                        activity.sendMessageToMqtt("测试阶段，不关机");
-//                        return;
-//                    }
+                    if (true)//TODO hu
+                    {
+                        activity.sendMessageToMqtt("测试阶段，不关机");
+                        return;
+                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:
@@ -2065,6 +2217,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case msg_usb_request_permission_timeout:
                     if (activity.receiverStoreUSB != null) {
                         activity.receiverStoreUSB.initStoreUSBDevicea();
+                    }
+                    break;
+                case msg_formatusb_timeout:
+                    activity.restartDevice();
+                    break;
+                case msg_resend_mqtt:
+                    if (msg.obj != null) {
+                        activity.sendMessageToMqtt((String) msg.obj);
                     }
                     break;
             }

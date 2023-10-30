@@ -79,7 +79,9 @@
                 <action android:name="android.media.VOLUME_CHANGED_ACTION" />
                 <action android:name="Initing_USB" />
                 <action android:name="resetBackupData" />
-                <action android:name="startUploadApk" />
+                <action android:name="openUploadApk" />
+                <action android:name="OpenCameraDevice" />
+                <action android:name="CloseCameraDevice" />
             </intent-filter>
         </receiver>
 

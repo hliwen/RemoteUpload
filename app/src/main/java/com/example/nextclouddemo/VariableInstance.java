@@ -29,12 +29,9 @@ public class VariableInstance {
 
     public OwnCloudClient ownCloudClient;
 
-    public class FormatState {
-        public int formatState;//0:不需要格式化，1：格式化全部 2：格式化两周前
-    }
 
-    public FormatState isFormaringCamera;
-    public FormatState isFormatingUSB;
+    public boolean isFormaringCamera;
+    public boolean isFormatingUSB;
 
 
     public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
@@ -61,6 +58,8 @@ public class VariableInstance {
     public boolean remoteServerConnecting;
     public boolean serverApkInitingUSB;
 
+    public boolean isSONYCamera=false;
+
 
     private VariableInstance() {
         uploadSelectIndexList = new ArrayList<>();
@@ -77,8 +76,8 @@ public class VariableInstance {
 
         storeUSBDeviceID = -1;
 
-        isFormaringCamera = new FormatState();
-        isFormatingUSB = new FormatState();
+        isFormaringCamera = false;
+        isFormatingUSB = false;
 
         Utils.makeDir(TFCardPictureDir);
         Utils.makeDir(TFCardUploadPictureDir);
@@ -97,8 +96,8 @@ public class VariableInstance {
     }
 
     public void resetAllData() {
-        isFormaringCamera.formatState = 0;
-        isFormatingUSB.formatState = 0;
+        isFormaringCamera = false;
+        isFormatingUSB = false;
         currentUSBPictureCount = 0;
         uploadRemorePictureNum = 0;//已上传张数
         backupPicrureNum = 0;//当次从相机同步到U盘的张数
@@ -124,7 +123,7 @@ public class VariableInstance {
         if (deviceName == null) {
             return true;
         }
-        if (deviceName.contains("802.11n NIC") || deviceName.contains("USB Optical Mouse") || deviceName.contains("USB Charger")  || deviceName.contains("Usb Mouse") || deviceName.startsWith("EC25") || deviceName.startsWith("EG25") || deviceName.startsWith("EC20") || deviceName.startsWith("EC200T")) {
+        if (deviceName.contains("802.11n NIC") || deviceName.contains("USB Optical Mouse") || deviceName.contains("USB Charger") || deviceName.contains("Usb Mouse") || deviceName.startsWith("EC25") || deviceName.startsWith("EG25") || deviceName.startsWith("EC20") || deviceName.startsWith("EC200T")) {
             return true;
         }
         return false;

@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+import com.example.gpiotest.LedControl;
 import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
 
@@ -30,10 +31,14 @@ public class BootReceiver extends BroadcastReceiver {
             VariableInstance.getInstance().serverApkInitingUSB = initing;
         } else if (action.equals("resetBackupData")) {
             LocalProfileHelp.getInstance().resetBackup();
-        } else if (action.equals("startUploadApk")) {
+        } else if (action.equals("openUploadApk")) {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.setClass(context, MainActivity.class);
             context.startActivity(intent);
+        } else if (action.equals("OpenCameraDevice")) {
+            LedControl.writeGpio('b', 2, 1);
+        } else if (action.equals("CloseCameraDevice")) {
+            LedControl.writeGpio('b', 2, 0);
         }
     }
 }

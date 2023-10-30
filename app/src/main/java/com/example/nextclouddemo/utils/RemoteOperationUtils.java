@@ -202,7 +202,7 @@ public class RemoteOperationUtils {
             public void run() {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
 
-                    if (VariableInstance.getInstance().isFormatingUSB.formatState != 0 || VariableInstance.getInstance().isFormaringCamera.formatState != 0) {
+                    if (VariableInstance.getInstance().isFormatingUSB || VariableInstance.getInstance().isFormaringCamera ) {
                         Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
                         pictureIsThreadStop = true;
                         return;
