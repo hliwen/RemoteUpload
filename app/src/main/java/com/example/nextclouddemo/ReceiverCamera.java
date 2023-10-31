@@ -1196,6 +1196,10 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         int requestPermissionCount = 0;
 
+        if (cameraFormatListener != null) {
+            cameraFormatListener.resetTimeOutTime();
+        }
+
         for (UsbDevice usbDevice : usbDevices) {
             if (usbDevice == null) {
                 continue;

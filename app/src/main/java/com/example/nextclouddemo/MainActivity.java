@@ -168,8 +168,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private String messageTextString;
 
 
-
-
     private void installAPKServer() {
         new Thread(new Runnable() {
             @Override
@@ -1315,6 +1313,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 mHandler.removeMessages(msg_formatusb_timeout);
                 mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
             }
+
+            @Override
+            public void resetTimeOutTime() {
+                mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 1000 * 60 * 5);
+            }
         });
     }
 
@@ -1329,6 +1332,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Log.d(TAG, "formatStoregeUSB 格式化完成U盘 formatSucced:" + formatSucced);
                 mHandler.removeMessages(msg_formatusb_timeout);
                 mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
+            }
+
+            @Override
+            public void resetTimeOutTime() {
+
             }
         });
     }
