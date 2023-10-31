@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.AppUtils;
@@ -37,6 +38,7 @@ import com.example.nextclouddemo.model.ServerUrlModel;
 import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
+import com.example.nextclouddemo.utils.FormatLisener;
 import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.RemoteOperationUtils;
@@ -50,14 +52,10 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 
 import me.jahnen.libaums.core.fs.UsbFile;
@@ -66,6 +64,8 @@ import me.jahnen.libaums.core.fs.UsbFileInputStream;
 public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
     private static final String TAG = "remotelog_MainActivityl";
+    private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
+
     private static final String FormatUSB = "Start,Format;";
     private static final String FormatTF = "Start,FormatTF;";
     private static final String FormatCamera = "Start,FormatCamera;";
@@ -159,6 +159,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private UpdateUtils updateUtils;
     private NetWorkReceiver netWorkReceiver;
+    private CommunicationReceiver communicationReceiver;
 
     private boolean sendShutDown;
 
@@ -229,13 +230,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
         openNetworkLed(true);
 
 
+        registerCommunicationReceiver();
+
+
         if (!checkFormatFlag()) {
             startService(new Intent(MainActivity.this, MyServer.class));
 
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.21")) {
+            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.22")) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -376,17 +380,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private boolean checkFormatFlag() {
-
-        if (getFormatStoregeUSBFlag()) {
-            saveFormatStoregeUSBFlag(false);
+        int type = getFormatFlag();//0: 不需要格式化，1：格式化U盘 2：格式化相机
+        Log.e(TAG, "checkFormatFlag: type =" + type);
+        if (type == 1) {
+            saveFormatFlag(0);
             formatStoregeUSB();
             return true;
-        } else if (getFormatCameraFlag()) {
-            saveFormatCameraFlag(false);
-            formatSONYCamera();
+        } else if (type == 2) {
+            saveFormatFlag(0);
+            formatCameraDevice();
             return true;
         }
-
         return false;
     }
 
@@ -806,6 +810,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         registerReceiver(netWorkReceiver, filter);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private void registerCommunicationReceiver() {
+        communicationReceiver = new CommunicationReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Exit_UploadAPP_Action);
+        registerReceiver(communicationReceiver, filter);
+    }
+
 
     private boolean netWorkConnectBroadConnet;
 
@@ -1018,14 +1030,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     }
 
 
-                    if (getShowFormatResultFlag()) {
+                    if (getShowFormatResultFlag()) {//0: 格式化U盘失败，1：格式化U盘成功 2：格式化相机成功 3：格式化相机失败
                         saveShowFormatResultFlag(false);
-
-                        if (getFormatResultFlag()) {
-                            saveFormatResultFlag(false);
-                            sendMessageToMqtt("格式化成功;");
-                        } else {
-                            sendMessageToMqtt("格式化失败;");
+                        int type = getFormatResultFlag();
+                        Log.e(TAG, "getFormatResultFlag: type =" + type);
+                        if (type == 0) {
+                            sendMessageToMqtt("格式化U盘成功;");
+                        } else if (type == 1) {
+                            sendMessageToMqtt("格式化U盘失败;");
+                        } else if (type == 2) {
+                            sendMessageToMqtt("格式化相机成功;");
+                        } else if (type == 3) {
+                            sendMessageToMqtt("格式化相机失败;");
                         }
                     }
 
@@ -1117,6 +1133,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
             unregisterReceiver(netWorkReceiver);
         }
 
+        if (communicationReceiver != null) {
+            unregisterReceiver(communicationReceiver);
+        }
+
         mHandler.removeCallbacksAndMessages(null);
 
         openCameraDeviceProt(false, 9);
@@ -1175,17 +1195,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case FormatUSB:
             case FormatTF:
             case Set_FormatUdisk_All:
-                formatUSB();
+            case Set_FormatUdisk_2weeks:
+                prepareFormatUSB();
                 break;
             case FormatCamera:
             case Set_FormatCamera_All:
-                formatCamera();
-                break;
-            case Set_FormatUdisk_2weeks:
-                formatUSB();
-                break;
             case Set_FormatCamera_2weeks:
-                formatCamera();
+                prepareFormatCamera();
                 break;
             case Upload:
                 break;
@@ -1284,201 +1300,40 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void saveFormatStoregeUSBFlag(boolean format) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putBoolean("formatUSB", format);
-        editor.apply();
-    }
-
-    private boolean getFormatStoregeUSBFlag() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        return sharedPreferences.getBoolean("formatUSB", false);
-    }
-
-    private void saveFormatCameraFlag(boolean format) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putBoolean("formatCamera", format);
-        editor.apply();
-    }
-
-    private boolean getFormatCameraFlag() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        return sharedPreferences.getBoolean("formatCamera", false);
-    }
-
-
-    private void saveFormatResultFlag(boolean format) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putBoolean("FormatResult", format);
-        editor.apply();
-    }
-
-    private boolean getFormatResultFlag() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        return sharedPreferences.getBoolean("FormatResult", false);
-    }
-
-    private void saveShowFormatResultFlag(boolean format) {
-        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
-        editor.putBoolean("showFormatResult", format);
-        editor.apply();
-    }
-
-    private boolean getShowFormatResultFlag() {
-        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
-        return sharedPreferences.getBoolean("showFormatResult", false);
-    }
-
-
-    private void formatSONYCamera() {
+    private void formatCameraDevice() {
+        Log.d(TAG, "formatCameraDevice: ");
         saveShowFormatResultFlag(true);
         mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 120000);
-        new Thread(new Runnable() {
+
+        ReceiverCamera.cameraFormat(new FormatLisener() {
             @Override
-            public void run() {
-
-
-                boolean formatSucced = false;
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-
-                }
-
-
-                Log.e(TAG, "run: formatSONYCamera 开始查找节点");
-                List<String> usbBlocks = Utils.getDeviceBlockList();
-                for (String block : usbBlocks) {
-                    Log.e(TAG, "formatSONYCamera 没打开相机前 block =" + block);
-                }
-
-                LedControl.writeGpio('b', 2, 1);
-
-                try {
-                    Thread.sleep(15000);
-                } catch (InterruptedException e) {
-                    Log.e(TAG, "run:formatSONYCamera sleep InterruptedException:" + e);
-                }
-
-                List<String> cameraBlocks = Utils.getDeviceBlockList();
-
-
-                for (String block : cameraBlocks) {
-
-                    if (usbBlocks.contains(block)) {
-                        Log.e(TAG, "formatSONYCamera 打开相机后 当前节点是U盘 =" + block);
-                        continue;
-                    }
-                    Log.e(TAG, "formatSONYCamera  格式化 block =" + block);
-
-                    DataOutputStream dataOutputStream = null;
-                    try {
-                        Process formatProcess = Runtime.getRuntime().exec("su");
-                        dataOutputStream = new DataOutputStream(formatProcess.getOutputStream());
-                        String runCommand = "busybox mkdosfs -F 32 /dev/block/" + block;
-                        dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
-                        dataOutputStream.flush();
-
-                        formatSucced = true;
-
-                        Log.d(TAG, "run: formatSONYCamera  busybox mkdosfs -F 32 block :" + block + "，完成");
-                    } catch (Exception e) {
-                        Log.d(TAG, "run: formatSONYCamera  busybox mkdosfs -F 32 Exception :" + e);
-                    } finally {
-                        try {
-                            if (dataOutputStream != null) {
-                                dataOutputStream.close();
-                            }
-                        } catch (Exception e) {
-                            Log.d(TAG, "run: formatSONYCamera dataOutputStream.close Exception :" + e);
-                        }
-                    }
-                }
-
-                saveFormatResultFlag(formatSucced);
-                Log.d(TAG, "run: formatSONYCamera 格式化完成 formatSucced:" + formatSucced);
+            public void formatResult(boolean formatSucced) {
+                saveFormatResultFlag(formatSucced ? 2 : 3);
+                Log.d(TAG, " formatCameraDevice 格式化相机完成 formatSucced:" + formatSucced);
                 mHandler.removeMessages(msg_formatusb_timeout);
                 mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
             }
-        }).start();
-
+        });
     }
 
     private void formatStoregeUSB() {
+        Log.d(TAG, "formatStoregeUSB: start ......................");
         saveShowFormatResultFlag(true);
         mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 120000);
-        new Thread(new Runnable() {
+        ReceiverStoreUSB.formatStoreUSBCaeraDevice(new FormatLisener() {
             @Override
-            public void run() {
-                Utils.setenforce();
-                boolean formatSucced = false;
-                try {
-                    List<String> devBlock = Utils.getDeviceBlockList();
-                    if (devBlock.size() < 1) {
-                        try {
-                            Thread.sleep(3000);
-                        } catch (Exception e) {
-
-                        }
-                        devBlock = Utils.getDeviceBlockList();
-
-                        if (devBlock.size() < 1) {
-                            try {
-                                Thread.sleep(3000);
-                            } catch (Exception e) {
-
-                            }
-                            devBlock = Utils.getDeviceBlockList();
-                        }
-                    }
-
-
-                    Log.d(TAG, "run: formatStoregeUSB sd devBlock.size  =" + devBlock.size());
-
-
-                    for (String block : devBlock) {
-                        Log.e(TAG, "formatStoregeUSB: sd block =" + block);
-                        DataOutputStream dataOutputStream = null;
-                        try {
-                            Process formatProcess = Runtime.getRuntime().exec("su");
-                            dataOutputStream = new DataOutputStream(formatProcess.getOutputStream());
-                            String runCommand = "busybox mkdosfs -F 32 /dev/block/" + block;
-                            dataOutputStream.write(runCommand.getBytes(Charset.forName("utf-8")));
-                            dataOutputStream.flush();
-
-                            formatSucced = true;
-                        } catch (Exception e) {
-                            Log.d(TAG, "run: formatStoregeUSB  busybox mkdosfs -F 32 Exception :" + e);
-                        } finally {
-                            try {
-                                if (dataOutputStream != null) {
-                                    dataOutputStream.close();
-                                }
-                            } catch (Exception e) {
-                                Log.d(TAG, "run: formatStoregeUSB dataOutputStream.close Exception :" + e);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.d(TAG, "run: formatStoregeUSB Exception :" + e);
-                }
-
-
-                saveFormatResultFlag(formatSucced);
-                Log.d(TAG, "run: formatStoregeUSB 格式化完成 formatSucced:" + formatSucced);
+            public void formatResult(boolean formatSucced) {
+                saveFormatResultFlag(formatSucced ? 0 : 1);
+                Log.d(TAG, "formatStoregeUSB 格式化完成U盘 formatSucced:" + formatSucced);
                 mHandler.removeMessages(msg_formatusb_timeout);
                 mHandler.sendEmptyMessageDelayed(msg_formatusb_timeout, 30000);
-
             }
-        }).start();
-
+        });
     }
 
-    private void formatUSB() {
-        VariableInstance.getInstance().isFormatingUSB = true;
-        saveFormatStoregeUSBFlag(true);
+    private void prepareFormatUSB() {
+        saveFormatFlag(1);
         sendOrderedBroadcast(new Intent(FormatFlagBroadcast), null);
-        MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, FormatFlagBroadcast);
 
         Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
@@ -1496,57 +1351,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
-    private void formatCamera() {
-        if (receiverStoreUSB == null) {
-            return;
-        }
+    private void prepareFormatCamera() {
+        saveFormatFlag(2);
+        sendOrderedBroadcast(new Intent(FormatFlagBroadcast), null);
+        Utils.resetDir(VariableInstance.getInstance().TFCardUploadPictureDir);
 
-
-        int cameraType = receiverCamera.isSONYCamera();
-        Log.e(TAG, "formatCamera: cameraType =" + cameraType);
-
-        MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, "cameraType:" + cameraType + ",isConnectCamera:" + VariableInstance.getInstance().isConnectCamera);
-
-        if (!VariableInstance.getInstance().isConnectCamera && cameraType == 0) {
-            Log.e(TAG, "formatCamera:相机还未初始化，不执行格式化");
-            return;
-        }
-
-        if (VariableInstance.getInstance().isSONYCamera || cameraType == 2) {
-            VariableInstance.getInstance().isFormaringCamera = true;
-            saveFormatCameraFlag(true);
-            sendOrderedBroadcast(new Intent(FormatFlagBroadcast), null);
-            MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, FormatFlagBroadcast);
-
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (isUpdating) {
-                        return;
-                    }
-                    restartDevice();
-                }
-            }, 2000);
-            return;
-        }
-
-        if (VariableInstance.getInstance().isFormaringCamera) {
-            return;
-        }
-
-
-        new Thread(new Runnable() {
+        mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                VariableInstance.getInstance().isFormaringCamera = true;
-                if (receiverCamera != null) {
-                    receiverCamera.formatCamera();
+                if (isUpdating) {
+                    return;
                 }
-                sendCloseDeviceMessage(3, CLOSE_DEVICE_DELAY_TIME);
-                openCameraDeviceProt(false, 11);
-                openCameraDeviceProt(true, 12);
+                restartDevice();
             }
-        }).start();
+        }, 2000);
     }
 
     private void restartDevice() {
@@ -1861,9 +1679,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             messageTextString = "";
             messageText.setText(messageTextString);
         } else if (view.getId() == R.id.formatUSBt) {
-            formatUSB();
+            prepareFormatUSB();
         } else if (view.getId() == R.id.formatCameraBt) {
-            formatCamera();
+            prepareFormatCamera();
         }
     }
 
@@ -2078,6 +1896,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
 
+    private class CommunicationReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
+            String action = intent.getAction();
+            if (action == null) return;
+
+            switch (action) {
+                case Exit_UploadAPP_Action:
+                    if (MqttManager.isConnected()) {
+                        MqttManager.getInstance().publish("/camera/v2/device/" + deviceImei + "AAA/android/receive", 1, "收到退出上传APP命令");
+                    }
+                    try {
+                        stopService(new Intent(MainActivity.this, MyServer.class));
+                    } catch (Exception e) {
+
+                    }
+                    finish();
+                    break;
+
+            }
+        }
+
+    }
+
     private class NetWorkReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -2231,5 +2074,39 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    private void saveFormatFlag(int type) {//0: 不需要格式化，1：格式化U盘 2：格式化相机
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putInt("formatflag", type);
+        editor.apply();
+    }
+
+    private int getFormatFlag() {//0: 不需要格式化，1：格式化U盘 2：格式化相机
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getInt("formatflag", 0);
+    }
+
+
+    private void saveFormatResultFlag(int format) {//0: 格式化U盘失败，1：格式化U盘成功 2：格式化相机失败 3：格式化相机失败
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putInt("formatResult", format);
+        editor.apply();
+    }
+
+    private int getFormatResultFlag() {//0: 格式化U盘成功 1：格式化U盘失败  2：格式化相机成功 3：格式化相机失败
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getInt("formatResult", 0);
+    }
+
+
+    private void saveShowFormatResultFlag(boolean format) {
+        SharedPreferences.Editor editor = getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        editor.putBoolean("showFormatResult", format);
+        editor.apply();
+    }
+
+    private boolean getShowFormatResultFlag() {
+        SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
+        return sharedPreferences.getBoolean("showFormatResult", false);
+    }
 
 }

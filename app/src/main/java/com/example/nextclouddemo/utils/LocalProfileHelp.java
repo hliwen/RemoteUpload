@@ -245,10 +245,6 @@ public class LocalProfileHelp {
 
         if (storeUSBPictureDirUsbFile == null) return;
 
-        if (VariableInstance.getInstance().isFormatingUSB) {
-            Log.e(TAG, "createLocalUSBPictureList:  正在格式化，不需要扫描");
-            return;
-        }
 
         FileWriter fileWriter = null;
         File file = new File(usbFilePath);
@@ -268,36 +264,10 @@ public class LocalProfileHelp {
         try {
             UsbFile[] storeUSBPictureDirUsbFileList = storeUSBPictureDirUsbFile.listFiles();
             for (UsbFile dateUsbFile : storeUSBPictureDirUsbFileList) {
-                if (VariableInstance.getInstance().isFormatingUSB) {
-                    if (fileWriter != null) {
-                        try {
-                            fileWriter.close();
-                        } catch (Exception e) {
 
-                        }
-                    }
-                    if (file.exists()) {
-                        file.delete();
-                    }
-                    return;
-                }
                 if (dateUsbFile.isDirectory()) {
                     UsbFile[] dateUsbFileDirList = dateUsbFile.listFiles();
                     for (UsbFile usbFile : dateUsbFileDirList) {
-                        if (VariableInstance.getInstance().isFormatingUSB) {
-                            if (fileWriter != null) {
-                                try {
-                                    fileWriter.close();
-                                } catch (Exception e) {
-
-                                }
-                            }
-                            if (file.exists()) {
-                                file.delete();
-                            }
-                            return;
-                        }
-
                         String pictureName = usbFile.getName();
                         if (pictureFormatFile(pictureName)) {
                             if (!usbPictureList.contains(pictureName)) {

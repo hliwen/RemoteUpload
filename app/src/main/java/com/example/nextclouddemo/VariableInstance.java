@@ -30,10 +30,6 @@ public class VariableInstance {
     public OwnCloudClient ownCloudClient;
 
 
-    public boolean isFormaringCamera;
-    public boolean isFormatingUSB;
-
-
     public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
     public ArrayList<Integer> uploadSelectIndexList;
 
@@ -58,7 +54,7 @@ public class VariableInstance {
     public boolean remoteServerConnecting;
     public boolean serverApkInitingUSB;
 
-    public boolean isSONYCamera=false;
+
 
 
     private VariableInstance() {
@@ -76,8 +72,6 @@ public class VariableInstance {
 
         storeUSBDeviceID = -1;
 
-        isFormaringCamera = false;
-        isFormatingUSB = false;
 
         Utils.makeDir(TFCardPictureDir);
         Utils.makeDir(TFCardUploadPictureDir);
@@ -96,8 +90,7 @@ public class VariableInstance {
     }
 
     public void resetAllData() {
-        isFormaringCamera = false;
-        isFormatingUSB = false;
+
         currentUSBPictureCount = 0;
         uploadRemorePictureNum = 0;//已上传张数
         backupPicrureNum = 0;//当次从相机同步到U盘的张数
@@ -127,6 +120,18 @@ public class VariableInstance {
             return true;
         }
         return false;
+    }
+
+    public boolean isCameraDevice(String deviceName) {
+        if (deviceName == null) {
+            return false;
+        }
+        deviceName = deviceName.trim();
+
+        if (isStroreUSBDevice(deviceName) || isOthreDevice(deviceName)) {
+            return false;
+        }
+        return true;
     }
 
 

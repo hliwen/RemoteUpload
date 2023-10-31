@@ -202,12 +202,6 @@ public class RemoteOperationUtils {
             public void run() {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
 
-                    if (VariableInstance.getInstance().isFormatingUSB || VariableInstance.getInstance().isFormaringCamera ) {
-                        Log.e(TAG, "startCameraPictureUploadThread 正在执行格式化，直接返回，不需要上传远程服务器");
-                        pictureIsThreadStop = true;
-                        return;
-                    }
-
                     UploadFileModel fileModel = null;
                     try {
                         Log.e(TAG, "run: 缓存需要上传到服务器的照片数量，fileListCache.size =" + pictureFileListCache.size());
@@ -468,7 +462,6 @@ public class RemoteOperationUtils {
             }
         }).start();
     }
-
 
 
     public class MyOrder implements Comparator<UploadFileModel> {
