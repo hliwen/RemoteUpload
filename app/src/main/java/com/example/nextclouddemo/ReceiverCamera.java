@@ -1194,6 +1194,8 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Log.i(TAG, "formatMtpCameraDevice: 开始遍历设备。。。。。。。。。。。。。。。");
 
+        int requestPermissionCount = 0;
+
         for (UsbDevice usbDevice : usbDevices) {
             if (usbDevice == null) {
                 continue;
@@ -1204,6 +1206,22 @@ public class ReceiverCamera extends BroadcastReceiver {
             if (!VariableInstance.getInstance().isCameraDevice(usbProductName)) {
                 continue;
             }
+
+
+            while (!usbManager.hasPermission(usbDevice) && requestPermissionCount < 15) {
+                requestPermissionCount++;
+                Log.e(TAG, "formatMtpCameraDevice: 无法扫描相机，权限未获取,productName:" + usbDevice.getProductName() + ",requestPermissionCount=" + requestPermissionCount);
+                @SuppressLint("UnspecifiedImmutableFlag") PendingIntent pendingIntent = PendingIntent.getBroadcast(MyApplication.getContext(), 0, new Intent(VariableInstance.GET_STORE_CAMERA_PERMISSION), 0);
+                usbManager.requestPermission(usbDevice, pendingIntent);
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                }
+            }
+
+            Log.e(TAG, "formatMtpCameraDevice: requestPermissionCount = " + requestPermissionCount);
+
 
             try {
                 for (int i = 0; i < usbDevice.getInterfaceCount(); i++) {
