@@ -63,9 +63,11 @@ import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
 public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
+    public boolean remoteDebug = false;
     private static final String TAG = "remotelog_MainActivityl";
     private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
-
+    private static final String Enter_UploadAPP_Debug_Model = "Enter_UploadAPP_Debug_Model";
+    private static final String Exit_UploadAPP_Debug_Model = "Exit_UploadAPP_Debug_Model";
     private static final String FormatUSB = "Start,Format;";
     private static final String FormatTF = "Start,FormatTF;";
     private static final String FormatCamera = "Start,FormatCamera;";
@@ -239,7 +241,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.22")) {
+            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.23")) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -680,7 +682,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void scannerCameraComplete(int needDownloadCount, int needUpload, int cameraTotalPictureCount, String deviceName) {
-            Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount+",needUpload =" + needUpload + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
+            Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount + ",needUpload =" + needUpload + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
 
             copyTotalNum = needDownloadCount;
             cameraPictureCount = cameraTotalPictureCount;
@@ -815,6 +817,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         communicationReceiver = new CommunicationReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(Exit_UploadAPP_Action);
+        filter.addAction(Enter_UploadAPP_Debug_Model);
+        filter.addAction(Exit_UploadAPP_Debug_Model);
         registerReceiver(communicationReceiver, filter);
     }
 
@@ -1925,6 +1929,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     }
                     finish();
                     break;
+                case Enter_UploadAPP_Debug_Model:
+                    remoteDebug = true;
+                    break;
+                case Exit_UploadAPP_Debug_Model:
+                    remoteDebug = false;
+                    break;
 
             }
         }
@@ -2025,13 +2035,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case msg_send_ShutDown:
                     activity.sendShutDown = false;
-                    activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-//                    if (true)//TODO hu
-//                    {
-//                        activity.sendMessageToMqtt("测试阶段，不关机");
-//                        return;
-//                    }
+                    if (activity.remoteDebug) {
+                        activity.sendMessageToMqtt("测试阶段，不关机");
+                        activity.sendCloseDeviceMessage(2, 10000);
+                        return;
+                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:
