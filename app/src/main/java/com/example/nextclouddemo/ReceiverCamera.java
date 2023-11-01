@@ -26,10 +26,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -580,12 +583,13 @@ public class ReceiverCamera extends BroadcastReceiver {
         if (systemTime == 900101) {
             return false;
         }
-        if (systemTime - yymmdd > 3) {
+        if (Utils.isBigThreeDate(yymmdd + "")) {
             return false;
         }
 
         return true;
     }
+
 
     private boolean checkNeedBackUp(String name) {
         if (!VariableInstance.getInstance().backupListInit && !LocalProfileHelp.getInstance().initLocalUSBPictureList()) {
@@ -708,6 +712,7 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         VariableInstance.getInstance().isConnectCamera = true;
         Log.d(TAG, "usbDeviceScaner:  相机总共照片 cameraTotalPicture =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
+        Log.e(TAG, "mtpDeviceScaner: UploadMode =" + VariableInstance.getInstance().UploadMode + ",uploadSelectIndexList =" + VariableInstance.getInstance().uploadSelectIndexList);
 
 
         List<PictureInfo> backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
@@ -726,6 +731,8 @@ public class ReceiverCamera extends BroadcastReceiver {
                     downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return;
                 }
+
+
                 if (VariableInstance.getInstance().UploadMode == 1) {
                     if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
                         backupPictureInfoList.add(jpgPictureInfo);
@@ -748,7 +755,6 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
                 }
             }
-
 
             for (int i = 0; i < cameraPictureInfo.rowPictureInfos.size(); i++) {
                 Integer integer = i + 1;

@@ -465,7 +465,6 @@ public class Utils {
     }
 
 
-
     public static boolean copyAPKServer(String localPath, String ASSETS_NAME, Context context) {
         File file = new File(localPath);
         if (file.exists()) {
@@ -512,7 +511,7 @@ public class Utils {
     }
 
 
-    public static  void setenforce() {
+    public static void setenforce() {
         try {
             Process formatProcess = Runtime.getRuntime().exec("setenforce 0");
 
@@ -525,4 +524,22 @@ public class Utils {
         }
     }
 
+    public static boolean isBigThreeDate(String pictureTime) {
+
+        try {
+            @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd");
+            Date pictureDate = dateFormat.parse(pictureTime);
+
+            long timeDifference = System.currentTimeMillis() - pictureDate.getTime();
+            long dayDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+            if (dayDifference > 3) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+        }
+        return true;
+    }
 }

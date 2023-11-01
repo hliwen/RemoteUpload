@@ -40,6 +40,9 @@ public class RemoteOperationUtils {
     private String remoteCameraDir;
     private String remoteCameraMonthDayDir;
     private RemoteOperationListener remoteOperationListener;
+
+    private List<String> remotePictureDirList;
+
     public volatile BlockingQueue<UploadFileModel> pictureFileListCache = new LinkedBlockingQueue<>(20000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
@@ -110,17 +113,59 @@ public class RemoteOperationUtils {
                 Log.d(TAG, "initRemoteDir: 创建获取远程主文件列表失败");
                 return false;
             }
-            createResult = createFilefolder(remoteCameraMonthDayDir);
+            createResult = createFilefolder(yearMonthFileDir);
             if (!createResult) {
                 Log.d(TAG, "initRemoteDir: ");
                 return false;
             }
         }
 
+        if (remotePictureDirList == null) {
+            remotePictureDirList = new ArrayList<>();
+        }
+
+        if (yearMonthFileDir != null && !remotePictureDirList.contains(yearMonthFileDir)) {
+            remotePictureDirList.add(yearMonthFileDir);
+        }
+
+        getRemoteAllPictureDir(deveceName);
+
         if (!LocalProfileHelp.getInstance().initLocalRemotePictureList()) {
             LocalProfileHelp.getInstance().createRemotePictureList(deveceName);
         }
         return true;
+    }
+
+
+    private void getRemoteAllPictureDir(String userName) {
+        if (remotePictureDirList == null) {
+            remotePictureDirList = new ArrayList<>();
+        }
+
+        ReadFolderRemoteOperation dateReadFolderRemoteOperation = new ReadFolderRemoteOperation(userName + "/" + RemoteOperationUtils.cameraDir);
+        RemoteOperationResult dateRemoteOperationResult = dateReadFolderRemoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
+        if (dateRemoteOperationResult == null || !dateRemoteOperationResult.isSuccess()) {
+            Log.e(TAG, "getRemoteAllPictureDir: dateRemoteOperationResult =" + dateRemoteOperationResult);
+            return;
+        }
+
+        for (Object obj : dateRemoteOperationResult.getData()) {
+            RemoteFile pictureDir = (RemoteFile) obj;
+            String remotePath = pictureDir.getRemotePath();
+
+            try {
+                remotePath = remotePath.substring(remoteCameraDir.length(), remotePath.length() - 1);
+                if (remotePath == null || remotePath.trim().isEmpty()) {
+                    continue;
+                }
+
+                if (!remotePictureDirList.contains(remotePath)) {
+                    remotePictureDirList.add(remotePath);
+                }
+            } catch (Exception e) {
+
+            }
+        }
     }
 
     private boolean checkResult(boolean exit, String dir1, String dir2) {
@@ -295,21 +340,13 @@ public class RemoteOperationUtils {
             Log.e(TAG, "uploadImageFileToRemote: Exception =" + e);
         }
         String fileName = file.getName();
-        String remotePath = remoteCameraMonthDayDir + fileName;
-        Long timeStampLong = file.lastModified() / 1000;
-        String timeStamp = timeStampLong.toString();
 
-        Log.e(TAG, "uploadImageFileToRemote: " + fileModel.localPath + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
+        String fileDay = fileName.substring(0, fileName.indexOf("-"));
+
 
         if (VariableInstance.getInstance().isUploadToday) {
             try {
-                String fileDay = fileName.substring(0, fileName.indexOf("-"));
-                int yymmdd = 0;
-                try {
-                    yymmdd = Integer.parseInt(fileDay);
-                } catch (Exception e) {
 
-                }
                 int systemTime = Utils.getyyMMddtringInt(System.currentTimeMillis());
                 if (systemTime == 900101) {
                     if (file.exists()) {
@@ -317,8 +354,7 @@ public class RemoteOperationUtils {
                     }
                     return;
                 }
-
-                if (systemTime - yymmdd > 3) {
+                if (Utils.isBigThreeDate(fileDay)) {
                     Log.e(TAG, "uploadImageFileToRemote: 只上传最近3天的照片，当前照片不是最近3天不上传， 照片路径：" + file.getAbsolutePath());
                     if (file.exists()) {
                         file.delete();
@@ -329,6 +365,32 @@ public class RemoteOperationUtils {
 
             }
         }
+        String remoteDir = remoteCameraMonthDayDir;
+        try {
+            String monthDayDir = "20" + fileDay.substring(0, fileDay.length() - 2);
+            Log.e(TAG, "uploadImageFileToRemote: monthDayDir =" + monthDayDir);
+            if (remotePictureDirList.contains(monthDayDir)) {
+                remoteDir = remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR;
+            }else {
+                boolean createResult = createFilefolder(remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR);
+                if (createResult) {
+                    Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + monthDayDir + "文件夹，创建文件夹成功");
+                    remotePictureDirList.add(fileDay);
+                    remoteDir = remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR;
+                } else {
+                    Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + monthDayDir + "文件夹，创建文件夹失败");
+                }
+            }
+        } catch (Exception e) {
+
+        }
+
+
+        String remotePath = remoteDir + fileName;
+        Long timeStampLong = file.lastModified() / 1000;
+        String timeStamp = timeStampLong.toString();
+
+        Log.e(TAG, "uploadImageFileToRemote: " + fileModel.localPath + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
 
         long startTime = System.currentTimeMillis();
         remoteOperationListener.pictureUploadStart();

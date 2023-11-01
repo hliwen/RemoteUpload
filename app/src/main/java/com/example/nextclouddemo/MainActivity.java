@@ -680,7 +680,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void scannerCameraComplete(int needDownloadCount, int needUpload, int cameraTotalPictureCount, String deviceName) {
-            Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
+            Log.e(TAG, "scannerCameraComplete: needDownloadConut =" + needDownloadCount+",needUpload =" + needUpload + ",cameraTotalPictureCount =" + cameraTotalPictureCount + ",deviceName =" + deviceName);
 
             copyTotalNum = needDownloadCount;
             cameraPictureCount = cameraTotalPictureCount;
@@ -2027,11 +2027,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     activity.sendShutDown = false;
                     activity.sendBroadcastToServer("closeAndroid");
                     Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
-                    if (true)//TODO hu
-                    {
-                        activity.sendMessageToMqtt("测试阶段，不关机");
-                        return;
-                    }
+//                    if (true)//TODO hu
+//                    {
+//                        activity.sendMessageToMqtt("测试阶段，不关机");
+//                        return;
+//                    }
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:
