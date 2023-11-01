@@ -583,7 +583,8 @@ public class ReceiverCamera extends BroadcastReceiver {
         if (systemTime == 900101) {
             return false;
         }
-        if (Utils.isBigThreeDate(yymmdd + "")) {
+
+        if (VariableInstance.getInstance().isUploadToday && Utils.isBigThreeDate(yymmdd + "")) {
             return false;
         }
 
