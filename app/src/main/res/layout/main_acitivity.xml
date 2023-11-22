@@ -301,6 +301,12 @@
             android:layout_height="wrap_content"
             android:text="@string/formatcamera" />
 
+        <Button
+            android:id="@+id/updateBeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/updatebeta" />
+
 
     </LinearLayout>
 

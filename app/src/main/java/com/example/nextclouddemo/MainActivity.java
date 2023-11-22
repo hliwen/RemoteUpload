@@ -62,7 +62,7 @@ import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
 public class MainActivity extends Activity implements View.OnClickListener {
-    public static final boolean debug = false;
+    public static final boolean debug = true;
     public boolean remoteDebug = false;
     private static final String TAG = "remotelog_MainActivityl";
     private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
@@ -157,6 +157,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private Button clearViewBt;
     private Button formatUSBt;
     private Button formatCameraBt;
+    private Button updateBeta;
 
 
     private UpdateUtils updateUtils;
@@ -280,6 +281,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             clearViewBt = findViewById(R.id.clearViewBt);
             formatUSBt = findViewById(R.id.formatUSBt);
             formatCameraBt = findViewById(R.id.formatCameraBt);
+            updateBeta = findViewById(R.id.updateBeta);
 
 
             guanjiBt.setOnClickListener(this);
@@ -288,6 +290,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             clearViewBt.setOnClickListener(this);
             formatUSBt.setOnClickListener(this);
             formatCameraBt.setOnClickListener(this);
+            updateBeta.setOnClickListener(this);
 
         }
     }
@@ -1531,7 +1534,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             uploadModelString = "2,0";
 
         } else if (VariableInstance.getInstance().UploadMode == 3) {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "3,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "3,0";
             else {
                 uploadModelString = "3";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1540,7 +1544,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
 
         } else {
-            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0) uploadModelString = "4,0";
+            if (VariableInstance.getInstance().uploadSelectIndexList.size() == 0)
+                uploadModelString = "4,0";
             else {
                 uploadModelString = "4";
                 for (Integer integer : VariableInstance.getInstance().uploadSelectIndexList) {
@@ -1696,6 +1701,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             prepareFormatUSB();
         } else if (view.getId() == R.id.formatCameraBt) {
             prepareFormatCamera();
+        } else if (view.getId() == R.id.updateBeta) {
+            updateBetaApk();
         }
     }
 
