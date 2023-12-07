@@ -13,7 +13,7 @@ import android.text.format.Formatter;
 
 import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
-import com.example.nextclouddemo.model.UploadFileModel;
+
 
 import androidx.core.content.PermissionChecker;
 
@@ -143,6 +143,24 @@ public class Utils {
 
         }
         return "100000";
+    }
+
+    public static String getyyyyMMddHHmmssString(long time) {
+        try {
+            return getDateFormat("yyyyMMddHHmmss").format(new Date(time));
+        } catch (Exception e) {
+
+        }
+        return "100000";
+    }
+
+    public static String getHHmmString(long time) {
+        try {
+            return getDateFormat("HHmm").format(new Date(time));
+        } catch (Exception e) {
+
+        }
+        return "0000";
     }
 
 
@@ -542,4 +560,21 @@ public class Utils {
         }
         return true;
     }
+
+    public static boolean isBigThreeDate(long  pictureTime) {
+
+        try {
+            long timeDifference = System.currentTimeMillis() -pictureTime;
+            long dayDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+            if (dayDifference > 3) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+        }
+        return true;
+    }
+
 }

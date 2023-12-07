@@ -14,7 +14,6 @@ import android.mtp.MtpDevice;
 import android.mtp.MtpObjectInfo;
 
 import com.example.gpiotest.LedControl;
-import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.utils.FormatLisener;
 import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
@@ -26,13 +25,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -78,16 +74,15 @@ public class ReceiverCamera extends BroadcastReceiver {
     class PictureInfo {
         public boolean mtpModel;
         public String pictureName;
-        public long pictureCreateData;
+
         public int mtpPictureID;
         public UsbFile cameraUsbFile;
         public FileSystem cameraUsbFileSystem;
         public boolean isJpg;
 
-        public PictureInfo(boolean mtpModel, String pictureName, long pictureCreateData, int mtpPictureID, FileSystem usbFileSystem, UsbFile usbFile, boolean isJpg) {
+        public PictureInfo(boolean mtpModel, String pictureName, int mtpPictureID, FileSystem usbFileSystem, UsbFile usbFile, boolean isJpg) {
             this.mtpModel = mtpModel;
             this.pictureName = pictureName;
-            this.pictureCreateData = pictureCreateData;
             this.mtpPictureID = mtpPictureID;
             this.cameraUsbFile = usbFile;
             this.cameraUsbFileSystem = usbFileSystem;
@@ -110,9 +105,16 @@ public class ReceiverCamera extends BroadcastReceiver {
 
     public class order implements Comparator<PictureInfo> {
         @Override
-        public int compare(PictureInfo lhs, PictureInfo rhs) {
-            if (rhs.pictureCreateData > lhs.pictureCreateData) return -1;
-            else if (rhs.pictureCreateData == lhs.pictureCreateData) return 0;
+        public int compare(PictureInfo o1, PictureInfo o2) {
+            return o2.toString().compareTo(o1.toString());
+        }
+    }
+
+    public class orderSameData implements Comparator<SameDayPicutreInfo> {
+        @Override
+        public int compare(SameDayPicutreInfo lhs, SameDayPicutreInfo rhs) {
+            if (rhs.yearMonthDay > lhs.yearMonthDay) return -1;
+            else if (rhs.yearMonthDay == lhs.yearMonthDay) return 0;
             return 1;
         }
     }
@@ -435,18 +437,20 @@ public class ReceiverCamera extends BroadcastReceiver {
                         continue;
                     }
 
-
-                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
-                    int yymmdd = Utils.getyyMMddtringInt(createDate);
-                    String pictureName = yymmdd + "-" + mtpObjectInfo.getName();
-                    String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-
+                    String name = mtpObjectInfo.getName();
+                    if (name == null) {
+                        continue;
+                    }
+                    String FileEnd = name.substring(name.lastIndexOf(".") + 1).toLowerCase();
                     if (!pictureFormatFile(FileEnd)) {
                         continue;
                     }
+
+                    long createDate = mtpObjectInfo.getDateCreated() - 1000L * 60 * 60 * 8;
+                    int yymmdd = Utils.getyyMMddtringInt(createDate);
+                    String pictureName = createDate + "-" + name;
+
                     cameraTotalPicture++;
-
-
                     SameDayPicutreInfo sameDayPicutreInfo = new SameDayPicutreInfo(yymmdd);
                     int index = cameraPictureInfoList.indexOf(sameDayPicutreInfo);
                     if (index > -1) {
@@ -456,115 +460,33 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
 
                     if (rowFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, handle, null, null, false);
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, handle, null, null, false);
                         sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
                     } else if (jPGFormatFile(FileEnd)) {
-                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, createDate, handle, null, null, true);
+                        PictureInfo pictureInfo = new PictureInfo(true, pictureName, handle, null, null, true);
                         sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
                     }
-
-
                 }
             }
-
-
         }
 
         VariableInstance.getInstance().isConnectCamera = true;
         Log.d(TAG, "mtpDeviceScaner:  相机总共照片 =" + cameraTotalPicture + ",deviceName = " + usbDevice.getProductName());
-
         Log.e(TAG, "mtpDeviceScaner: UploadMode =" + VariableInstance.getInstance().UploadMode + ",uploadSelectIndexList =" + VariableInstance.getInstance().uploadSelectIndexList);
 
-        List<PictureInfo> backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
-        List<PictureInfo> uploadPictureInfoList = Collections.synchronizedList(new ArrayList<>());
-        //1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
-        for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
-            if (cameraDeviceID == -1) {
-                downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                return;
-            }
-            for (int i = 0; i < cameraPictureInfo.jpgPictureInfos.size(); i++) {
-                Integer integer = i + 1;
-                PictureInfo jpgPictureInfo = cameraPictureInfo.jpgPictureInfos.get(i);
-                if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                    return;
-                }
-                if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 4) {
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                }
-            }
+        InfloList infloList = getPictureSortList(cameraPictureInfoList, usbDevice);
+        if (infloList == null) return;
 
-            for (int i = 0; i < cameraPictureInfo.rowPictureInfos.size(); i++) {
-                Integer integer = i + 1;
-                PictureInfo rowPictureInfo = cameraPictureInfo.rowPictureInfos.get(i);
-
-                if (cameraDeviceID == -1) {
-                    Log.e(TAG, "mtpDeviceScaner: cameraDeviceID == -1");
-                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                    return;
-                }
-                if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 4) {
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                }
-            }
-        }
-
-        Collections.sort(backupPictureInfoList, new order());
-        Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
-        Log.e(TAG, "mtpDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
-        for (PictureInfo pictureInfo : uploadPictureInfoList) {
+        downloadFlieListener.scannerCameraComplete(infloList.backupPictureInfoList.size(), infloList.uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
+        Log.e(TAG, "mtpDeviceScaner: 需要备份张数：" + infloList.backupPictureInfoList.size() + ",需要上传张数：" + infloList.uploadPictureInfoList.size());
+        for (PictureInfo pictureInfo : infloList.uploadPictureInfoList) {
             if (cameraDeviceID == -1) {
                 return;
             }
             mtpBackUpToRemote(mtpDevice, pictureInfo);
         }
 
-        for (PictureInfo pictureInfo : backupPictureInfoList) {
+        for (PictureInfo pictureInfo : infloList.backupPictureInfoList) {
             if (cameraDeviceID == -1) {
                 return;
             }
@@ -628,8 +550,7 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
 
             if (pictureSaveFile != null && pictureSaveFile.exists()) {
-                String yearMonth = Utils.getyyyyMMtring(pictureInfo.pictureCreateData);
-                downloadFlieListener.uploadToUSB(pictureSaveFile, yearMonth);
+                downloadFlieListener.uploadToUSB(pictureSaveLocalPath);
                 pictureSaveFile.delete();
             }
         } catch (Exception e) {
@@ -659,7 +580,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 Log.e(TAG, "mtpBackUpToRemote:222 导出相机照片失败");
             }
             if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists()) {
-                downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
+                downloadFlieListener.addUploadRemoteFile(pictureSaveUploadLocalPath);
             }
         } catch (Exception e) {
             Log.e(TAG, "mtpBackUpToRemote: 图片复制出错 e =" + e);
@@ -716,99 +637,20 @@ public class ReceiverCamera extends BroadcastReceiver {
         Log.e(TAG, "mtpDeviceScaner: UploadMode =" + VariableInstance.getInstance().UploadMode + ",uploadSelectIndexList =" + VariableInstance.getInstance().uploadSelectIndexList);
 
 
-        List<PictureInfo> backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
-        List<PictureInfo> uploadPictureInfoList = Collections.synchronizedList(new ArrayList<>());
+        InfloList infloList = getPictureSortList(cameraPictureInfoList, usbDevice);
+        if (infloList == null) return;
 
-        //1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
-        for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
-            if (cameraDeviceID == -1) {
-                downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                return;
-            }
-            for (int i = 0; i < cameraPictureInfo.jpgPictureInfos.size(); i++) {
-                Integer integer = i + 1;
-                PictureInfo jpgPictureInfo = cameraPictureInfo.jpgPictureInfos.get(i);
-                if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                    return;
-                }
+        downloadFlieListener.scannerCameraComplete(infloList.backupPictureInfoList.size(), infloList.uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
+        Log.e(TAG, "usbDeviceScaner: 需要备份张数：" + infloList.backupPictureInfoList.size() + ",需要上传张数：" + infloList.uploadPictureInfoList.size());
 
-
-                if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 4) {
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(jpgPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(jpgPictureInfo);
-                    }
-                }
-            }
-
-            for (int i = 0; i < cameraPictureInfo.rowPictureInfos.size(); i++) {
-                Integer integer = i + 1;
-                PictureInfo rowPictureInfo = cameraPictureInfo.rowPictureInfos.get(i);
-
-                if (cameraDeviceID == -1) {
-                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
-                    return;
-                }
-                if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                } else if (VariableInstance.getInstance().UploadMode == 4) {
-                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(rowPictureInfo.pictureName)) {
-                        backupPictureInfoList.add(rowPictureInfo);
-                    }
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
-                        uploadPictureInfoList.add(rowPictureInfo);
-                    }
-                }
-            }
-        }
-
-        Collections.sort(backupPictureInfoList, new order());
-        Collections.sort(uploadPictureInfoList, new order());
-        downloadFlieListener.scannerCameraComplete(backupPictureInfoList.size(), uploadPictureInfoList.size(), cameraTotalPicture, usbDevice.getProductName());
-        Log.e(TAG, "usbDeviceScaner: 需要备份张数：" + backupPictureInfoList.size() + ",需要上传张数：" + uploadPictureInfoList.size());
-
-        for (PictureInfo pictureInfo : uploadPictureInfoList) {
+        for (PictureInfo pictureInfo : infloList.uploadPictureInfoList) {
             if (cameraDeviceID == -1) {
                 return;
             }
             usbBackUpToRemote(pictureInfo);
         }
 
-        for (PictureInfo pictureInfo : backupPictureInfoList) {
+        for (PictureInfo pictureInfo : infloList.backupPictureInfoList) {
             if (cameraDeviceID == -1) {
                 return;
             }
@@ -836,16 +678,19 @@ public class ReceiverCamera extends BroadcastReceiver {
                     return;
                 }
 
-                long createDate = usbFileItem.createdAt() - 1000L * 60 * 60 * 8;
-                int yymmdd = Utils.getyyMMddtringInt(createDate);
                 String name = usbFileItem.getName();
-                String pictureName = yymmdd + "-" + name;
-
-                String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-
+                if (name == null) {
+                    continue;
+                }
+                String FileEnd = name.substring(name.lastIndexOf(".") + 1).toLowerCase();
                 if (!pictureFormatFile(FileEnd)) {
                     continue;
                 }
+
+                long createDate = usbFileItem.createdAt() - 1000L * 60 * 60 * 8;
+                int yymmdd = Utils.getyyMMddtringInt(createDate);
+                String pictureName = createDate + "-" + name;
+
                 cameraTotalPicture++;
 
 
@@ -858,10 +703,10 @@ public class ReceiverCamera extends BroadcastReceiver {
                     cameraPictureInfoList.add(sameDayPicutreInfo);
                 }
                 if (rowFormatFile(FileEnd)) {
-                    PictureInfo pictureInfo = new PictureInfo(false, pictureName, createDate, 0, fileSystem, usbFileItem, false);
+                    PictureInfo pictureInfo = new PictureInfo(false, pictureName, 0, fileSystem, usbFileItem, false);
                     sameDayPicutreInfo.rowPictureInfos.add(pictureInfo);
                 } else if (jPGFormatFile(FileEnd)) {
-                    PictureInfo pictureInfo = new PictureInfo(false, pictureName, createDate, 0, fileSystem, usbFileItem, true);
+                    PictureInfo pictureInfo = new PictureInfo(false, pictureName, 0, fileSystem, usbFileItem, true);
                     sameDayPicutreInfo.jpgPictureInfos.add(pictureInfo);
                 }
             }
@@ -915,8 +760,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         }
 
         if (pictureSaveLocalFile != null && pictureSaveLocalFile.exists() && pictureSaveLocalFile.length() > 0) {
-            String yearMonth = Utils.getyyyyMMtring(pictureInfo.pictureCreateData);
-            downloadFlieListener.uploadToUSB(pictureSaveLocalFile, yearMonth);
+            downloadFlieListener.uploadToUSB(pictureSavePath);
             pictureSaveLocalFile.delete();
         }
         Log.d(TAG, "usbBackUpToUSB: end ........................");
@@ -951,7 +795,7 @@ public class ReceiverCamera extends BroadcastReceiver {
             }
 
             if (pictureUploadSaveFile != null && pictureUploadSaveFile.exists() && pictureUploadSaveFile.length() > 0) {
-                downloadFlieListener.addUploadRemoteFile(new UploadFileModel(pictureSaveUploadLocalPath));
+                downloadFlieListener.addUploadRemoteFile(pictureSaveUploadLocalPath);
             }
         } catch (Exception e) {
             Log.e(TAG, "usbBackUpToRemote : 222222222222 Exception =" + e);
@@ -972,6 +816,126 @@ public class ReceiverCamera extends BroadcastReceiver {
 
         Log.d(TAG, "usbBackUpToRemote: end ...........................");
 
+    }
+
+
+    class InfloList {
+        List<PictureInfo> backupPictureInfoList;
+        List<PictureInfo> uploadPictureInfoList;
+    }
+
+    private InfloList getPictureSortList(List<SameDayPicutreInfo> cameraPictureInfoList, UsbDevice usbDevice) {
+
+        Collections.sort(cameraPictureInfoList, new orderSameData());
+        for (SameDayPicutreInfo sameDayPicutreInfo : cameraPictureInfoList) {
+            Log.e(TAG, "getPictureSortList: yearMonthDay = " + sameDayPicutreInfo.yearMonthDay + ", rowPictureInfos = " + (sameDayPicutreInfo.rowPictureInfos == null ? "0" : sameDayPicutreInfo.rowPictureInfos.size()) + ", jpgPictureInfos = " + (sameDayPicutreInfo.jpgPictureInfos == null ? "0" : sameDayPicutreInfo.jpgPictureInfos.size()));
+        }
+
+        InfloList infloList = new InfloList();
+        infloList.backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
+        infloList.uploadPictureInfoList = Collections.synchronizedList(new ArrayList<>());
+
+//  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
+        for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
+            if (cameraDeviceID == -1) {
+                downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
+                return null;
+            }
+            for (int i = 0; i < cameraPictureInfo.jpgPictureInfos.size(); i++) {
+                Integer integer = i + 1;
+                PictureInfo jpgPictureInfo = cameraPictureInfo.jpgPictureInfos.get(i);
+                if (cameraDeviceID == -1) {
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
+                    return null;
+                }
+
+                if (VariableInstance.getInstance().UploadMode == 1) {
+                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(jpgPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 2) {
+                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(jpgPictureInfo);
+                    }
+                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(jpgPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 3) {
+                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(jpgPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 4) {
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1 && checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(jpgPictureInfo);
+                    }
+                }else if (VariableInstance.getInstance().UploadMode == 5) {
+
+                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(jpgPictureInfo);
+                    }
+                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(jpgPictureInfo);
+                    }
+                }
+            }
+
+            for (int i = 0; i < cameraPictureInfo.rowPictureInfos.size(); i++) {
+                Integer integer = i + 1;
+                PictureInfo rowPictureInfo = cameraPictureInfo.rowPictureInfos.get(i);
+
+
+                try {
+                    String dataString = rowPictureInfo.pictureName.substring(0, rowPictureInfo.pictureName.indexOf("-"));
+                    Log.d(TAG, "getPictureSortList: cameraPictureInfo =" + cameraPictureInfo.yearMonthDay + ", rowPictureInfo =" + rowPictureInfo.pictureName + ",pictureCreateData =" + Utils.getyyyyMMddHHmmssString(Long.parseLong(dataString)));
+                }catch (Exception e){
+
+                }
+
+                if (cameraDeviceID == -1) {
+                    downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
+                    return null;
+                }
+                if (VariableInstance.getInstance().UploadMode == 1) {
+                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(rowPictureInfo);
+                    }
+                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(rowPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 2) {
+                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(rowPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 3) {
+                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(rowPictureInfo);
+                    }
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(rowPictureInfo);
+                    }
+                } else if (VariableInstance.getInstance().UploadMode == 4) {
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if (index > -1 && checkNeedBackUp(rowPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(rowPictureInfo);
+                    }
+                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(rowPictureInfo);
+                    }
+                }else if (VariableInstance.getInstance().UploadMode == 5) {
+                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                        infloList.backupPictureInfoList.add(rowPictureInfo);
+                    }
+                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(rowPictureInfo);
+                    }
+                }
+            }
+        }
+        Collections.sort(infloList.backupPictureInfoList, new order());
+        Collections.sort(infloList.uploadPictureInfoList, new order());
+        return infloList;
     }
 
     /**
@@ -1008,13 +972,13 @@ public class ReceiverCamera extends BroadcastReceiver {
     }
 
     public interface CameraScanerListener {
-        void addUploadRemoteFile(UploadFileModel uploadFileModel);
+        void addUploadRemoteFile(String uploadFileModel);
 
         void cameraOperationStart();
 
         void cameraOperationEnd(int cameraTotalPicture);
 
-        boolean uploadToUSB(File localFile, String yearMonth);
+        boolean uploadToUSB(String localFilePath);
 
 
         void scannerCameraComplete(int needDownloadConut, int needUpload, int pictureCont, String deviceName);

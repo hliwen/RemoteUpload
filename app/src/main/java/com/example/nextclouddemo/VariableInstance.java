@@ -30,7 +30,7 @@ public class VariableInstance {
     public OwnCloudClient ownCloudClient;
 
 
-    public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
+    public int UploadMode = 1; //  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW  5全部下载全部上传
     public ArrayList<Integer> uploadSelectIndexList;
 
     public int MAX_NUM = 1000;//U盘最多保留张数

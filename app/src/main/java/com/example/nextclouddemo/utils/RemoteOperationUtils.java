@@ -3,9 +3,7 @@ package com.example.nextclouddemo.utils;
 import android.annotation.SuppressLint;
 
 import com.example.nextclouddemo.LogcatHelper;
-import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
-import com.example.nextclouddemo.model.UploadFileModel;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.CreateFolderRemoteOperation;
 import com.owncloud.android.lib.resources.files.FileUtils;
@@ -43,7 +41,7 @@ public class RemoteOperationUtils {
 
     private List<String> remotePictureDirList;
 
-    public volatile BlockingQueue<UploadFileModel> pictureFileListCache = new LinkedBlockingQueue<>(20000);
+    public volatile BlockingQueue<String> pictureFileListCache = new LinkedBlockingQueue<>(20000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
         this.remoteOperationListener = remoteOperationListener;
@@ -223,10 +221,11 @@ public class RemoteOperationUtils {
         return true;
     }
 
-    public void addUploadRemoteFile(UploadFileModel uploadFileModel, boolean uploadFaild) {
+    public void addUploadRemoteFile(String uploadFileModel, boolean uploadFaild) {
         Log.e(TAG, "addUploadRemoteFile: uploadFaild =" + uploadFaild + ",fileListCache =" + pictureFileListCache.size() + ",uploadFileModel =" + uploadFileModel);
 
         if (uploadFileModel == null) return;
+
         if (!pictureFileListCache.contains(uploadFileModel)) {
             pictureFileListCache.add(uploadFileModel);
         }
@@ -247,10 +246,10 @@ public class RemoteOperationUtils {
             public void run() {
                 while (!Thread.interrupted() && !pictureIsThreadStop) {
 
-                    UploadFileModel fileModel = null;
+                    String fileModel = null;
                     try {
                         Log.e(TAG, "run: 缓存需要上传到服务器的照片数量，fileListCache.size =" + pictureFileListCache.size());
-                        List<UploadFileModel> list = new ArrayList<>(pictureFileListCache);
+                        List<String> list = new ArrayList<>(pictureFileListCache);
                         Collections.sort(list, new MyOrder());
                         pictureFileListCache = new LinkedBlockingQueue<>(list);
                         fileModel = pictureFileListCache.poll(10, TimeUnit.SECONDS);
@@ -264,7 +263,7 @@ public class RemoteOperationUtils {
                             File[] files = localTpmFlie.listFiles();
                             if (files != null) {
                                 for (File file : files) {
-                                    UploadFileModel uploadFileModel = new UploadFileModel(file.getAbsolutePath());
+                                    String uploadFileModel = file.getAbsolutePath();
                                     Log.d(TAG, "run: uploadFileModel 上一次没传完的 " + uploadFileModel);
                                     addUploadRemoteFile(uploadFileModel, false);
                                 }
@@ -296,7 +295,8 @@ public class RemoteOperationUtils {
         Log.e(TAG, "stopUploadThread: ");
         if (pictureWorkThread != null) {
             pictureIsThreadStop = true;
-            if (remoteOperationListener != null) remoteOperationListener.allFileUploadComplete(uploadTatalTime);
+            if (remoteOperationListener != null)
+                remoteOperationListener.allFileUploadComplete(uploadTatalTime);
             try {
                 pictureWorkThread.interrupt();
                 pictureWorkThread.join(100);
@@ -314,19 +314,19 @@ public class RemoteOperationUtils {
         }
     }
 
-    private void uploadImageFileToRemote(UploadFileModel fileModel) {
+    private void uploadImageFileToRemote(String fileLocalPath) {
 
-        if (fileModel == null) {
+        if (fileLocalPath == null) {
             return;
         }
-        File file = new File(fileModel.localPath);
+        File file = new File(fileLocalPath);
         if (file == null || !file.exists()) {
-            Log.e(TAG, "uploadImageFileToRemote: " + fileModel.localPath + ",文件不存在");
+            Log.e(TAG, "uploadImageFileToRemote: " + fileLocalPath + ",文件不存在");
             return;
         }
 
         if (VariableInstance.getInstance().ownCloudClient == null || !VariableInstance.getInstance().remoteServerAvailable) {
-            addUploadRemoteFile(fileModel, true);
+            addUploadRemoteFile(fileLocalPath, true);
             return;
         }
 
@@ -339,9 +339,14 @@ public class RemoteOperationUtils {
         } catch (Exception e) {
             Log.e(TAG, "uploadImageFileToRemote: Exception =" + e);
         }
-        String fileName = file.getName();
-
-        String fileDay = fileName.substring(0, fileName.indexOf("-"));
+        String logcalFileName = file.getName();
+        String dataString = logcalFileName.substring(0, logcalFileName.indexOf("-"));
+        String nameString = logcalFileName.substring(logcalFileName.indexOf("-") + 1);
+        long pictureCreateData = Long.parseLong(dataString);
+        int yyMMdd = Utils.getyyMMddtringInt(pictureCreateData);
+        String yearMonth = Utils.getyyyyMMtring(pictureCreateData);
+        String showName = yyMMdd + "-" + nameString;
+        String hhmm = Utils.getHHmmString(pictureCreateData);
 
 
         if (VariableInstance.getInstance().isUploadToday) {
@@ -354,7 +359,7 @@ public class RemoteOperationUtils {
                     }
                     return;
                 }
-                if (Utils.isBigThreeDate(fileDay)) {
+                if (Utils.isBigThreeDate(pictureCreateData)) {
                     Log.e(TAG, "uploadImageFileToRemote: 只上传最近3天的照片，当前照片不是最近3天不上传， 照片路径：" + file.getAbsolutePath());
                     if (file.exists()) {
                         file.delete();
@@ -367,30 +372,47 @@ public class RemoteOperationUtils {
         }
         String remoteDir = remoteCameraMonthDayDir;
         try {
-            String monthDayDir = "20" + fileDay.substring(0, fileDay.length() - 2);
-            Log.e(TAG, "uploadImageFileToRemote: monthDayDir =" + monthDayDir);
-            if (remotePictureDirList.contains(monthDayDir)) {
-                remoteDir = remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR;
-            }else {
-                boolean createResult = createFilefolder(remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR);
-                if (createResult) {
-                    Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + monthDayDir + "文件夹，创建文件夹成功");
-                    remotePictureDirList.add(fileDay);
-                    remoteDir = remoteCameraDir + monthDayDir + FileUtils.PATH_SEPARATOR;
+
+            if (VariableInstance.getInstance().UploadMode == 5){
+                Log.e(TAG, "uploadImageFileToRemote: hhmm =" + hhmm);
+                if (remotePictureDirList.contains(hhmm)) {
+                    remoteDir = remoteCameraDir + hhmm + FileUtils.PATH_SEPARATOR;
                 } else {
-                    Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + monthDayDir + "文件夹，创建文件夹失败");
+                    boolean createResult = createFilefolder(remoteCameraDir + hhmm + FileUtils.PATH_SEPARATOR);
+                    if (createResult) {
+                        Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + hhmm + "文件夹，创建文件夹成功");
+                        remotePictureDirList.add(hhmm);
+                        remoteDir = remoteCameraDir + hhmm + FileUtils.PATH_SEPARATOR;
+                    } else {
+                        Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + hhmm + "文件夹，创建文件夹失败");
+                    }
+                }
+            }else {
+                Log.e(TAG, "uploadImageFileToRemote: monthDayDir =" + yearMonth);
+                if (remotePictureDirList.contains(yearMonth)) {
+                    remoteDir = remoteCameraDir + yearMonth + FileUtils.PATH_SEPARATOR;
+                } else {
+                    boolean createResult = createFilefolder(remoteCameraDir + yearMonth + FileUtils.PATH_SEPARATOR);
+                    if (createResult) {
+                        Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + yearMonth + "文件夹，创建文件夹成功");
+                        remotePictureDirList.add(yearMonth);
+                        remoteDir = remoteCameraDir + yearMonth + FileUtils.PATH_SEPARATOR;
+                    } else {
+                        Log.e(TAG, "uploadImageFileToRemote: 远程不存在" + yearMonth + "文件夹，创建文件夹失败");
+                    }
                 }
             }
+
+
         } catch (Exception e) {
 
         }
 
-
-        String remotePath = remoteDir + fileName;
+        String remotePath = remoteDir + showName;
         Long timeStampLong = file.lastModified() / 1000;
         String timeStamp = timeStampLong.toString();
 
-        Log.e(TAG, "uploadImageFileToRemote: " + fileModel.localPath + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
+        Log.e(TAG, "uploadImageFileToRemote: " + fileLocalPath + ",remotePath =" + remotePath + ",file.exit =" + file.exists());
 
         long startTime = System.currentTimeMillis();
         remoteOperationListener.pictureUploadStart();
@@ -400,14 +422,14 @@ public class RemoteOperationUtils {
         if (result == null) {
             remoteOperationListener.pictureUploadEnd(false);
             Log.e(TAG, "uploadImageFileToRemote: result == null ");
-            addUploadRemoteFile(fileModel, true);
+            addUploadRemoteFile(fileLocalPath, true);
             return;
         }
         boolean isSuccess = result.isSuccess();
         Log.d(TAG, "uploadImageFileToRemote: isSuccess =" + isSuccess + ",result = " + result.getLogMessage());
         remoteOperationListener.pictureUploadEnd(isSuccess);
         if (isSuccess) {
-            LocalProfileHelp.getInstance().addLocalRemotePictureList(fileName);
+            LocalProfileHelp.getInstance().addLocalRemotePictureList(showName);
             VariableInstance.getInstance().uploadRemorePictureNum++;
             long totalTime = (System.currentTimeMillis() - startTime) / 1000;
             Log.e(TAG, "uploadImageFileToRemote: 单张用时" + totalTime + "S,fileSize =" + fileSize);
@@ -420,15 +442,12 @@ public class RemoteOperationUtils {
         } else {
             if (uploadFaildPath == null) {
                 uploadFaildCount = 0;
-                uploadFaildPath = fileModel.localPath;
+                uploadFaildPath = fileLocalPath;
             }
 
-            if (fileModel.localPath.equals(uploadFaildPath)) {
+            if (fileLocalPath.equals(uploadFaildPath)) {
                 uploadFaildCount++;
             }
-
-//            RemoveFileRemoteOperation remoteOperation = new RemoveFileRemoteOperation(remotePath);
-//            remoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
 
             if (uploadFaildCount > 5) {
                 uploadFaildPath = null;
@@ -438,7 +457,7 @@ public class RemoteOperationUtils {
                     file.delete();
                 }
             } else {
-                addUploadRemoteFile(fileModel, true);
+                addUploadRemoteFile(fileLocalPath, true);
             }
         }
 
@@ -526,9 +545,9 @@ public class RemoteOperationUtils {
     }
 
 
-    public class MyOrder implements Comparator<UploadFileModel> {
+    public class MyOrder implements Comparator<String> {
         @Override
-        public int compare(UploadFileModel o1, UploadFileModel o2) {
+        public int compare(String o1, String o2) {
             return o2.toString().compareTo(o1.toString());
         }
     }

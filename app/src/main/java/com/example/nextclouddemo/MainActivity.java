@@ -25,7 +25,6 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.AppUtils;
@@ -35,7 +34,6 @@ import com.example.nextclouddemo.model.DeviceInfoModel;
 import com.example.nextclouddemo.model.MyMessage;
 
 import com.example.nextclouddemo.model.ServerUrlModel;
-import com.example.nextclouddemo.model.UploadFileModel;
 import com.example.nextclouddemo.mqtt.MqttManager;
 import com.example.nextclouddemo.utils.Communication;
 import com.example.nextclouddemo.utils.FormatLisener;
@@ -62,7 +60,7 @@ import me.jahnen.libaums.core.fs.UsbFile;
 import me.jahnen.libaums.core.fs.UsbFileInputStream;
 
 public class MainActivity extends Activity implements View.OnClickListener {
-    public static final boolean debug = true;
+    public static final boolean debug = false;
     public boolean remoteDebug = false;
     private static final String TAG = "remotelog_MainActivityl";
     private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
@@ -76,6 +74,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String UploadMode2 = "Set,UploadMode,2;";
     private static final String UploadMode3 = "Set,UploadMode,3,";
     private static final String UploadMode4 = "Set,UploadMode,4,";
+    private static final String UploadMode5 = "Set,UploadMode,5;";
     private static final String GetInfo = "Get,Info;";
 
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
@@ -226,6 +225,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.main_acitivity);
+
+        if (debug) {
+            findViewById(R.id.wholeView).setVisibility(View.GONE);
+        }
+
         shutDownTimeText = findViewById(R.id.shutDownTimeText);
 
         openCameraDeviceProt(false, 6);
@@ -242,7 +246,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.23")) {
+            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.23")) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -666,19 +670,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
         @Override
-        public boolean uploadToUSB(File localFile, String yearMonth) {
+        public boolean uploadToUSB(String localFilePath) {
             if (receiverStoreUSB == null) {
                 return false;
             }
 
-            boolean uploadResult = receiverStoreUSB.uploadToUSB(localFile, yearMonth);
+            boolean uploadResult = receiverStoreUSB.uploadToUSB(localFilePath);
 
             return uploadResult;
         }
 
 
         @Override
-        public void addUploadRemoteFile(UploadFileModel uploadFileModel) {
+        public void addUploadRemoteFile(String uploadFileModel) {
             remoteOperationUtils.addUploadRemoteFile(uploadFileModel, false);
         }
 
@@ -1212,6 +1216,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 break;
             case Upload:
                 break;
+            case UploadMode5:
+                UploadMode5();
+                getInfo();
+                sendMessageToMqtt("ZQ\r\n");
+                break;
             case UploadMode1:
                 UploadMode1();
                 getInfo();
@@ -1413,6 +1422,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
         }
 
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void UploadMode5() {
+        VariableInstance.getInstance().UploadMode = 5;
+        saveUploadModel(null);
+        uploadModelText.setText("上传的模式：" + VariableInstance.getInstance().UploadMode);
     }
 
     @SuppressLint("SetTextI18n")
@@ -2048,6 +2064,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         activity.sendCloseDeviceMessage(2, 10000);
                         return;
                     }
+                    if (!activity.netWorkConnectBroadConnet) {
+                        SharedPreferences sharedPreferences = activity.getSharedPreferences("Cloud", MODE_PRIVATE);
+                        int checkNetWorkCountt = sharedPreferences.getInt("checkNetWorkCountt", 0);//TODO huhu
+
+                        if (checkNetWorkCountt == 0) {
+                            SharedPreferences.Editor editor = activity.getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+                            editor.putInt("checkNetWorkCountt", 1);
+                            editor.apply();
+                            activity.restartDevice();
+                            return;
+                        }
+                    }
+                    SharedPreferences.Editor editor = activity.getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+                    editor.putInt("checkNetWorkCountt", 0);
+                    editor.apply();
                     Utils.closeAndroid();
                     break;
                 case msg_network_connect:

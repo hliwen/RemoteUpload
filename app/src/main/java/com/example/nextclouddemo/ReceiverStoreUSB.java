@@ -564,19 +564,33 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
     }
 
-    public boolean uploadToUSB(File localFile, String yearMonth) {
+    public boolean uploadToUSB(String picturePath) {
 
-
-        if (localFile == null || !localFile.exists() || localFile.length() < 10) {
-            Log.e(TAG, "uploadToUSB: 上传文件到U盘出错，文件不存在 \ntodayDir =" + "\n localFile =" + localFile);
+        if (picturePath == null) {
+            Log.e(TAG, "uploadToUSB: picturePath==null");
             return false;
         }
+
+        File pictureFile = new File(picturePath);
+
+        if (pictureFile == null || !pictureFile.exists() || pictureFile.length() < 10) {
+            Log.e(TAG, "uploadToUSB: 上传文件到U盘出错，pictureFile =" + pictureFile);
+            return false;
+        }
+
 
         if (storeUSBPictureDirUsbFile == null || storeUSBFileSystem == null) {
             Log.e(TAG, "uploadToUSB: 上传文件到U盘出错，U盘未初始化");
             return false;
         }
-        Log.d(TAG, "uploadToUSB: localFile =" + localFile);
+        Log.d(TAG, "uploadToUSB: pictureFile =" + pictureFile);
+        String logcalFileName = pictureFile.getName();
+        String dataString = logcalFileName.substring(0, logcalFileName.indexOf("-"));
+        String nameString = logcalFileName.substring(logcalFileName.indexOf("-") + 1);
+        long pictureCreateData = Long.parseLong(dataString);
+        int yyMMdd = Utils.getyyMMddtringInt(pictureCreateData);
+        String yearMonth = Utils.getyyyyMMtring(pictureCreateData);
+        String showName = yyMMdd+"-"+nameString;
 
 
         long time = System.currentTimeMillis();
@@ -600,17 +614,17 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
 
 
-            UsbFile create = yearMonthUsbFile.search(localFile.getName());
+            UsbFile create = yearMonthUsbFile.search(showName);
             if (create == null) {
-                create = yearMonthUsbFile.createFile(localFile.getName());
+                create = yearMonthUsbFile.createFile(showName);
             } else {
                 Log.e(TAG, "uploadToUSB: U盘已存在这个文件，size=" + create.getLength());
-                create.setLength(localFile.length());
+                create.setLength(pictureFile.length());
             }
 
-            Log.d(TAG, "uploadToUSB.................................: name =" + localFile.getName());
+            Log.d(TAG, "uploadToUSB.................................: name =" + showName);
             usbFileOutputStream = new UsbFileOutputStream(create);
-            inputStream = new FileInputStream(localFile);
+            inputStream = new FileInputStream(pictureFile);
             fileSize = inputStream.available();
             int bytesRead;
             byte[] buffer = new byte[storeUSBFileSystem.getChunkSize()];
@@ -621,7 +635,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
             VariableInstance.getInstance().backupPicrureNum++;
             VariableInstance.getInstance().currentUSBPictureCount++;
-            LocalProfileHelp.getInstance().addLocalUSBPictureList(localFile.getName());
+            LocalProfileHelp.getInstance().addLocalUSBPictureList(showName);
             long totalTime = ((System.currentTimeMillis() - time) / 1000);
             if (totalTime == 0) {
                 totalTime = 1;
