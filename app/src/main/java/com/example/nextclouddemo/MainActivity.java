@@ -1613,17 +1613,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
             String number = telephonyManager.getLine1Number();
             Log.e(TAG, "getPhoneNumber:  getLine1Number number =" + number);
 
-            if (number == null || number.isEmpty()) {
+            if (number == null || number.trim().isEmpty()) {
                 number = telephonyManager.getSimSerialNumber();
                 Log.e(TAG, "getPhoneNumber:  getSimSerialNumber number =" + number);
             }
 
-            if (number == null || number.isEmpty()) {
+            if (number == null || number.trim().isEmpty()) {
                 number = getPhoneNumber2();
                 Log.e(TAG, "getPhoneNumber:  getIccId number =" + number);
             }
-            
-            if (number == null || number.isEmpty()) {
+
+            if (number == null || number.trim().isEmpty()) {
                 number = "0";
             }
             Log.d(TAG, "getPhoneNumber: 卡号 =" + number);
