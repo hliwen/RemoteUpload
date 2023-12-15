@@ -20,6 +20,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.Window;
@@ -1609,12 +1611,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
         try {
             TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             String number = telephonyManager.getLine1Number();
+            Log.e(TAG, "getPhoneNumber:  getLine1Number number =" + number);
 
-            if (number == null) {
+            if (number == null || number.isEmpty()) {
                 number = telephonyManager.getSimSerialNumber();
+                Log.e(TAG, "getPhoneNumber:  getSimSerialNumber number =" + number);
             }
 
-            if (number == null || number.length() == 0) {
+            if (number == null || number.isEmpty()) {
+                number = getPhoneNumber2();
+                Log.e(TAG, "getPhoneNumber:  getIccId number =" + number);
+            }
+            
+            if (number == null || number.isEmpty()) {
                 number = "0";
             }
             Log.d(TAG, "getPhoneNumber: 卡号 =" + number);
@@ -2166,4 +2175,33 @@ public class MainActivity extends Activity implements View.OnClickListener {
         return sharedPreferences.getBoolean("showFormatResult", false);
     }
 
+
+    @SuppressLint("HardwareIds")
+    private String getPhoneNumber2() {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
+                SubscriptionManager subsManager = (SubscriptionManager) getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+                List<SubscriptionInfo> subsList = subsManager.getActiveSubscriptionInfoList();
+                if (subsList != null) {
+                    for (SubscriptionInfo subsInfo : subsList) {
+                        if (subsInfo != null) {
+                            return subsInfo.getIccId();
+                        }
+                    }
+                }
+            }
+        } catch (Exception | Error e) {
+        }
+        return null;
+    }
+
+    @SuppressLint("HardwareIds")
+    private String getPhoneNumber3() {
+        try {
+            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            return telephonyManager.getSimSerialNumber();
+        } catch (Exception | Error e) {
+        }
+        return null;
+    }
 }
