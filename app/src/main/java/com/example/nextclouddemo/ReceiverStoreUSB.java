@@ -13,6 +13,7 @@ import android.hardware.usb.UsbManager;
 import com.example.nextclouddemo.utils.FormatLisener;
 import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.PictureDataInfo;
 import com.example.nextclouddemo.utils.Utils;
 
 import java.io.DataOutputStream;
@@ -585,12 +586,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
         }
         Log.d(TAG, "uploadToUSB: pictureFile =" + pictureFile);
         String logcalFileName = pictureFile.getName();
-        String dataString = logcalFileName.substring(0, logcalFileName.indexOf("-"));
-        String nameString = logcalFileName.substring(logcalFileName.indexOf("-") + 1);
-        long pictureCreateData = Long.parseLong(dataString);
-        int yyMMdd = Utils.getyyMMddtringInt(pictureCreateData);
-        String yearMonth = Utils.getyyyyMMtring(pictureCreateData);
-        String showName = yyMMdd+"-"+nameString;
+        PictureDataInfo pictureDataInfo = new PictureDataInfo(logcalFileName);
 
 
         long time = System.currentTimeMillis();
@@ -602,7 +598,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             UsbFile[] usbFileList = storeUSBPictureDirUsbFile.listFiles();
             if (usbFileList != null) {
                 for (UsbFile usbFile : usbFileList) {
-                    if (usbFile.getName().contains(yearMonth)) {
+                    if (usbFile.getName().contains(pictureDataInfo.yearMonth)) {
                         yearMonthUsbFile = usbFile;
                         break;
                     }
@@ -610,19 +606,19 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
 
             if (yearMonthUsbFile == null) {
-                yearMonthUsbFile = storeUSBPictureDirUsbFile.createDirectory(yearMonth);
+                yearMonthUsbFile = storeUSBPictureDirUsbFile.createDirectory(pictureDataInfo.yearMonth);
             }
 
 
-            UsbFile create = yearMonthUsbFile.search(showName);
+            UsbFile create = yearMonthUsbFile.search(pictureDataInfo.showName);
             if (create == null) {
-                create = yearMonthUsbFile.createFile(showName);
+                create = yearMonthUsbFile.createFile(pictureDataInfo.showName);
             } else {
                 Log.e(TAG, "uploadToUSB: U盘已存在这个文件，size=" + create.getLength());
                 create.setLength(pictureFile.length());
             }
 
-            Log.d(TAG, "uploadToUSB.................................: name =" + showName);
+            Log.d(TAG, "uploadToUSB.................................: name =" + pictureDataInfo.showName);
             usbFileOutputStream = new UsbFileOutputStream(create);
             inputStream = new FileInputStream(pictureFile);
             fileSize = inputStream.available();
@@ -635,7 +631,7 @@ public class ReceiverStoreUSB extends BroadcastReceiver {
             }
             VariableInstance.getInstance().backupPicrureNum++;
             VariableInstance.getInstance().currentUSBPictureCount++;
-            LocalProfileHelp.getInstance().addLocalUSBPictureList(showName);
+            LocalProfileHelp.getInstance().addLocalUSBPictureList(pictureDataInfo.showName);
             long totalTime = ((System.currentTimeMillis() - time) / 1000);
             if (totalTime == 0) {
                 totalTime = 1;

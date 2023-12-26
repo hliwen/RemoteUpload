@@ -17,6 +17,7 @@ import com.example.gpiotest.LedControl;
 import com.example.nextclouddemo.utils.FormatLisener;
 import com.example.nextclouddemo.utils.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.PictureDataInfo;
 import com.example.nextclouddemo.utils.Utils;
 
 import java.io.DataOutputStream;
@@ -849,32 +850,34 @@ public class ReceiverCamera extends BroadcastReceiver {
                     return null;
                 }
 
+                PictureDataInfo pictureDataInfo = new PictureDataInfo(jpgPictureInfo.pictureName);
+
                 if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
-                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if (checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(jpgPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 4) {
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                    if (index > -1 && checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
-                }else if (VariableInstance.getInstance().UploadMode == 5) {
+                } else if (VariableInstance.getInstance().UploadMode == 5) {
 
-                    if (checkNeedBackUp(jpgPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
-                    if (checkNeedUpload(jpgPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if (checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(jpgPictureInfo);
                     }
                 }
@@ -888,7 +891,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                 try {
                     String dataString = rowPictureInfo.pictureName.substring(0, rowPictureInfo.pictureName.indexOf("-"));
                     Log.d(TAG, "getPictureSortList: cameraPictureInfo =" + cameraPictureInfo.yearMonthDay + ", rowPictureInfo =" + rowPictureInfo.pictureName + ",pictureCreateData =" + Utils.getyyyyMMddHHmmssString(Long.parseLong(dataString)));
-                }catch (Exception e){
+                } catch (Exception e) {
 
                 }
 
@@ -896,38 +899,41 @@ public class ReceiverCamera extends BroadcastReceiver {
                     downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
                     return null;
                 }
+
+                PictureDataInfo pictureDataInfo = new PictureDataInfo(rowPictureInfo.pictureName);
+
                 if (VariableInstance.getInstance().UploadMode == 1) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(rowPictureInfo);
                     }
-                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if (checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(rowPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 2) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(rowPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 3) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(rowPictureInfo);
                     }
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(rowPictureInfo);
                     }
                 } else if (VariableInstance.getInstance().UploadMode == 4) {
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if (index > -1 && checkNeedBackUp(rowPictureInfo.pictureName)) {
+                    if (index > -1 && checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(rowPictureInfo);
                     }
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(rowPictureInfo);
                     }
-                }else if (VariableInstance.getInstance().UploadMode == 5) {
-                    if (checkNeedBackUp(rowPictureInfo.pictureName)) {
+                } else if (VariableInstance.getInstance().UploadMode == 5) {
+                    if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(rowPictureInfo);
                     }
-                    if (checkNeedUpload(rowPictureInfo.pictureName, cameraPictureInfo.yearMonthDay)) {
+                    if (checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(rowPictureInfo);
                     }
                 }
