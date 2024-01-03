@@ -250,7 +250,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionCode(MainActivity.this, apkServerPackageName) == 24010306) {
+            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionCode(MainActivity.this, apkServerPackageName) == 24010307) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
