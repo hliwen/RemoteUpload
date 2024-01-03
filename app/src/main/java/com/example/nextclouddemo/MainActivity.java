@@ -65,6 +65,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final boolean debug = false;
     public boolean remoteDebug = false;
     private static final String TAG = "remotelog_MainActivityl";
+    private static final String CheckAppStateAction = "CheckAppStateAction";
+    private static final String ResponseAppStateAction = "ResponseAppStateAction";
     private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
     private static final String Enter_UploadAPP_Debug_Model = "Enter_UploadAPP_Debug_Model";
     private static final String Exit_UploadAPP_Debug_Model = "Exit_UploadAPP_Debug_Model";
@@ -248,7 +250,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionName(MainActivity.this, apkServerPackageName).contains("1.0.23")) {
+            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionCode(MainActivity.this, apkServerPackageName) >= 24010306) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
@@ -297,7 +299,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             formatUSBt.setOnClickListener(this);
             formatCameraBt.setOnClickListener(this);
             updateBeta.setOnClickListener(this);
-
+            sendOrderedBroadcast(new Intent(ResponseAppStateAction), null);
         }
     }
 
@@ -353,6 +355,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (isInitView) {
             return;
         }
+        sendOrderedBroadcast(new Intent(ResponseAppStateAction), null);
         isInitView = true;
         getUploadToday();
         VariableInstance.getInstance().resetAllData();
@@ -825,6 +828,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private void registerCommunicationReceiver() {
         communicationReceiver = new CommunicationReceiver();
         IntentFilter filter = new IntentFilter();
+        filter.addAction(CheckAppStateAction);
         filter.addAction(Exit_UploadAPP_Action);
         filter.addAction(Enter_UploadAPP_Debug_Model);
         filter.addAction(Exit_UploadAPP_Debug_Model);
@@ -1967,7 +1971,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 case Exit_UploadAPP_Debug_Model:
                     remoteDebug = false;
                     break;
-
+                case CheckAppStateAction:
+                    sendOrderedBroadcast(new Intent(ResponseAppStateAction), null);
+                    break;
             }
         }
 
