@@ -414,6 +414,63 @@ public class Utils {
         return 0;
     }
 
+    public static int getAssetsServerApkFileVersionCode(Context context) {
+        try {
+            String apkPath = getServerAndroidDataAPKPath(context);
+            boolean copyResult = copyAPKServer(apkPath, "app-release.apk", context);
+            if (copyResult) {
+                return getapkFileVersionCode(context, apkPath);
+            } else {
+                return 0;
+            }
+//            File apkFile = new File(apkPath);
+//            if (apkFile.exists()) {
+//                 Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件存在");
+//                return getapkFileVersionCode(context, apkPath);
+//            } else {
+//                Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件不存在");
+//                boolean copyResult = copyAPKServer(apkPath, "app-release.apk", context);
+//                if (copyResult) {
+//                    return getapkFileVersionCode(context, apkPath);
+//                } else {
+//                    return 0;
+//                }
+//            }
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static int getapkFileVersionCode(Context context, String apkPath) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            PackageInfo pkgInfo = pm.getPackageArchiveInfo(apkPath, PackageManager.GET_ACTIVITIES);
+            if (pkgInfo != null) {
+                return pkgInfo.versionCode; // 得到版本信息;
+            }
+        } catch (Exception e) {
+
+        }
+        return 0;
+    }
+
+
+    public static String getServerAndroidDataAPKPath(Context context) {
+        String apkPath = null;
+        try {
+            if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+                apkPath = context.getExternalFilesDir("apk").getAbsolutePath() + "/apkServe.apk";
+            } else { // 使用内部存储
+                apkPath = context.getFilesDir() + File.separator + "apk/apkServe.apk";
+            }
+
+        } catch (Exception e) {
+
+        }
+        if (apkPath == null) apkPath = "/storage/emulated/0/Download/apkServer.apk";
+        return apkPath;
+    }
+
     public static String getServerVersionName(Context context, String packageName) {
         try {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(packageName, 0);
@@ -451,7 +508,7 @@ public class Utils {
     }
 
 
-    public static void startRemoteActivity() {
+    public static void startServerActivity() {
         Log.d(TAG, "startServerActivity: ");
         DataOutputStream dataOutputStream = null;
         try {
@@ -561,10 +618,10 @@ public class Utils {
         return true;
     }
 
-    public static boolean isBigThreeDate(long  pictureTime) {
+    public static boolean isBigThreeDate(long pictureTime) {
 
         try {
-            long timeDifference = System.currentTimeMillis() -pictureTime;
+            long timeDifference = System.currentTimeMillis() - pictureTime;
             long dayDifference = timeDifference / (1000 * 60 * 60 * 24);
 
             if (dayDifference > 3) {

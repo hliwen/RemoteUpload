@@ -178,44 +178,44 @@ public class MainActivity extends Activity implements View.OnClickListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-
-                String apkPath = "/storage/emulated/0/Download/apkServer.apk";
-                boolean copyResult = Utils.copyAPKServer(apkPath, "app-release.apk", MainActivity.this);
-                if (!copyResult) {
-                    Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
-                    return;
-                }
+                String apkPath = Utils.getServerAndroidDataAPKPath(MainActivity.this);
+                Log.d(TAG, "installAPKServer: apkPath ="+apkPath);
                 File apkFile = new File(apkPath);
-                if (apkFile.exists()) {
-
-                    boolean installSucceed = Utils.installApk(apkPath);
+                if (apkFile == null || !apkFile.exists()) {
+                    boolean copyResult = Utils.copyAPKServer(apkPath, "app-release.apk", MainActivity.this);
+                    if (!copyResult) {
+                        Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
+                        return;
+                    }
+                }
+                boolean installSucceed = Utils.installApk(apkPath);
+                if (installSucceed) {
+                    apkFile.delete();
+                    sendBroadcastToServer("安装serverApk成功");
+                    Log.w(TAG, "run: 安装serverApk成功");
+                    Utils.startServerActivity();
+                    removeDelayCreateActivity();
+                    sendDelayCreateActivity(3000);
+                } else {
+                    Log.w(TAG, "run: 安装失败，卸载serverApk");
+                    Utils.uninstallapk();
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                    }
+                    installSucceed = Utils.installApk(apkPath);
+                    apkFile.delete();
                     if (installSucceed) {
+                        Log.w(TAG, "run:安装serverApk成功");
                         sendBroadcastToServer("安装serverApk成功");
-                        Log.w(TAG, "run: 安装serverApk成功");
-                        Utils.startRemoteActivity();
+                        Utils.startServerActivity();
                         removeDelayCreateActivity();
                         sendDelayCreateActivity(3000);
                     } else {
-                        Log.w(TAG, "run: 安装失败，卸载serverApk");
-                        Utils.uninstallapk();
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e) {
-                        }
-                        installSucceed = Utils.installApk(apkPath);
-
-                        if (installSucceed) {
-                            Log.w(TAG, "run:安装serverApk成功");
-                            sendBroadcastToServer("安装serverApk成功");
-                            Utils.startRemoteActivity();
-                            removeDelayCreateActivity();
-                            sendDelayCreateActivity(3000);
-                        } else {
-                            Log.w(TAG, "run:安装serverApk失败");
-                            sendBroadcastToServer("安装serverApk失败");
-                            removeDelayCreateActivity();
-                            sendDelayCreateActivity(3000);
-                        }
+                        Log.w(TAG, "run:安装serverApk失败");
+                        sendBroadcastToServer("安装serverApk失败");
+                        removeDelayCreateActivity();
+                        sendDelayCreateActivity(3000);
                     }
                 }
             }
@@ -250,7 +250,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
             setLEDState(1);
 
             removeDelayCreateActivity();
-            if (debug || Utils.isAppInstalled(MainActivity.this, apkServerPackageName) && Utils.getServerVersionCode(MainActivity.this, apkServerPackageName) == 24010801) {
+            int assetsServerAPKVersionCode = Utils.getAssetsServerApkFileVersionCode(MainActivity.this);
+            boolean installServerAPK = Utils.isAppInstalled(MainActivity.this, apkServerPackageName);
+            int installServerAPKVersionCode = 0;
+            if (installServerAPK) {
+                installServerAPKVersionCode = Utils.getServerVersionCode(MainActivity.this, apkServerPackageName);
+            }
+            Log.e(TAG, "onCreate: assetsServerAPKVersionCode =" + assetsServerAPKVersionCode + ",installServerAPK =" + installServerAPK + ",installServerAPKVersionCode =" + installServerAPKVersionCode);
+            if (debug || installServerAPK && installServerAPKVersionCode >= assetsServerAPKVersionCode) {
                 sendDelayCreateActivity(3000);
             } else {
                 Log.d(TAG, "onCreate: 需要等待安装守护线程");
