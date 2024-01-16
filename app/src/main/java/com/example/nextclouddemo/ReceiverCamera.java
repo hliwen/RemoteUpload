@@ -869,7 +869,7 @@ public class ReceiverCamera extends BroadcastReceiver {
                     }
 
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
-                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
+                    if ((index > -1 || i == cameraPictureInfo.jpgPictureInfos.size() - 1) && checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
                         infloList.uploadPictureInfoList.add(jpgPictureInfo);
                     }
 
