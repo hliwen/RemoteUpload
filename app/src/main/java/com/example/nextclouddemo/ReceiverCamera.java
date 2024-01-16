@@ -836,7 +836,7 @@ public class ReceiverCamera extends BroadcastReceiver {
         infloList.backupPictureInfoList = Collections.synchronizedList(new ArrayList<>());
         infloList.uploadPictureInfoList = Collections.synchronizedList(new ArrayList<>());
 
-//  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw，4列表下载列表上传RAW
+//  1 全部下载全部上传raw，2全部下载全部上传jpg，3全部下载列表上传raw,jpg，4列表下载列表上传RAW
         for (SameDayPicutreInfo cameraPictureInfo : cameraPictureInfoList) {
             if (cameraDeviceID == -1) {
                 downloadFlieListener.scannerCameraComplete(0, 0, 0, usbDevice.getProductName());
@@ -867,6 +867,13 @@ public class ReceiverCamera extends BroadcastReceiver {
                     if (checkNeedBackUp(pictureDataInfo.showName)) {
                         infloList.backupPictureInfoList.add(jpgPictureInfo);
                     }
+
+                    int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
+                    if ((index > -1 || i == cameraPictureInfo.rowPictureInfos.size() - 1) && checkNeedUpload(pictureDataInfo.showName, cameraPictureInfo.yearMonthDay)) {
+                        infloList.uploadPictureInfoList.add(jpgPictureInfo);
+                    }
+
+
                 } else if (VariableInstance.getInstance().UploadMode == 4) {
                     int index = VariableInstance.getInstance().uploadSelectIndexList.indexOf(integer);
                     if (index > -1 && checkNeedBackUp(pictureDataInfo.showName)) {
