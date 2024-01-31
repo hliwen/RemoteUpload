@@ -41,6 +41,9 @@ public class RemoteOperationUtils {
 
     private List<String> remotePictureDirList;
 
+    private String uploadFaildPath;
+    private int uploadFaildCount;
+
     public volatile BlockingQueue<String> pictureFileListCache = new LinkedBlockingQueue<>(20000);
 
     public RemoteOperationUtils(RemoteOperationListener remoteOperationListener) {
@@ -457,8 +460,7 @@ public class RemoteOperationUtils {
 
     }
 
-    private String uploadFaildPath;
-    private int uploadFaildCount;
+
 
     public void startUploadMainLocatThread(boolean delect) {
         Log.e(TAG, "startUploadMainLocatThread: ");
