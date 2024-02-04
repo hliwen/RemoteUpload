@@ -3,7 +3,7 @@ package com.example.nextclouddemo.model;
 public class DeviceInfoModel {
     public String returnImei;
     public int responseCode;
-    public String deveceName;
+    public String deviceName;
     public String username;
     public String password;
     public String upload_mode;
@@ -13,7 +13,7 @@ public class DeviceInfoModel {
         return "{" +
                 ",returnImei='" + returnImei + '\'' +
                 ", responseCode=" + responseCode +
-                ", userName='" + deveceName + '\'' +
+                ", deviceName='" + deviceName + '\'' +
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", upload_mode='" + upload_mode + '\'' +

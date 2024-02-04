@@ -1,4 +1,4 @@
-package com.example.nextclouddemo;
+package com.example.nextclouddemo.model;
 
 
 public class ProfileModel   {

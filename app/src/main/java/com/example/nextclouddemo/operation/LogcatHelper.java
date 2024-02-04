@@ -1,8 +1,9 @@
-package com.example.nextclouddemo;
+package com.example.nextclouddemo.operation;
 
 import android.annotation.SuppressLint;
 
 
+import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.Utils;
 

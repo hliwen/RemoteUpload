@@ -6,10 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.example.gpiotest.LedControl;
-import com.example.nextclouddemo.utils.LocalProfileHelp;
+import com.example.nextclouddemo.operation.LocalProfileHelp;
 import com.example.nextclouddemo.utils.Log;
-
-import android.widget.Toast;
 
 public class BootReceiver extends BroadcastReceiver {
     @SuppressLint("UnsafeIntentLaunch")

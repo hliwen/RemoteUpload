@@ -1,4 +1,4 @@
-package com.example.nextclouddemo.utils;
+package com.example.nextclouddemo.operation;
 
 
 import static android.content.Context.MODE_PRIVATE;
@@ -7,16 +7,15 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Environment;
 
 
 import com.example.nextclouddemo.MyApplication;
-import com.example.nextclouddemo.ProfileModel;
-import com.example.nextclouddemo.VariableInstance;
+import com.example.nextclouddemo.model.ProfileModel;
 
-import com.owncloud.android.lib.common.operations.RemoteOperationResult;
-import com.owncloud.android.lib.resources.files.ReadFolderRemoteOperation;
-import com.owncloud.android.lib.resources.files.model.RemoteFile;
+import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.DeviceUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,11 +41,11 @@ public class LocalProfileHelp {
     public static final String remoteFilePath = Environment.getExternalStorageDirectory() + File.separator + "remotePictureList.txt";
     public static final String usbFilePath = Environment.getExternalStorageDirectory() + File.separator + "usbPictureList.txt";
 
+    public boolean backupListInit;//已初始化备份列表
+    public boolean remoteListInit;//已初始化远程列表
     public List<String> remotePictureList = Collections.synchronizedList(new ArrayList<>());
     public List<String> usbPictureList = Collections.synchronizedList(new ArrayList<>());
-
     private static LocalProfileHelp instance = null;
-
 
     public static LocalProfileHelp getInstance() {
         if (instance == null) {
@@ -78,8 +77,24 @@ public class LocalProfileHelp {
     }
 
 
+    public boolean isExistLocalRemotePictureList() {
+        File file = new File(remoteFilePath);
+        if (file.exists()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isExistLocalBackupPictureList() {
+        File file = new File(usbFilePath);
+        if (file.exists()) {
+            return true;
+        }
+        return false;
+    }
+
     public boolean initLocalRemotePictureList() {
-        Log.d(TAG, "initLocalRemotePictureList: ");
+        Log.d(TAG, "initLocalRemotePictureList: start ......................................");
         try {
             InputStream inputStream = new FileInputStream(remoteFilePath);
             InputStreamReader inputreader = new InputStreamReader(inputStream, "GBK");
@@ -99,86 +114,13 @@ public class LocalProfileHelp {
             return false;
         }
         Log.e(TAG, "initLocalRemotePictureList: ............................ remotePictureList =" + remotePictureList.size());
-        if (remotePictureList.size() == 0) return false;
-        VariableInstance.getInstance().remoteListInit = true;
+        remoteListInit = true;
         return true;
-    }
-
-    public void createRemotePictureList(String userName) {
-        Log.e(TAG, "createRemotePictureList: userName =" + userName);
-        String remotePath = "/" + userName + "/" + RemoteOperationUtils.cameraDir + "/";
-        ReadFolderRemoteOperation dateReadFolderRemoteOperation = new ReadFolderRemoteOperation(userName + "/" + RemoteOperationUtils.cameraDir);
-        RemoteOperationResult dateRemoteOperationResult = dateReadFolderRemoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
-        if (dateRemoteOperationResult == null || !dateRemoteOperationResult.isSuccess()) {
-            Log.e(TAG, "createRemotePictureList: dateRemoteOperationResult =" + dateRemoteOperationResult);
-            return;
-        }
-        FileWriter remotePictureFileWriter = null;
-        try {
-            File file = new File(remoteFilePath);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            remotePictureFileWriter = new FileWriter(file, true);
-        } catch (Exception e) {
-            Log.e(TAG, "createRemotePictureList: Exception =" + e);
-        }
-
-
-        for (Object obj : dateRemoteOperationResult.getData()) {
-            RemoteFile dateRemoteFile = (RemoteFile) obj;
-            Log.d(TAG, "createRemotePictureList:  dateRemoteFile =" + dateRemoteFile.getRemotePath());
-
-
-            if (remotePath.equals(dateRemoteFile.getRemotePath())) {
-                Log.w(TAG, "createRemotePictureList:  dateRemoteFile =" + dateRemoteFile.getRemotePath());
-                continue;
-            }
-
-            ReadFolderRemoteOperation dirReadFolderRemoteOperation = new ReadFolderRemoteOperation(dateRemoteFile.getRemotePath());
-            RemoteOperationResult dirRemoteOperationResult = dirReadFolderRemoteOperation.execute(VariableInstance.getInstance().ownCloudClient);
-            if (dirRemoteOperationResult == null || !dirRemoteOperationResult.isSuccess()) {
-                Log.e(TAG, "createRemotePictureList: dirRemoteOperationResult =" + dirRemoteOperationResult);
-                continue;
-            }
-            for (Object obj1 : dirRemoteOperationResult.getData()) {
-                RemoteFile pictureRemoteFile = (RemoteFile) obj1;
-                String pictureRemotePath = pictureRemoteFile.getRemotePath();
-                pictureRemotePath = pictureRemotePath.substring(dateRemoteFile.getRemotePath().length());
-                if (pictureRemotePath != null && pictureRemotePath.length() > 5) {
-
-                    if (!remotePictureList.contains(pictureRemotePath)) {
-                        remotePictureList.add(pictureRemotePath);
-
-                        if (remotePictureFileWriter == null) {
-                            return;
-                        }
-                        pictureRemotePath = pictureRemotePath + "\n";
-                        try {
-                            remotePictureFileWriter.write(pictureRemotePath);
-                        } catch (IOException e) {
-                            Log.e(TAG, "createRemotePictureList appendPathToRemotePictureFile: IOException =" + e);
-                        }
-                    }
-                }
-            }
-        }
-        if (remotePictureFileWriter == null) {
-            return;
-        }
-        try {
-            remotePictureFileWriter.flush();
-            remotePictureFileWriter.close();
-        } catch (Exception e) {
-            Log.e(TAG, "createRemotePictureList: remotePictureFileWriter FileNotFoundException =" + e);
-        }
-        VariableInstance.getInstance().remoteListInit = true;
-        Log.e(TAG, "createRemotePictureList: ............................ remotePictureList =" + remotePictureList.size());
     }
 
 
     public void addLocalRemotePictureList(String pictureName) {
-        if (pictureFormatFile(pictureName)) {
+        if (DeviceUtils.fileIsPicture(pictureName)) {
             if (!remotePictureList.contains(pictureName)) {
                 remotePictureList.add(pictureName);
                 File file = new File(remoteFilePath);
@@ -229,23 +171,16 @@ public class LocalProfileHelp {
             Log.e(TAG, "initLocalUSBPictureList: IOException =" + e);
             return false;
         }
-        Log.e(TAG, "initLocalUSBPictureList: ............................ usbPictureList =" + usbPictureList.size());
+        Log.e(TAG, "initLocalUSBPictureList:数据库中存储备份照片张数 =" + usbPictureList.size());
         Collections.sort(usbPictureList, new UsbPictureComparator());
 
-        if ((usbPictureList.size() == 0)) {
-            return false;
-        }
-
-        VariableInstance.getInstance().backupListInit = true;
+        backupListInit = true;
         return true;
     }
 
     public void createLocalUSBPictureList(UsbFile storeUSBPictureDirUsbFile) {
         Log.d(TAG, "createLocalUSBPictureList: 创建已备份照片数据库开始............................");
-
         if (storeUSBPictureDirUsbFile == null) return;
-
-
         FileWriter fileWriter = null;
         File file = new File(usbFilePath);
         if (!file.exists()) {
@@ -253,13 +188,15 @@ public class LocalProfileHelp {
                 file.createNewFile();
             } catch (Exception e) {
                 Log.e(TAG, "createLocalUSBPictureList: createNewFile Exception =" + e);
+                return;
             }
         }
 
         try {
             fileWriter = new FileWriter(file, true);
         } catch (Exception e) {
-            Log.e(TAG, "initRemotePictureList: new FileWriter Exception =" + e);
+            Log.e(TAG, "createLocalUSBPictureList: new FileWriter Exception =" + e);
+            return;
         }
         try {
             UsbFile[] storeUSBPictureDirUsbFileList = storeUSBPictureDirUsbFile.listFiles();
@@ -269,7 +206,7 @@ public class LocalProfileHelp {
                     UsbFile[] dateUsbFileDirList = dateUsbFile.listFiles();
                     for (UsbFile usbFile : dateUsbFileDirList) {
                         String pictureName = usbFile.getName();
-                        if (pictureFormatFile(pictureName)) {
+                        if (DeviceUtils.fileIsPicture(pictureName)) {
                             if (!usbPictureList.contains(pictureName)) {
                                 usbPictureList.add(pictureName);
                             }
@@ -277,7 +214,7 @@ public class LocalProfileHelp {
                             try {
                                 fileWriter.write(pictureName);
                             } catch (IOException e) {
-                                Log.e(TAG, "appendPathToRemotePictureFile: IOException =" + e);
+                                Log.e(TAG, "createLocalUSBPictureList: IOException =" + e);
                             }
                         }
                     }
@@ -294,12 +231,13 @@ public class LocalProfileHelp {
 
             }
         }
-        VariableInstance.getInstance().backupListInit = true;
-        Log.d(TAG, "createLocalUSBPictureList: 创建已备份照片数据库结束............................");
+        backupListInit = true;
+
+        Log.d(TAG, "createLocalUSBPictureList: 创建已备份照片数据库结束............................数据库中存储备份照片张数 =" + usbPictureList.size());
     }
 
     public void addLocalUSBPictureList(String pictureName) {
-        if (pictureFormatFile(pictureName)) {
+        if (DeviceUtils.fileIsPicture(pictureName)) {
             if (!usbPictureList.contains(pictureName)) {
                 usbPictureList.add(pictureName);
                 File file = new File(usbFilePath);
@@ -307,7 +245,7 @@ public class LocalProfileHelp {
                     try {
                         file.createNewFile();
                     } catch (Exception e) {
-                        Log.e(TAG, "createLocalUSBPictureList: createNewFile Exception =" + e);
+                        Log.e(TAG, "addLocalUSBPictureList: createNewFile Exception =" + e);
                     }
                 }
                 FileWriter fileWriter = null;
@@ -317,7 +255,7 @@ public class LocalProfileHelp {
                     fileWriter.write(pictureName);
                     fileWriter.flush();
                 } catch (Exception e) {
-                    Log.e(TAG, "initRemotePictureList: new FileWriter Exception =" + e);
+                    Log.e(TAG, "addLocalUSBPictureList: new FileWriter Exception =" + e);
                 } finally {
                     if (fileWriter != null) {
                         try {
@@ -357,6 +295,11 @@ public class LocalProfileHelp {
         profileModel.wifi = sharedPreferences.getString("wifi", null);
         profileModel.pass = sharedPreferences.getString("pass", null);
         profileModel.SN = sharedPreferences.getString("SN", null);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            profileModel.SN = "202302050000001";
+            return profileModel;
+        }
 
         if (profileModel.imei == null && profileModel.SN == null) {
             return null;
@@ -399,13 +342,6 @@ public class LocalProfileHelp {
         return deviceStyle;
     }
 
-    private boolean pictureFormatFile(String pictureName) {
-        if (pictureName == null || pictureName.trim().length() == 0) {
-            return false;
-        }
-        String FileEnd = pictureName.substring(pictureName.lastIndexOf(".") + 1).toLowerCase();
-        return FileEnd.equals("nif") || FileEnd.equals("crw") || FileEnd.equals("raw") || FileEnd.equals("arw") || FileEnd.equals("nef") || FileEnd.equals("raf") || FileEnd.equals("pef") || FileEnd.equals("rw2") || FileEnd.equals("dng") || FileEnd.equals("cr2") || FileEnd.equals("cr3") || FileEnd.equals("jpg");
-    }
 
     public class UsbPictureComparator implements Comparator<String> {
         @Override

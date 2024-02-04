@@ -1,10 +1,13 @@
-package com.example.nextclouddemo.utils;
+package com.example.nextclouddemo.operation;
 
 import android.content.Context;
 
 import com.blankj.utilcode.util.AppUtils;
 import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.VariableInstance;
+import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.UrlUtils;
+import com.example.nextclouddemo.utils.Utils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
@@ -25,69 +28,56 @@ import java.nio.charset.Charset;
 public class UpdateUtils {
 
     private static final String TAG = "remotelog_UpdateUtils";
-    private String downloadPath;
-    private UpdateListener updateListener;
-
-    public UpdateUtils(UpdateListener updateListener) {
-        this.updateListener = updateListener;
-    }
 
 
-    public void checkBetaApk(Context context) {
+    public static void updateBetaApk(Context context, UpdateListener updateListener) {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                updateListener.startUpdate();
                 AppUtils.AppInfo appInfo = AppUtils.getAppInfo(context.getPackageName());
                 int appVerison = appInfo.getVersionCode();
-                int servierVersion = getServiceVersion();
-
+                int servierVersion = getBetaServiceVersion();
                 if (servierVersion == 0) {
+                    updateListener.endUpdate(false, "获取远程版本失败");
                     return;
                 }
 
-                Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
-//                if (servierVersion > appVerison) {
-                startDownloadApk(servierVersion);
-//                }
+                Log.e(TAG, "updateBetaApk: app当前版本 =" + appVerison + ",远程版本 =" + servierVersion);
+                String downloadURL = UrlUtils.appDowloadURL_Beta + servierVersion;
+
+                String downloadPath = startDownloadApk(downloadURL, updateListener);
+                if (downloadPath == null) {
+                    updateListener.endUpdate(false, "下载远程升级文件失败");
+                    updateListener.endDownload(false);
+                    return;
+                }
+                updateListener.endDownload(true);
+                try {
+                    EventBus.getDefault().post(MainActivity.Update_InstallAPKStart);
+                    updateListener.startInstall();
+                    boolean installSuccess = installSilent(downloadPath);
+                    updateListener.endInstall(installSuccess);
+                    updateListener.endUpdate(installSuccess, "installSilent(downloadPath);");
+                } catch (Exception e) {
+                    Log.e(TAG, "updateBetaApk: Exception =" + e);
+                    updateListener.endUpdate(false, "Exception：" + e);
+                }
+
             }
         }).start();
     }
 
-
-    public void startDownloadApk(int servierVersion) {
-        String downloadURL = VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appDowloadURL_Beta : UrlUtils.appDowloadURL;
-
-        EventBus.getDefault().post(MainActivity.Update_StartDownloadAPK);
-
-        boolean downloadSucced = startDownloadApp(downloadURL + servierVersion);
-        Log.d(TAG, "run: startDownloadApp downloadSucced =" + downloadSucced);
-        if (downloadSucced) {
-            EventBus.getDefault().post(MainActivity.Update_DownloadAPKSucceed);
-            downloadSucceed(downloadPath);
-        } else {
-            EventBus.getDefault().post(MainActivity.Update_DownloadAPKFaild);
-
-            Log.d(TAG, "startDownloadApk: 下载升级文件失败无法升级");
-        }
-    }
-
-    public void networkLost() {
-
-    }
-
-
-    private int getServiceVersion() {
+    private static int getBetaServiceVersion() {
 
         int servierVersion = 0;
         try {
-            URL url = new URL(VariableInstance.getInstance().isUpdatingBetaApk ? UrlUtils.appVersionURL_Beta : UrlUtils.appVersionURL);
+            URL url = new URL(UrlUtils.appVersionURL_Beta);
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
 
-            Log.e(TAG, "getServiceVersion: ResponseCode =" + ResponseCode);
             if (ResponseCode != 200) {
-
-                Log.d(TAG, "getServiceVersion: 无法访问升级链接");
+                Log.d(TAG, "getBetaServiceVersion: 无法访问升级链接");
                 return 0;
             }
 
@@ -100,7 +90,7 @@ public class UpdateUtils {
                 buffer.append(line);
             }
             String content = buffer.toString();
-            Log.d(TAG, "run:  nccontent = " + content);
+            Log.d(TAG, "getBetaServiceVersion:  content = " + content);
             JSONObject jsonObject = new JSONObject(content);
             JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
             jsonObject = new JSONObject(jsonArray.getString(0));
@@ -114,18 +104,17 @@ public class UpdateUtils {
     }
 
 
-    private boolean startDownloadApp(String downloadURL) {
-        Log.d(TAG, "startDownloadApp: ");
-        boolean downloadSucced = false;
+    private static String startDownloadApk(String downloadURL, UpdateListener updateListener) {
         Utils.makeDir("/storage/emulated/0/Download/");
         String downloadPath_tpm = "/storage/emulated/0/Download/RemoteUpload_tpm.apk";
-        downloadPath = "/storage/emulated/0/Download/RemoteUpload.apk";
+        String downloadPath = "/storage/emulated/0/Download/RemoteUpload.apk";
         File apkFileTpm = new File(downloadPath_tpm);
         if (apkFileTpm != null && apkFileTpm.exists()) {
             apkFileTpm.delete();
         }
         apkFileTpm = new File(downloadPath_tpm);
         try {
+            updateListener.startDownload();
             URL downloadurl = new URL(downloadURL);
             HttpURLConnection connection = (HttpURLConnection) downloadurl.openConnection();
             int ResponseCode = connection.getResponseCode();
@@ -141,7 +130,8 @@ public class UpdateUtils {
                     downloadFileOutputStream.write(buffer, 0, lenght);
                     curentLength += lenght;
 
-                    if (updateListener != null) updateListener.downloadProgress((int) (curentLength / 1024));
+                    if (updateListener != null)
+                        updateListener.downloadProgress((int) (curentLength / 1024));
 
                 }
                 downloadFileOutputStream.flush();
@@ -153,54 +143,20 @@ public class UpdateUtils {
                     apkFile.delete();
                 }
                 apkFile = new File(downloadPath);
-                downloadSucced = apkFileTpm.renameTo(apkFile);
-            } else {
-
+                if (apkFileTpm.renameTo(apkFile)) {
+                    return downloadPath;
+                } else {
+                    Log.e(TAG, "startDownloadApk: 重命名失败");
+                }
             }
-
         } catch (Exception e) {
-
             Log.d(TAG, "startDownloadApp: e =" + e);
         }
-
-
-        return downloadSucced;
+        return null;
     }
 
-    private void downloadSucceed(String filaPath) {
-        try {
-            if (updateListener != null) {
-                updateListener.startUpdate();
-            }
-            execLinuxCommand();
-            EventBus.getDefault().post(MainActivity.Update_InstallAPKStart);
-            boolean installSuccess = installSilent(filaPath);
-            if (!installSuccess) {
-                EventBus.getDefault().post(MainActivity.Update_InstallAPKFaild);
-            }
-            if (updateListener != null) {
-                updateListener.endUpdate(installSuccess);
-            }
-            Log.e(TAG, "downloadSucceed: installSuccess =" + installSuccess);
-        } catch (Exception e) {
-            Log.e(TAG, "downloadSucceed: Exception =" + e);
-        }
-    }
+    public void networkLost() {
 
-
-    public void execLinuxCommand() {
-        String cmd = "sleep 180; am start -n com.example.nextclouddemo/com.example.nextclouddemo.MainActivity";
-        //Runtime对象
-        Runtime runtime = Runtime.getRuntime();
-        try {
-            Process localProcess = runtime.exec("su");
-            OutputStream localOutputStream = localProcess.getOutputStream();
-            DataOutputStream localDataOutputStream = new DataOutputStream(localOutputStream);
-            localDataOutputStream.writeBytes(cmd);
-            localDataOutputStream.flush();
-        } catch (IOException e) {
-
-        }
     }
 
 
@@ -314,49 +270,21 @@ public class UpdateUtils {
     }
 
 
-    public static int checkServiceVersion() {
-
-        int servierVersion = 0;
-        try {
-            URL url = new URL(UrlUtils.appVersionURL);
-            HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
-            int ResponseCode = urlcon.getResponseCode();
-
-            Log.e(TAG, "checkServiceVersion: ResponseCode =" + ResponseCode);
-            if (ResponseCode != 200) {
-                Log.d(TAG, "checkServiceVersion: 无法访问升级链接");
-                return 0;
-            }
-            InputStream inputStream = urlcon.getInputStream();
-            InputStreamReader isr = new InputStreamReader(inputStream, "UTF-8");
-            BufferedReader reader = new BufferedReader(isr);
-            String line;
-            StringBuffer buffer = new StringBuffer();
-            while ((line = reader.readLine()) != null) {
-                buffer.append(line);
-            }
-            String content = buffer.toString();
-            Log.d(TAG, "checkServiceVersion:  nccontent = " + content);
-            JSONObject jsonObject = new JSONObject(content);
-            JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
-            jsonObject = new JSONObject(jsonArray.getString(0));
-            String version = jsonObject.getString("version");
-            servierVersion = Integer.parseInt(version);
-        } catch (Exception e) {
-            Log.e(TAG, "checkServiceVersion: Exception =" + e);
-        }
-        Log.e(TAG, "checkServiceVersion: servierVersion =" + servierVersion);
-        return servierVersion;
-    }
-
-
     public interface UpdateListener {
+        void startUpdate();
+
+        void startDownload();
+
+        void endDownload(boolean succeed);
+
+        void startInstall();
+
+        void endInstall(boolean succeed);
 
 
         void downloadProgress(int progress);
 
-        void startUpdate();
 
-        void endUpdate(boolean succeed);
+        void endUpdate(boolean succeed, String message);
     }
 }

@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.text.format.Formatter;
 
+import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
 
@@ -165,6 +166,7 @@ public class Utils {
 
 
     public static void closeAndroid() {
+         Log.e(TAG, "closeAndroid: " );
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});  //关机
             proc.waitFor();
@@ -599,7 +601,7 @@ public class Utils {
         }
     }
 
-    public static boolean isBigThreeDate(String pictureTime) {
+    public static boolean isMoreThanThreeDate(String pictureTime) {
 
         try {
             @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd");
@@ -618,7 +620,7 @@ public class Utils {
         return true;
     }
 
-    public static boolean isBigThreeDate(long pictureTime) {
+    public static boolean isMoreThanThreeDate(long pictureTime) {
 
         try {
             long timeDifference = System.currentTimeMillis() - pictureTime;
@@ -632,6 +634,45 @@ public class Utils {
         } catch (Exception e) {
         }
         return true;
+    }
+
+    public static void installAPKServer(Context context) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String apkPath = getServerAndroidDataAPKPath(context);
+                Log.d(TAG, "installAPKServer: apkPath =" + apkPath);
+                File apkFile = new File(apkPath);
+                if (apkFile == null || !apkFile.exists()) {
+                    boolean copyResult = Utils.copyAPKServer(apkPath, "app-release.apk", context);
+                    if (!copyResult) {
+                        Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
+                        return;
+                    }
+                }
+                boolean installSucceed = Utils.installApk(apkPath);
+                if (installSucceed) {
+                    apkFile.delete();
+                    Log.w(TAG, "run: 安装serverApk成功");
+                    Utils.startServerActivity();
+                } else {
+                    Log.w(TAG, "run: 安装失败，卸载serverApk");
+                    Utils.uninstallapk();
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                    }
+                    installSucceed = Utils.installApk(apkPath);
+                    apkFile.delete();
+                    if (installSucceed) {
+                        Log.w(TAG, "run:安装serverApk成功");
+                        Utils.startServerActivity();
+                    } else {
+                        Log.w(TAG, "run:安装serverApk失败");
+                    }
+                }
+            }
+        }).start();
     }
 
 }

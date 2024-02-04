@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/wholeView"
     android:layout_width="match_parent"
+    android:keepScreenOn="true"
     android:layout_height="match_parent"
     android:visibility="visible">
 
@@ -16,7 +17,7 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/phoneNumberText"
+                android:id="@+id/卡号View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
@@ -27,10 +28,10 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/imeiNumberText"
+                android:id="@+id/imeiView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="1dp"
                 android:background="#ffffff"
                 android:onClick="onClickHandler"
                 android:text="@string/imei"
@@ -38,10 +39,10 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/currentVersionText"
+                android:id="@+id/当前版本View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="1dp"
                 android:background="#ffffff"
                 android:onClick="onClickHandler"
                 android:text="@string/currentVersion"
@@ -49,7 +50,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/serverVersionText"
+                android:id="@+id/最新版本View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -60,7 +61,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/cameraStateText"
+                android:id="@+id/相机状态View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -71,7 +72,18 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/isConnectNetworkText"
+                android:id="@+id/U盘状态View"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:background="#ffffff"
+                android:onClick="onClickHandler"
+                android:text="@string/u_state"
+                android:textColor="#000000"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/联网状态View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#ffffff"
@@ -81,7 +93,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/serverStateText"
+                android:id="@+id/服务器状态View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#ffffff"
@@ -91,7 +103,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/mqttStateText"
+                android:id="@+id/mqtt状态View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#ffffff"
@@ -101,19 +113,10 @@
                 android:textSize="11sp" />
 
 
-            <TextView
-                android:id="@+id/accessNumberText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:background="#ffffff"
-                android:onClick="onClickHandler"
-                android:text="@string/accessnumbertext"
-                android:textColor="#000000"
-                android:textSize="11sp" />
+
 
             <TextView
-                android:id="@+id/remoteNameText"
+                android:id="@+id/云端名称View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -124,7 +127,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/uploadModelText"
+                android:id="@+id/上传模式View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="#ffffff"
@@ -135,7 +138,7 @@
 
 
             <TextView
-                android:id="@+id/UpanSpaceText"
+                android:id="@+id/U盘空间View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -146,7 +149,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/UpanPictureCountText"
+                android:id="@+id/U盘照片总数View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -157,7 +160,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/cameraPictureCountText"
+                android:id="@+id/相机照片总数View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -168,7 +171,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/cameraDeviceText"
+                android:id="@+id/相机名称View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -180,7 +183,7 @@
 
 
             <TextView
-                android:id="@+id/uploadNumberText"
+                android:id="@+id/本次从相机同步到服务器数量View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -191,7 +194,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/backupNumberText"
+                android:id="@+id/本次从相机同步到U盘数量View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -202,7 +205,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/uploadUseTimeText"
+                android:id="@+id/本次同步到服务器耗时View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -214,7 +217,7 @@
 
 
             <TextView
-                android:id="@+id/hasUploadpictureNumberText"
+                android:id="@+id/已上传张数View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -225,7 +228,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/hasDownloadPictureNumberText"
+                android:id="@+id/已下载张数View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -237,7 +240,7 @@
 
 
             <TextView
-                android:id="@+id/updateResultText"
+                android:id="@+id/升级结果View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -247,7 +250,7 @@
                 android:textSize="11sp" />
 
             <TextView
-                android:id="@+id/downloadAppProgressText"
+                android:id="@+id/下载升级包进度View"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -331,13 +334,7 @@
     </ScrollView>
 
 
-    <TextView
-        android:id="@+id/shutDownTimeText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:textColor="@color/purple_500"
-        android:textSize="20sp" />
+
 
 </RelativeLayout>
 
