@@ -666,7 +666,7 @@ public class NetworkOperation {
     public void startCameraPictureUploadThread() {
 
         if (uploadPictureThreadExecutor != null || !remoteServerAvailable) {
-            Log.e(TAG, "startCameraPictureUploadThread: remoteServerAvailable =" + remoteServerAvailable + ",uploadPictureThreadExecutor =" + uploadPictureThreadExecutor);
+            Log.e(TAG, "startCameraPictureUploadThread: 已经存在上传线程 remoteServerAvailable =" + remoteServerAvailable  );
             return;
         }
         Log.d(TAG, "startCameraPictureUploadThread: ");
@@ -874,12 +874,12 @@ public class NetworkOperation {
 
                 try {
                     if (uploadLogcatListener != null) {
-                        LogcatHelper.getInstance().stopMainLogcat();
+                /*        LogcatHelper.getInstance().stopMainLogcat();
                         try {
                             Thread.sleep(1000);
                             LogcatHelper.getInstance().stopMainLogcatRename();
                         } catch (Exception e) {
-                        }
+                        }*/
                         uploadLogcatListener.startUploadLogcatToUsb();
                     }
 
