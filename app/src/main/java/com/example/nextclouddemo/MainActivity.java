@@ -870,7 +870,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 AppUtils.AppInfo appInfo = AppUtils.getAppInfo(MyApplication.getContext().getPackageName());
                 int appVerison = appInfo.getVersionCode();
                 Log.e(TAG, "run: app当前版本 =" + appVerison + ",远程版本 =" + version);
-                runOnUiThreadText(serverVersionText, "最新版本：" + version);
+                    runOnUiThreadText(serverVersionText, "最新版本：" + version);
 
                 if (version > appVerison) {
                     updateUtils.startDownloadApk(version);
