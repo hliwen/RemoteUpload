@@ -675,6 +675,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             networkOperation.addUploadRemoteFile(uploadFileModel, false);
         }
 
+        @Override
+        public boolean usbInitComplete() {
+            return scannerStoreUSB.completedScanner;
+        }
+
 
         @Override
         public void startScannerDevice() {

@@ -485,7 +485,7 @@ public class NetworkOperation extends BroadcastReceiver {
                     deviceInfoModel.username = attrVal;
                 }
             }
-
+            deviceInfoModel.complete = true;
         } catch (Exception e) {
             Log.e(TAG, "getDeviceInfoTest: e =" + e);
         }

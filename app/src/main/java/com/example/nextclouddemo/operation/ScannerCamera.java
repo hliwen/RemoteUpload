@@ -519,6 +519,7 @@ public class ScannerCamera extends BroadcastReceiver {
                 errorMessage = "操作相机异常结束 4";
                 return false;
             }
+
             mtpBackUpToUSB(mtpDevice, pictureInfo);
         }
         usbDeviceConnection.close();
@@ -943,7 +944,7 @@ public class ScannerCamera extends BroadcastReceiver {
     }
 
     private boolean checkNeedBackupToUSB(String name) {
-        if (LocalProfileHelp.getInstance().usbPictureList.contains(name)) {
+        if (LocalProfileHelp.getInstance().usbPictureList.contains(name) && !deviceScannerListener.usbInitComplete()) {
             return false;
         }
         return true;
@@ -973,6 +974,8 @@ public class ScannerCamera extends BroadcastReceiver {
         void endScannerDevice(boolean isSuccess);
 
         void addUploadRemoteFile(String uploadFileModel);
+
+        boolean usbInitComplete();
 
         boolean uploadToUSB(String localFilePath);
 
