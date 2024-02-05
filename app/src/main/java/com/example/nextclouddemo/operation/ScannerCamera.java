@@ -871,14 +871,6 @@ public class ScannerCamera extends BroadcastReceiver {
                 Integer integer = i + 1;
                 PictureInfo rowPictureInfo = cameraPictureInfo.rowPictureInfos.get(i);
 
-
-                try {
-                    String dataString = rowPictureInfo.pictureName.substring(0, rowPictureInfo.pictureName.indexOf("-"));
-                    Log.d(TAG, "getPictureSortList: cameraPictureInfo =" + cameraPictureInfo.yearMonthDay + ", rowPictureInfo =" + rowPictureInfo.pictureName + ",pictureCreateData =" + Utils.getyyyyMMddHHmmssString(Long.parseLong(dataString)));
-                } catch (Exception e) {
-
-                }
-
                 if (!isOperatingDevice) {
                     return null;
                 }
