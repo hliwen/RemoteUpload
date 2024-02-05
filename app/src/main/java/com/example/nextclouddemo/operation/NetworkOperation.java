@@ -1,17 +1,17 @@
 package com.example.nextclouddemo.operation;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 
 import com.blankj.utilcode.util.AppUtils;
-import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
 import com.example.nextclouddemo.model.DeviceInfoModel;
 import com.example.nextclouddemo.model.ProfileModel;
-import com.example.nextclouddemo.model.ServerUrlModel;
 import com.example.nextclouddemo.utils.DeviceUtils;
 import com.example.nextclouddemo.utils.Log;
 import com.example.nextclouddemo.utils.PictureDateInfo;
@@ -52,7 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class NetworkOperation {
+public class NetworkOperation extends BroadcastReceiver {
     private static final String TAG = "remotelog_RemoteOperationUtils";
     private static int requestFailure = -1;
     private static int fileExist = 1;
@@ -69,7 +69,7 @@ public class NetworkOperation {
     private List<String> remotePictureDirYYYYMMList;
 
     public long uploadTatalTime;
-    public String returnImei;
+    public DeviceInfoModel deviceInfoModel;
     public boolean networkAvailable;
     public boolean networkIniting;
     public boolean uploadingRemotePicture;
@@ -77,16 +77,49 @@ public class NetworkOperation {
     public boolean remoteServerAvailable;
     public int uploadRemoteCompletePictureNum = 0;//已上传张数
 
-    public NetworkOperation(NetwrokOperationListener remoteOperationListener) {
+    public String errorMessage = "";
+
+    private Context mContext;
+
+    public NetworkOperation(Context context, NetwrokOperationListener remoteOperationListener) {
+        this.mContext = context;
         this.operationListener = remoteOperationListener;
         uploadRemoteCompletePictureNum = 0;
         pictureFileListCache = new LinkedBlockingQueue<>(20000);
         remotePictureDirYYYYMMList = Collections.synchronizedList(new ArrayList<>());
     }
 
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        String action = intent.getAction();
+        if (action == null) {
+            return;
+        }
+        if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+            NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
+            if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {//TODO
+                Log.d(TAG, "NetWorkReceiver: 网络断开广播");
+                operationListener.connectivityActionChange(false);
+                networkDisconnect(false);
+            } else if (info.getState().equals(NetworkInfo.State.CONNECTED)) {
+                Log.d(TAG, "NetWorkReceiver: 网络连接广播");
+                operationListener.connectivityActionChange(true);
+                networkConnect(mContext);
+            }
+        }
+    }
+
 
     public void networkDisconnect(boolean initTimeout) {
         Log.d(TAG, "networkDisconnect: initTimeout =" + initTimeout);
+        if (initTimeout) {
+            errorMessage = errorMessage + "初始化网络超时\n";
+        } else {
+            errorMessage = "收到网络断开广播";
+        }
         networkAvailable = false;
         remoteServerAvailable = false;
         ownCloudClient = null;
@@ -129,94 +162,65 @@ public class NetworkOperation {
         networkThreadExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                int serviceVersion = getServiceVersion();
-                int requestCount = 0;
-                while (serviceVersion == 0 && networkIniting) {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                    }
-                    requestCount++;
-                    Log.e(TAG, "networkConnect: 获取最新版本失败次数 ：" + requestCount);
-                    serviceVersion = getServiceVersion();
-                }
 
+                int serviceVersion = checkServiceVersion();
                 if (serviceVersion == 0) {
                     networkIniting = false;
                     operationListener.networkInitEnd(false, "无法获取最新版本");
+                    errorMessage = "无法获取最新版本";
                     return;
                 }
+
+                errorMessage = "";
                 networkAvailable = true;
 
-                int currentVersionCode = AppUtils.getAppInfo(MyApplication.getContext().getPackageName()).getVersionCode();
+                int currentVersionCode = AppUtils.getAppInfo(context.getPackageName()).getVersionCode();
                 operationListener.versionCodeResponse(currentVersionCode, serviceVersion);
                 if (serviceVersion > currentVersionCode) {
-                    Log.e(TAG, "networkConnect: 需要升级");
                     operationListener.startUpdateApp();
                     boolean installResult = updateApp(serviceVersion);
                     operationListener.endUpdateApp(installResult);
                     if (installResult) {
                         return;
-                    } else {
-                        Log.e(TAG, "networkConnect : 升级失败 ");
                     }
                 }
-
-                ServerUrlModel serverUrlModel = getServerUrl();
-                requestCount = 0;
-                while ((serverUrlModel == null || serverUrlModel.responseCode != 200) && networkIniting) {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (Exception e) {
-                    }
-                    requestCount++;
-                    Log.e(TAG, "networkConnect: 访问服务器获取url失败次数 ：" + requestCount);
-                    serverUrlModel = getServerUrl();
-                }
-
-                if (serverUrlModel == null || serverUrlModel.responseCode != 200) {
+                errorMessage = "";
+                Uri serverUri = checkServerUrl();
+                if (serverUri == null) {
                     Log.e(TAG, "networkConnect: 访问服务器获取url失败 ");
                     networkIniting = false;
+                    errorMessage = "访问服务器获取url失败";
                     operationListener.networkInitEnd(false, "访问服务器获取url失败");
                     return;
                 }
+                errorMessage = "";
                 String imei = getWorkingImei(context);
                 Log.e(TAG, "networkConnect : getWorkingImei =" + imei);
                 if (imei == null) {
+                    errorMessage = "设备imei获取失败";
                     networkIniting = false;
                     operationListener.networkInitEnd(false, "getWorkingImei  == null");
                     return;
                 }
-                DeviceInfoModel deviceInfoModel = getDeviceInfo(imei);
-                operationListener.showWorkingImei(imei);
-                requestCount = 0;
-                while ((deviceInfoModel == null || deviceInfoModel.responseCode != 200) && networkIniting) {
-                    try {
-                        Thread.sleep(3000);
-                    } catch (Exception e) {
-                    }
-                    requestCount++;
-                    Log.e(TAG, "networkConnect: 访问服务器获取设备信息失败次数：" + requestCount);
-                    deviceInfoModel = getDeviceInfo(imei);
-                }
+                operationListener.showDeviceImei(imei);
 
-                if ((deviceInfoModel == null || deviceInfoModel.responseCode != 200)) {
+                deviceInfoModel = checkDeviceInfo(imei);
+                deviceInfoModel.deviceImei = imei;
+                errorMessage = "";
+                if (!deviceInfoModel.complete) {
                     networkIniting = false;
                     operationListener.networkInitEnd(false, "访问服务器获取设备信息失败");
+                    errorMessage = "访问服务器获取设备信息失败";
                     return;
                 }
-                Log.e(TAG, "networkConnect: deviceInfoModel =" + deviceInfoModel + ",访问服务器获取设备信息失败次数:" + requestCount);
-
-                returnImei = deviceInfoModel.returnImei;
-                operationListener.remoteDeviceInfoRespond(imei, deviceInfoModel);
-
-                ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUrlModel.serverUri, context, true);
+                Log.e(TAG, "networkConnect: deviceInfoModel =" + deviceInfoModel);
+                operationListener.startInitMqtt(deviceInfoModel);
+                errorMessage = "";
+                ownCloudClient = OwnCloudClientFactory.createOwnCloudClient(serverUri, context, true);
                 ownCloudClient.setCredentials(OwnCloudCredentialsFactory.newBasicCredentials(deviceInfoModel.username, deviceInfoModel.password));
 
+                int requestCount = 0;
                 remoteServerAvailable = initRemoteDir(deviceInfoModel.deviceName);
-
-                requestCount = 0;
-
                 while (!remoteServerAvailable && requestCount < 5 && networkIniting) {
                     try {
                         Thread.sleep(2000);
@@ -229,10 +233,11 @@ public class NetworkOperation {
 
                 if (!remoteServerAvailable) {
                     networkIniting = false;
-                    operationListener.networkInitEnd(false, "初始化远程文件夹");
+                    errorMessage = "初始化远程文件夹失败";
+                    operationListener.networkInitEnd(false, "初始化远程文件夹失败");
                     return;
                 }
-
+                errorMessage = "";
                 networkIniting = false;
                 operationListener.networkInitEnd(true, "初始化成功");
             }
@@ -313,15 +318,30 @@ public class NetworkOperation {
         return imei;
     }
 
-    public static ServerUrlModel getServerUrl() {
-        ServerUrlModel serverUrlModel = new ServerUrlModel();
+
+    private Uri checkServerUrl() {
+        Uri serverUri = getServerUrl();
+        int requestCount = 0;
+        while (serverUri == null && networkIniting) {
+            try {
+                Thread.sleep(2000);
+            } catch (Exception e) {
+            }
+            requestCount++;
+            Log.e(TAG, "networkConnect: 访问服务器获取url失败次数 ：" + requestCount);
+            serverUri = getServerUrl();
+        }
+        return serverUri;
+    }
+
+    private Uri getServerUrl() {
+        Uri serverUri = null;
         try {
             URL url = new URL(UrlUtils.serverUri);
             HttpURLConnection urlcon = (HttpURLConnection) url.openConnection();
             int ResponseCode = urlcon.getResponseCode();
-            serverUrlModel.responseCode = ResponseCode;
             if (ResponseCode != 200) {
-                return serverUrlModel;
+                return serverUri;
             }
 
             InputStream inputStream = urlcon.getInputStream();
@@ -337,13 +357,27 @@ public class NetworkOperation {
             JSONObject jsonObject = new JSONObject(content);
             JSONArray jsonArray = new JSONArray(jsonObject.getString("data"));
             jsonObject = new JSONObject(jsonArray.getString(0));
-            serverUrlModel.stringServerUri = jsonObject.getString("url");
-            Uri serverUri = Uri.parse(serverUrlModel.stringServerUri);
-            serverUrlModel.serverUri = serverUri;
+            serverUri = Uri.parse(jsonObject.getString("url"));
         } catch (Exception e) {
             Log.e(TAG, "getServerUrl: e =" + e);
         }
-        return serverUrlModel;
+        return serverUri;
+    }
+
+
+    private DeviceInfoModel checkDeviceInfo(String phoneImei) {
+        DeviceInfoModel deviceInfoModel = getDeviceInfo(phoneImei);
+        int requestCount = 0;
+        while (!deviceInfoModel.complete && networkIniting) {
+            try {
+                Thread.sleep(3000);
+            } catch (Exception e) {
+            }
+            requestCount++;
+            Log.e(TAG, "networkConnect: 访问服务器获取设备信息失败次数：" + requestCount);
+            deviceInfoModel = getDeviceInfo(phoneImei);
+        }
+        return deviceInfoModel;
     }
 
     public DeviceInfoModel getDeviceInfo(String phoneImei) {
@@ -397,7 +431,7 @@ public class NetworkOperation {
                     deviceInfoModel.username = attrVal;
                 }
             }
-
+            deviceInfoModel.complete = true;
         } catch (Exception e) {
             Log.e(TAG, "getDeviceInfo: e =" + e);
         }
@@ -666,7 +700,7 @@ public class NetworkOperation {
     public void startCameraPictureUploadThread() {
 
         if (uploadPictureThreadExecutor != null || !remoteServerAvailable) {
-            Log.e(TAG, "startCameraPictureUploadThread: 已经存在上传线程 remoteServerAvailable =" + remoteServerAvailable  );
+            Log.e(TAG, "startCameraPictureUploadThread: 已经存在上传线程 remoteServerAvailable =" + remoteServerAvailable);
             return;
         }
         Log.d(TAG, "startCameraPictureUploadThread: ");
@@ -859,7 +893,7 @@ public class NetworkOperation {
                 if (!remoteServerAvailable) {
                     Log.e(TAG, "uploadLogcatFileToRemote: 远程服务器不可用，不需要上传日志");
                     if (uploadLogcatListener != null) {
-                        uploadLogcatListener.uploadLogcatComplete(false,"远程服务器不可用，不需要上传日志");
+                        uploadLogcatListener.uploadLogcatComplete(false, "远程服务器不可用，不需要上传日志");
                     }
                     return;
                 }
@@ -867,7 +901,7 @@ public class NetworkOperation {
                 if (LogcatHelper.getInstance().mLogDumperMain == null) {
                     Log.e(TAG, "uploadLogcatFileToRemote: mLogDumperMain = null 没有找到日志 ");
                     if (uploadLogcatListener != null) {
-                        uploadLogcatListener.uploadLogcatComplete(false,"mLogDumperMain = null 没有找到日志");
+                        uploadLogcatListener.uploadLogcatComplete(false, "mLogDumperMain = null 没有找到日志");
                     }
                     return;
                 }
@@ -888,7 +922,7 @@ public class NetworkOperation {
                     if (mainLogFile == null || !mainLogFile.exists()) {
                         Log.e(TAG, "startUploadMainLocatThread 日志文件不存在：" + path);
                         if (uploadLogcatListener != null) {
-                            uploadLogcatListener.uploadLogcatComplete(false,"日志文件不存在");
+                            uploadLogcatListener.uploadLogcatComplete(false, "日志文件不存在");
                         }
                         return;
                     }
@@ -920,7 +954,7 @@ public class NetworkOperation {
                     if (result == null || !result.isSuccess()) {
                         Log.e(TAG, "uploadLogcatFileToRemote: 日志上传失败 .................................");
                         if (uploadLogcatListener != null) {
-                            uploadLogcatListener.uploadLogcatComplete(false,"uploadOperation.execute失败");
+                            uploadLogcatListener.uploadLogcatComplete(false, "uploadOperation.execute失败");
                         }
                     } else {
                         Log.e(TAG, "uploadLogcatFileToRemote: 日志上传成功 .................................");
@@ -933,6 +967,23 @@ public class NetworkOperation {
                 }
             }
         }).start();
+    }
+
+
+    private int checkServiceVersion() {
+        int serviceVersion = getServiceVersion();
+        int requestCount = 0;
+        while (serviceVersion == 0 && networkIniting) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+            }
+            requestCount++;
+            Log.e(TAG, "networkConnect: 获取最新版本失败次数 ：" + requestCount);
+            serviceVersion = getServiceVersion();
+        }
+        return serviceVersion;
+
     }
 
     public int getServiceVersion() {
@@ -1024,6 +1075,8 @@ public class NetworkOperation {
     }
 
 
+
+
     public class MyOrder implements Comparator<String> {
         @Override
         public int compare(String o1, String o2) {
@@ -1032,7 +1085,10 @@ public class NetworkOperation {
     }
 
     public interface NetwrokOperationListener {
+
+        void connectivityActionChange(boolean connected);
         void startUpdateApp();
+
 
         void downloadProgress(int progress);
 
@@ -1040,13 +1096,13 @@ public class NetworkOperation {
 
         void networkInitStart();
 
-        void showWorkingImei(String imei);
+        void showDeviceImei(String imei);
 
         void networkInitEnd(boolean succeed, String message);
 
         void versionCodeResponse(int currentVersionCode, int serverVersionCode);
 
-        void remoteDeviceInfoRespond(String deviceImei, DeviceInfoModel deviceInfoModel);
+        void startInitMqtt(DeviceInfoModel deviceInfoModel);
 
         boolean canStopUploadPictureThread();
 
@@ -1060,7 +1116,7 @@ public class NetworkOperation {
     }
 
     public interface UploadLogcatListener {
-        void uploadLogcatComplete(boolean succeed,String message);
+        void uploadLogcatComplete(boolean succeed, String message);
 
         void startUploadLogcatToUsb();
     }

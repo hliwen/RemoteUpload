@@ -96,7 +96,13 @@ public class ScannerStoreUSB extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent == null) {
+            return;
+        }
         String action = intent.getAction();
+        if (action == null) {
+            return;
+        }
 
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED: {

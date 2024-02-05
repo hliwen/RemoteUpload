@@ -10,7 +10,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.hardware.usb.UsbManager;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -55,22 +54,21 @@ import java.lang.ref.WeakReference;
 public class MainActivity extends Activity implements View.OnClickListener {
     public static boolean debug = false;
     public boolean remoteDebug = false;
-    private static final String TAG = "remotelog_MainActivityl";
+    private static final String TAG = "remotelog_MainActivity";
     private static final String CheckAppStateAction = "CheckAppStateAction";
     private static final String ResponseAppStateAction = "ResponseAppStateAction";
     private static final String Exit_UploadAPP_Action = "Exit_UploadAPP_Action";
     private static final String Enter_UploadAPP_Debug_Model = "Enter_UploadAPP_Debug_Model";
     private static final String Exit_UploadAPP_Debug_Model = "Exit_UploadAPP_Debug_Model";
+    private static final String FormatFlagBroadcast = "FormatFlagBroadcast";
     private static final String FormatUSB = "Start,Format;";
     private static final String FormatCamera = "Start,FormatCamera;";
-
     private static final String UploadMode1 = "Set,UploadMode,1;";
     private static final String UploadMode2 = "Set,UploadMode,2;";
     private static final String UploadMode3 = "Set,UploadMode,3,";
     private static final String UploadMode4 = "Set,UploadMode,4,";
     private static final String UploadMode5 = "Set,UploadMode,5;";
     private static final String GetInfo = "Get,Info;";
-
     private static final String UploadEndUploadUseTime = "Upload,End,UploadUseTime,";
     private static final String AppShutdownAck = "App,shutdown,ack;";
     private static final String UploadToday = "Set,UploadToday,";
@@ -78,7 +76,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final String Set_UploadLocat = "Set,UploadLocat;";
     private static final String Set_WakeCamera = "Set,WakeCamera;";
     private static final String Set_ResetApk = "Set,ResetApk;";
-
     private static final String Set_UpdateBetaApk = "Set,UpdateBetaApk;";
     public static final String Update_StartDownloadAPK = "Update,StartDownloadAPK;";
     public static final String Update_DownloadAPKSucceed = "Update,DownloadAPKSucceed;";
@@ -86,27 +83,26 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static final String Update_InstallAPKStart = "Update,InstallAPKStart;";
     public static final String Update_InstallAPKSucceed = "Update,InstallAPKSucceed;";
     public static final String Update_InstallAPKFaild = "Update,InstallAPKFaild;";
-    private static final String FormatFlagBroadcast = "FormatFlagBroadcast";
-    private static final int NETWORK_WAIT_TIME = 3 * 60 * 1000;
-    private static final int CHECK_WORKING_TIME = 20000;
-    private static final int FORMAT_TIME = 3 * 60 * 1000;
-    private static final int OPEN_PORT_TIME = 10000;
 
     private static final String 快闪 = "快闪"; //没网络
     private static final String 慢闪 = "慢闪"; //有网络
     private static final String 常亮 = "常亮"; //回传完成
+
+    private static final String apkServerPackageName = "com.remoteupload.apkserver";
+
+    private static final int NETWORK_WAIT_TIME = 5 * 60 * 1000;
+    private static final int CHECK_WORKING_TIME = 20000;
+    private static final int FORMAT_TIME = 3 * 60 * 1000;
+    private static final int OPEN_PORT_TIME = 10000;
 
     private static final int msg_init_network_timeout = 1;
     private static final int msg_open_camera_port_timeout = 2;
     private static final int msg_formatusb_timeout = 3;
     private static final int msg_resend_mqtt = 4;
     private static final int msg_check_working_timeout = 5;
-    private boolean isUpdating;
-    private int signalStrengthValue;
-    private int appVerison;
-    private String cameraName;
-    private String copySpeed;
-    private String UploadSpeed;
+
+    private MyHandler mHandler;
+
 
     private View wholeView;
     private TextView 卡号View;
@@ -131,9 +127,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private TextView 已下载张数View;
     private TextView 升级结果View;
     private TextView 下载升级包进度View;
-
     private TextView messageText;
-
     private Button guanjiBt;
     private Button rescanerBt;
     private Button openProtActivityBt;
@@ -143,18 +137,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private Button updateBeta;
 
 
-    private MyHandler mHandler;
-    private NetworkOperation networkOperation;
-
-    private NetWorkStateReceiver netWorkStateReceiver;
-    private ScannerCamera scannerCamera;
-    private ScannerStoreUSB scannerStoreUSB;
-
-    private ServerApkCommunicationReceiver serverApkCommunicationReceiver;
-
-    private static final String apkServerPackageName = "com.remoteupload.apkserver";
+    private boolean isUpdating;
+    private int signalStrengthValue;
+    private int appVerison;
+    private String cameraName;
+    private String copySpeed;
+    private String UploadSpeed;
 
     private String messageTextString;
+
+    private NetworkOperation networkOperation;
+    private ScannerCamera scannerCamera;
+    private ScannerStoreUSB scannerStoreUSB;
+    private ServerApkCommunicationReceiver serverApkCommunicationReceiver;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -217,7 +213,36 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
         Log.e(TAG, "onCreate: 内嵌守护app版本号:" + assetsServerAPKVersionCode + ",是否安装守护app:" + installServerAPK + ",installServerAPKVersionCode =" + installServerAPKVersionCode);
         if (!debug && (!installServerAPK || installServerAPKVersionCode < assetsServerAPKVersionCode)) {
-            Utils.installAPKServer(MainActivity.this);
+            Utils.installAPKServer(MainActivity.this, new Utils.InstallAPKServerListener() {
+                @Override
+                public void copyAPK(boolean succeed) {
+                    if (remoteDebug) {
+                        sendMessageToMqtt("开始拷贝守护app:" + succeed);
+                    }
+                }
+
+                @Override
+                public void installStart(boolean reinstall) {
+                    if (remoteDebug) {
+                        if (reinstall) {
+                            sendMessageToMqtt("尝试卸载后安装守护App");
+                        } else {
+                            sendMessageToMqtt("开始安装守护App");
+                        }
+                    }
+                }
+
+                @Override
+                public void installEnd(boolean succeed, boolean reinstall) {
+                    if (remoteDebug) {
+                        if (reinstall) {
+                            sendMessageToMqtt("卸载后安装守护App成功:" + succeed);
+                        } else {
+                            sendMessageToMqtt("安装守护App成功:" + succeed);
+                        }
+                    }
+                }
+            });
         }
 
         initData();
@@ -245,11 +270,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         本次同步到服务器耗时View = findViewById(R.id.本次同步到服务器耗时View);
         已上传张数View = findViewById(R.id.已上传张数View);
         已下载张数View = findViewById(R.id.已下载张数View);
-
         升级结果View = findViewById(R.id.升级结果View);
         下载升级包进度View = findViewById(R.id.下载升级包进度View);
-
-
         messageText = findViewById(R.id.messageText);
 
         guanjiBt = findViewById(R.id.guanjiBt);
@@ -279,8 +301,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         getUploadModel();
         Utils.makeDir(VariableInstance.getInstance().TFCardPictureDir);
         Utils.makeDir(VariableInstance.getInstance().TFCardUploadPictureDir);
-        networkOperation = new NetworkOperation(remoteOperationListener);
-        registerNetworkStateReceiver();
+
+        registerNetworkOperationReceiver();
         registerReceiverCamera();
         registerStoreUSBReceiver();
         当前版本View.setText("当前版本：" + appVerison);
@@ -309,12 +331,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    private void registerNetworkStateReceiver() {
+    private void registerNetworkOperationReceiver() {
         mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
-        netWorkStateReceiver = new NetWorkStateReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(netWorkStateReceiver, filter);
+        networkOperation = new NetworkOperation(MainActivity.this, remoteOperationListener);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(networkOperation, intentFilter);
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -359,39 +381,204 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     }
 
-    private class NetWorkStateReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            if (intent == null)
-                return;
-            String action = intent.getAction();
-            if (action == null)
-                return;
-            if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-                NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-                if (info.getState().equals(NetworkInfo.State.DISCONNECTED)) {//TODO
-                    Log.d(TAG, "NetWorkReceiver: 网络断开广播");
-                    联网状态View.setText("网络状态：断开");
-                    openNetworkLed(false);
-                    openNetworkLed(true);
-                    networkOperation.networkDisconnect(false);
-                } else if (info.getState().equals(NetworkInfo.State.CONNECTED)) {
-                    联网状态View.setText("网络状态：网络连接（不一定能上网）");
-                    Log.d(TAG, "NetWorkReceiver: 网络连接广播");
-                    networkOperation.networkConnect(MainActivity.this);
-                }
-            }
-        }
-    }
-
     PhoneStateListener MyPhoneListener = new PhoneStateListener() {
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
-            int asu = signalStrength.getGsmSignalStrength();
-            signalStrengthValue = -113 + 2 * asu;
+            signalStrengthValue = -113 + 2 * signalStrength.getGsmSignalStrength();
         }
     };
 
+    private final NetworkOperation.NetwrokOperationListener remoteOperationListener = new NetworkOperation.NetwrokOperationListener() {
+
+        @Override
+        public void connectivityActionChange(boolean connected) {
+            if (connected) {
+                联网状态View.setText("网络状态：网络连接(不一定能上网)");
+            } else {
+                联网状态View.setText("网络状态：断开");
+                setLEDState(快闪);
+                openNetworkLed(false);
+                openNetworkLed(true);
+            }
+        }
+
+        @Override
+        public void downloadProgress(int progress) {
+            runOnUiThreadText(下载升级包进度View, "app下载：" + progress + "kb");
+        }
+
+        @Override
+        public void startUpdateApp() {
+            isUpdating = true;
+            mHandler.removeMessages(msg_init_network_timeout);
+            Log.e(TAG, "startUpdateApp: 开始升级");
+            runOnUiThreadText(升级结果View, "开始升级");
+        }
+
+
+        @Override
+        public void endUpdateApp(boolean succeed) {
+            Log.e(TAG, "endUpdateApp: " + "升级" + (succeed ? "成功" : "失败"));
+            isUpdating = false;
+            runOnUiThreadText(升级结果View, "升级" + (succeed ? "成功" : "失败"));
+            if (succeed) {
+                DeviceUtils.restartDevice();
+            } else {
+                mHandler.removeMessages(msg_init_network_timeout);
+                mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
+            }
+        }
+
+        @Override
+        public void networkInitStart() {
+            Log.e(TAG, "networkInitStart: ...............................");
+            mHandler.removeMessages(msg_init_network_timeout);
+            mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
+            setLEDState(慢闪);
+            scannerCamera.detachedDevice();
+            scannerStoreUSB.detachedDevice(false);
+        }
+
+        @Override
+        public void networkInitEnd(boolean succeed, String message) {
+            Log.e(TAG, "networkInitEnd: succeed =" + succeed + ",message =" + message);
+
+            if (remoteDebug) {
+                sendMessageToMqtt("网络初始化完成：" + (succeed ? "正常" : "异常：" + message));
+            }
+            if (succeed) {
+                mHandler.removeMessages(msg_check_working_timeout);
+                mHandler.sendEmptyMessageDelayed(msg_check_working_timeout, CHECK_WORKING_TIME);
+                setLEDState(慢闪);
+            } else {
+                setLEDState(快闪);
+            }
+            runOnUiThreadText(服务器状态View, "服务器状态：" + (succeed ? "正常" : "异常:" + message));
+
+            mHandler.removeMessages(msg_init_network_timeout);
+            scannerCamera.detachedDevice();
+            scannerStoreUSB.startScannerDevice();
+
+            if (!succeed) {
+                ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(MainActivity.this);
+                if (profileModel != null) {
+                    if (profileModel.imei != null) {
+                        runOnUiThreadText(imeiView, "imei:" + profileModel.imei);
+                    } else if (profileModel.imei != null) {
+                        runOnUiThreadText(imeiView, "imei:" + profileModel.SN);
+                    } else {
+                        runOnUiThreadText(imeiView, "imei:" + DeviceUtils.getPhoneImei(MainActivity.this));
+                    }
+                } else {
+                    runOnUiThreadText(imeiView, "imei:" + DeviceUtils.getPhoneImei(MainActivity.this));
+                }
+            }
+        }
+
+        @Override
+        public void showDeviceImei(String imei) {
+            runOnUiThreadText(imeiView, "imei:" + imei);
+        }
+
+        @Override
+        public void versionCodeResponse(int currentVersionCode, int serverVersionCode) {
+            mHandler.removeMessages(msg_init_network_timeout);
+            mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
+            runOnUiThreadText(联网状态View, "网络状态：网络可用");
+            runOnUiThreadText(当前版本View, "当前版本：" + currentVersionCode);
+            runOnUiThreadText(最新版本View, "最新版本：" + serverVersionCode);
+        }
+
+        @Override
+        public void startInitMqtt(DeviceInfoModel deviceInfoModel) {
+            runOnUiThreadText(云端名称View, "云端名称:" + deviceInfoModel.deviceName);
+
+            networkUpdateUploadModel(deviceInfoModel);
+            boolean mqttConnect = MqttManager.isConnected();
+            Log.d(TAG, "开始连接mqtt: returnImei：" + deviceInfoModel.returnImei + " ,deviceName =" + deviceInfoModel.deviceName);
+            if (!mqttConnect) {
+                MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + deviceInfoModel.deviceImei, "/camera/v1/device/" + deviceInfoModel.returnImei + "/android");
+                MqttManager.getInstance().subscribe("/camera/v2/device/" + deviceInfoModel.returnImei + "/android/send", 1);
+            }
+
+            if (DeviceUtils.getShowFormatResultFlag(MainActivity.this)) {//0: 格式化U盘失败，1
+                // ：格式化U盘成功
+                // 2：格式化相机成功 3：格式化相机失败
+                DeviceUtils.saveShowFormatResultFlag(false, MainActivity.this);
+                int type = DeviceUtils.getFormatResultFlag(MainActivity.this);
+                Log.e(TAG, "getFormatResultFlag: type =" + type);
+                if (type == 0) {
+                    sendMessageToMqtt("格式化U盘成功;");
+                } else if (type == 1) {
+                    sendMessageToMqtt("格式化U盘失败;");
+                } else if (type == 2) {
+                    sendMessageToMqtt("格式化相机成功;");
+                } else if (type == 3) {
+                    sendMessageToMqtt("格式化相机失败;");
+                }
+            }
+
+            if (remoteDebug) {
+                sendMessageToMqtt("imei:" + deviceInfoModel.deviceImei + ",returnImei:" + deviceInfoModel.returnImei + ",deviceName:" + deviceInfoModel.deviceName);
+            }
+
+            sendMessageToMqtt(serverGetInfo());
+
+        }
+
+        @Override
+        public boolean canStopUploadPictureThread() {
+            if (isUpdating) {
+                Log.d(TAG, "canStopUploadPictureThread: isUpdating");
+                return true;
+            }
+            if (scannerCamera.isOperatingDevice) {
+                Log.d(TAG, "canStopUploadPictureThread: scannerCamera.isOperatingDevice");
+                return false;
+            }
+            if (scannerStoreUSB.isOperatingDevice) {
+                Log.d(TAG, "canStopUploadPictureThread: scannerStoreUSB.isOperatingDevice");
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public void allPictureUploadEnd() {
+            int useTime = (int) (networkOperation.uploadTatalTime / 1000);
+            Log.e(TAG, "allPictureUploadEnd: 所有图片上传完成 ，用时" + useTime + "秒");
+            runOnUiThreadText(本次同步到服务器耗时View, "本次同步到服务器耗时:" + useTime + "s");
+            sendMessageToMqtt(UploadEndUploadUseTime + useTime + ";");
+            sendMessageToMqtt(serverGetInfo());
+
+            if (networkOperation.remoteServerAvailable) {
+                setLEDState(常亮);
+            }
+            if (remoteDebug) {
+                sendMessageToMqtt("allPictureUploadEnd: 所有图片上传完成 ，用时" + useTime + "秒");
+            }
+        }
+
+        @Override
+        public void pictureUploadStart() {
+
+
+        }
+
+        @Override
+        public void pictureUploadEnd() {
+
+        }
+
+
+        @Override
+        public void updateUploadSpeed(String speed) {
+            Log.d(TAG, "updateUploadSpeed: speed =" + speed);
+            UploadSpeed = speed;
+            runOnUiThreadText(已上传张数View, "已上传张数:" + networkOperation.uploadRemoteCompletePictureNum + "\n" + "上传服务器速度：" + speed);
+            sendMessageToMqtt(serverGetInfo());
+        }
+    };
 
     private final ScannerStoreUSB.DeviceScannerListener scannerStrogeUSBListener = new ScannerStoreUSB.DeviceScannerListener() {
         @Override
@@ -445,11 +632,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
             } else {
                 Log.e(TAG, "U盘endScannerDevice: 备份U盘初始化失败：" + scannerStoreUSB.errorMessage);
+                runOnUiThreadText(U盘空间View, "U盘空间:");
+                runOnUiThreadText(U盘照片总数View, "U盘图片总数:");
             }
 
 
             if (networkOperation.remoteServerAvailable || isSuccess) {
-                Log.e(TAG, "U盘endScannerDevice: 远程服务可用或者U盘可用，需要打开相机");
+                Log.e(TAG, "U盘endScannerDevice: 远程服务可用或者U盘可用，需要打开相机 isSuccess =" + isSuccess);
                 mHandler.removeMessages(msg_open_camera_port_timeout);
                 mHandler.sendEmptyMessageDelayed(msg_open_camera_port_timeout, OPEN_PORT_TIME);
                 openCameraDeviceProt(true, 2);
@@ -469,6 +658,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
             boolean uploadResult = scannerStoreUSB.uploadToUSB(localFilePath);
             return uploadResult;
+        }
+
+        @Override
+        public void addUploadRemoteFile(String uploadFileModel) {
+            networkOperation.addUploadRemoteFile(uploadFileModel, false);
         }
 
 
@@ -501,11 +695,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
         }
 
-        @Override
-        public void addUploadRemoteFile(String uploadFileModel) {
-            networkOperation.addUploadRemoteFile(uploadFileModel, false);
-        }
-
 
         @Override
         public void scannerCameraComplete(int needDownloadCount, int needUpload, int cameraTotalPictureCount, String deviceName) {
@@ -516,170 +705,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
             runOnUiThreadText(相机照片总数View, "相机照片总数：" + cameraTotalPictureCount);
             runOnUiThreadText(相机名称View, "相机名称：" + deviceName);
 
-            if(remoteDebug){
+            if (remoteDebug) {
                 sendMessageToMqtt("扫描相机完成：需要备份到U盘张数:" + needDownloadCount + ",需要上传张数：" + needUpload + ",相机照片总数：" + cameraTotalPictureCount + ",相机名称：" + deviceName);
             }
-        }
-
-
-    };
-
-    NetworkOperation.NetwrokOperationListener remoteOperationListener = new NetworkOperation.NetwrokOperationListener() {
-
-        @Override
-        public void startUpdateApp() {
-            isUpdating = true;
-            mHandler.removeMessages(msg_init_network_timeout);
-            Log.e(TAG, "startUpdateApp: ");
-            runOnUiThreadText(升级结果View, "开始升级");
-        }
-
-        @Override
-        public void downloadProgress(int progress) {
-            runOnUiThreadText(下载升级包进度View, "app下载：" + progress + "kb");
-        }
-
-        @Override
-        public void endUpdateApp(boolean succeed) {
-            isUpdating = false;
-            runOnUiThreadText(升级结果View, "升级" + (succeed ? "成功" : "失败"));
-            if (succeed) {
-                DeviceUtils.restartDevice();
-            } else {
-                mHandler.removeMessages(msg_init_network_timeout);
-                mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
-            }
-        }
-
-        @Override
-        public void networkInitStart() {
-            Log.e(TAG, "networkInitStart: ...............................");
-            mHandler.removeMessages(msg_init_network_timeout);
-            mHandler.sendEmptyMessageDelayed(msg_init_network_timeout, NETWORK_WAIT_TIME);
-            setLEDState(慢闪);
-            scannerCamera.detachedDevice();
-            scannerStoreUSB.detachedDevice(false);
-        }
-
-        @Override
-        public void networkInitEnd(boolean succeed, String message) {
-            Log.e(TAG, "networkInitEnd: succeed =" + succeed + ",message =" + message);
-
-            if (remoteDebug) {
-                sendMessageToMqtt("网络初始化完成：" + (succeed ? "正常" : "异常：" + message));
-            }
-            if (succeed) {
-                setLEDState(慢闪);
-            } else {
-                setLEDState(快闪);
-            }
-            runOnUiThreadText(服务器状态View, "服务器状态：" + (succeed ? "正常" : "异常:" + message));
-            mHandler.removeMessages(msg_init_network_timeout);
-
-            scannerCamera.detachedDevice();
-            scannerStoreUSB.startScannerDevice();
-        }
-
-        @Override
-        public void showWorkingImei(String imei) {
-            runOnUiThreadText(imeiView, "imei:" + imei);
-        }
-
-        @Override
-        public void versionCodeResponse(int currentVersionCode, int serverVersionCode) {
-            runOnUiThreadText(最新版本View, "最新版本：" + serverVersionCode);
-            runOnUiThreadText(当前版本View, "当前版本：" + serverVersionCode);
-        }
-
-        @Override
-        public void remoteDeviceInfoRespond(String deviceImei, DeviceInfoModel deviceInfoModel) {
-            runOnUiThreadText(云端名称View, "云端名称:" + deviceInfoModel.deviceName);
-
-            networkUpdateUploadModel(deviceInfoModel);
-            boolean mqttConnect = MqttManager.isConnected();
-            Log.d(TAG, "开始连接mqtt: returnImei：" + deviceInfoModel.returnImei + " ,deviceName =" + deviceInfoModel.deviceName);
-            if (!mqttConnect) {
-                MqttManager.getInstance().creatConnect("tcp://120.78.192.66:1883", "devices", "a1237891379", "" + deviceImei, "/camera/v1/device/" + deviceInfoModel.returnImei + "/android");
-                MqttManager.getInstance().subscribe("/camera/v2/device/" + deviceInfoModel.returnImei + "/android/send", 1);
-            }
-
-            if (DeviceUtils.getShowFormatResultFlag(MainActivity.this)) {//0: 格式化U盘失败，1
-                // ：格式化U盘成功
-                // 2：格式化相机成功 3：格式化相机失败
-                DeviceUtils.saveShowFormatResultFlag(false, MainActivity.this);
-                int type = DeviceUtils.getFormatResultFlag(MainActivity.this);
-                Log.e(TAG, "getFormatResultFlag: type =" + type);
-                if (type == 0) {
-                    sendMessageToMqtt("格式化U盘成功;");
-                } else if (type == 1) {
-                    sendMessageToMqtt("格式化U盘失败;");
-                } else if (type == 2) {
-                    sendMessageToMqtt("格式化相机成功;");
-                } else if (type == 3) {
-                    sendMessageToMqtt("格式化相机失败;");
-                }
-            }
-
-            if (remoteDebug) {
-                sendMessageToMqtt("imei:" + deviceImei + ",returnImei:" + deviceInfoModel.returnImei+",deviceName:"+deviceInfoModel.deviceName);
-            }
-
-            sendMessageToMqtt(serverGetInfo());
-
-        }
-
-        @Override
-        public boolean canStopUploadPictureThread() {
-            if (isUpdating) {
-                Log.d(TAG, "canStopUploadPictureThread: isUpdating");
-                return true;
-            }
-            if (scannerCamera.isOperatingDevice) {
-                Log.d(TAG, "canStopUploadPictureThread: scannerCamera.isOperatingDevice");
-                return false;
-            }
-            if (scannerStoreUSB.isOperatingDevice) {
-                Log.d(TAG, "canStopUploadPictureThread: scannerStoreUSB.isOperatingDevice");
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        public void allPictureUploadEnd() {
-            int useTime = (int) (networkOperation.uploadTatalTime / 1000);
-            Log.e(TAG, "allPictureUploadEnd: 所有图片上传完成 ，用时" + useTime + "秒");
-            runOnUiThreadText(本次同步到服务器耗时View, "本次同步到服务器耗时:" + useTime + "s");
-            sendMessageToMqtt(UploadEndUploadUseTime + useTime + ";");
-            sendMessageToMqtt(serverGetInfo());
-
-            if (networkOperation.remoteServerAvailable) {
-                setLEDState(常亮);
-            }
-            if(remoteDebug){
-                sendMessageToMqtt("allPictureUploadEnd: 所有图片上传完成 ，用时" + useTime + "秒");
-            }
-        }
-
-        @Override
-        public void pictureUploadStart() {
-
-
-        }
-
-        @Override
-        public void pictureUploadEnd() {
-
-        }
-
-
-        @Override
-        public void updateUploadSpeed(String speed) {
-            Log.d(TAG, "updateUploadSpeed: speed =" + speed);
-            UploadSpeed = speed;
-            runOnUiThreadText(已上传张数View, "已上传张数:" + networkOperation.uploadRemoteCompletePictureNum + "\n" + "上传服务器速度：" + speed);
-            sendMessageToMqtt(serverGetInfo());
         }
     };
 
@@ -768,7 +796,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.e(TAG, "checkProfileFileToConnectNetwork: end");
     }
 
-
     private void runOnUiThreadText(TextView textView, String text) {
         runOnUiThread(new Runnable() {
             @Override
@@ -816,22 +843,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        stopService(new Intent(MainActivity.this, MyServer.class));
+
         openCameraDeviceProt(false, 3);
+        unregisterReceiver(serverApkCommunicationReceiver);
 
 
         unregisterReceiver(scannerCamera);
         unregisterReceiver(scannerStoreUSB);
-        unregisterReceiver(netWorkStateReceiver);
-        unregisterReceiver(serverApkCommunicationReceiver);
+        unregisterReceiver(networkOperation);
         mHandler.removeCallbacksAndMessages(null);
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneListener, PhoneStateListener.LISTEN_NONE);
         EventBus.getDefault().unregister(this);
         MqttManager.getInstance().release();
-
-
         LogcatHelper.getInstance().stopMainLogcat();
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -987,7 +1012,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             public void endUpdate(boolean succeed, String message) {
                 isUpdating = false;
                 runOnUiThreadText(升级结果View, "升级" + (succeed ? "成功" : "失败:" + message));
-                //TODO
             }
         });
     }
@@ -1038,11 +1062,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void sendMessageToMqtt(String message) {
         if (MqttManager.isConnected()) {
-            if (networkOperation.returnImei != null) {
-                MqttManager.getInstance().publish("/camera/v2/device/" + networkOperation.returnImei + "/android/receive", 1, message);
+            if (networkOperation.networkAvailable && networkOperation.deviceInfoModel != null && networkOperation.deviceInfoModel.returnImei != null) {
+                MqttManager.getInstance().publish("/camera/v2/device/" + networkOperation.deviceInfoModel.returnImei + "/android/receive", 1, message);
             }
         } else {
-            if (networkOperation.networkAvailable && networkOperation.returnImei != null) {
+            if (networkOperation.networkAvailable && networkOperation.deviceInfoModel != null && networkOperation.deviceInfoModel.returnImei != null) {
                 Message message1 = new Message();
                 message1.what = msg_resend_mqtt;
                 message1.obj = message;
@@ -1391,12 +1415,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
 
-        Log.e(TAG, "所有错误信息: -------------------------->\n" + scannerStoreUSB.errorMessage + "\n" + scannerCamera.errorMessage);
+        Log.e(TAG, "所有错误信息: -------------------------->\n 优盘:" + scannerStoreUSB.errorMessage + "\n 相机:" + scannerCamera.errorMessage + "\n 网络:" + networkOperation.errorMessage);
 
         networkOperation.uploadLogcatFileToRemote(new NetworkOperation.UploadLogcatListener() {
             @Override
             public void uploadLogcatComplete(boolean succeed, String message) {
-                if(remoteDebug){
+                if (remoteDebug) {
                     sendMessageToMqtt("日志上传" + (succeed ? ("成功-->" + message) : "失败-->" + message));
                 }
                 mHandler.postDelayed(new Runnable() {
@@ -1416,7 +1440,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
     private void logcatUploadComplete() {
-        Log.d(TAG, "logcatUploadComplete: ");
+
         Utils.resetDir(VariableInstance.getInstance().TFCardPictureDir);
         if (remoteDebug) {
             Log.e(TAG, "logcatUploadComplete: 测试阶段，不关机");
@@ -1425,6 +1449,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             mHandler.sendEmptyMessageDelayed(msg_check_working_timeout, 10 * CHECK_WORKING_TIME);
             return;
         }
+        Log.d(TAG, "logcatUploadComplete: ");
 
         SharedPreferences sharedPreferences = getSharedPreferences("Cloud", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -1462,9 +1487,27 @@ public class MainActivity extends Activity implements View.OnClickListener {
             switch (msg.what) {
                 case msg_init_network_timeout:
                     Log.e(TAG, "handleMessage: 初始化网络超时");
+                    activity.setLEDState(快闪);
                     activity.runOnUiThreadText(activity.服务器状态View, "服务器状态：" + "异常:" + "初始化网络超时");
+                    activity.mHandler.removeMessages(msg_init_network_timeout);
                     activity.networkOperation.networkDisconnect(true);
+                    activity.scannerCamera.detachedDevice();
                     activity.scannerStoreUSB.startScannerDevice();
+
+
+                    ProfileModel profileModel = LocalProfileHelp.getInstance().getProfileFile(activity);
+                    if (profileModel != null) {
+                        if (profileModel.imei != null) {
+                            activity.runOnUiThreadText(activity.imeiView, "imei:" + profileModel.imei);
+                        } else if (profileModel.imei != null) {
+                            activity.runOnUiThreadText(activity.imeiView, "imei:" + profileModel.SN);
+                        } else {
+                            activity.runOnUiThreadText(activity.imeiView, "imei:" + DeviceUtils.getPhoneImei(activity));
+                        }
+                    } else {
+                        activity.runOnUiThreadText(activity.imeiView, "imei:" + DeviceUtils.getPhoneImei(activity));
+                    }
+
                     break;
                 case msg_open_camera_port_timeout:
                     Log.e(TAG, "handleMessage: 打开相机端口超时没接收到连接广播");

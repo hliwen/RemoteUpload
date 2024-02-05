@@ -180,7 +180,13 @@ public class ScannerCamera extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent == null) {
+            return;
+        }
         String action = intent.getAction();
+        if (action == null) {
+            return;
+        }
         switch (action) {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED: {
                 UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
