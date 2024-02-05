@@ -369,11 +369,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     break;
                 case Enter_UploadAPP_Debug_Model:
                     remoteDebug = true;
+                    sendMessageToMqtt("进入远程调试模式");
                     break;
                 case Exit_UploadAPP_Debug_Model:
                     remoteDebug = false;
                     break;
                 case CheckAppStateAction:
+                    sendMessageToMqtt("退出远程调试模式");
                     sendOrderedBroadcast(new Intent(ResponseAppStateAction), null);
                     break;
             }
@@ -650,7 +652,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             } else {
                 Log.e(TAG, "U盘endScannerDevice: 远程服务不可用，并且U盘不可用，不需要打开相机");
             }
-
         }
     };
 

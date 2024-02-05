@@ -21,7 +21,7 @@ android {
         targetSdkVersion 21
         versionCode 20240205
 
-        versionName "v1.3.33"
+        versionName "v1.3.34"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

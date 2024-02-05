@@ -936,7 +936,7 @@ public class ScannerCamera extends BroadcastReceiver {
     }
 
     private boolean checkNeedBackupToUSB(String name) {
-        if (LocalProfileHelp.getInstance().usbPictureList.contains(name) && !deviceScannerListener.usbInitComplete()) {
+        if (LocalProfileHelp.getInstance().usbPictureList.contains(name) || !deviceScannerListener.usbInitComplete()) {
             return false;
         }
         return true;
