@@ -196,7 +196,11 @@ public class ScannerCamera extends BroadcastReceiver {
                 }
                 Log.e(TAG, "ReceiverCamera onReceive: action =" + action + ", getProductName =" + usbDevice.getProductName());
                 if (DeviceUtils.isCameraDevice(usbDevice.getProductName())) {
-                    startScannerDevice();
+                    if (deviceScannerListener.networkIniting()) {
+                        Log.e(TAG, "设备接入: 正在初始化网络，不需要执行扫描相机");
+                    } else {
+                        startScannerDevice();
+                    }
                 }
             }
             break;
@@ -254,9 +258,9 @@ public class ScannerCamera extends BroadcastReceiver {
 
     public void startScannerDevice() {
         detachedDevice();
-        deviceTotalPicture = 0;
         backRemoteTotalPicture = 0;
         backupUSBTotalPicture = 0;
+        deviceTotalPicture = 0;
         isOperatingDevice = true;
         deviceScannerListener.startScannerDevice();
         errorMessage = "";
@@ -806,7 +810,6 @@ public class ScannerCamera extends BroadcastReceiver {
         }
 
 
-
         InfloList infloList = new InfloList();
         infloList.backupUSBPictureInfoList = Collections.synchronizedList(new ArrayList<>());
         infloList.backRemotePictureInfoList = Collections.synchronizedList(new ArrayList<>());
@@ -963,6 +966,7 @@ public class ScannerCamera extends BroadcastReceiver {
 
 
     public interface DeviceScannerListener {
+        boolean networkIniting();
 
         void startScannerDevice();
 

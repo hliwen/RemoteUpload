@@ -587,6 +587,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         @Override
+        public boolean networkIniting() {
+            return networkOperation.networkIniting;
+        }
+
+        @Override
         public void buckupOnePictureComplete(String speed) {
             copySpeed = speed;
             runOnUiThreadText(已下载张数View, "已同步到U盘张数:" + scannerStoreUSB.backupUSBCompletePictureNum + "\n" + "同步到USB速度:" + speed);
@@ -594,7 +599,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void startScannerDevice() {
-            Log.e(TAG, "startScannerDevice: 开始查找U盘");
+            Log.d(TAG, "startScannerDevice: 开始扫描U盘........................................networkIniting =" + networkOperation.networkIniting);
             runOnUiThreadText(U盘状态View, "U盘状态:" + "正在扫描U盘");
 
             if (remoteDebug) {
@@ -652,6 +657,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private final ScannerCamera.DeviceScannerListener scannerCameraListener = new ScannerCamera.DeviceScannerListener() {
 
         @Override
+        public boolean networkIniting() {
+            return networkOperation.networkIniting;
+        }
+
+        @Override
         public boolean uploadToUSB(String localFilePath) {
             if (scannerStoreUSB == null) {
                 return false;
@@ -668,8 +678,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void startScannerDevice() {
+            Log.d(TAG, "startScannerDevice: 开始扫描相机........................................networkIniting =" + networkOperation.networkIniting);
             mHandler.removeMessages(msg_open_camera_port_timeout);
-            Log.d(TAG, "相机startScannerDevice: start ........................................");
             runOnUiThreadText(相机状态View, "相机状态:" + "正在扫描相机");
 
             if (remoteDebug) {

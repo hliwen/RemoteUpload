@@ -114,7 +114,11 @@ public class ScannerStoreUSB extends BroadcastReceiver {
                 }
                 Log.e(TAG, "ReceiverCamera onReceive: action =" + action + ", getProductName =" + usbDevice.getProductName());
                 if (DeviceUtils.isStroreUSBDevice(usbDevice.getProductName())) {
-                    startScannerDevice();
+                    if(deviceScannerListener.networkIniting()) {
+                        Log.e(TAG, "设备接入: 正在初始化网络，不需要执行扫描U盘" );
+                    }else {
+                        startScannerDevice();
+                    }
                 }
             }
             break;
@@ -725,6 +729,7 @@ public class ScannerStoreUSB extends BroadcastReceiver {
 
     public interface DeviceScannerListener {
 
+        boolean networkIniting();
         void buckupOnePictureComplete(String speed);
 
         void checkServerUSBOperation();

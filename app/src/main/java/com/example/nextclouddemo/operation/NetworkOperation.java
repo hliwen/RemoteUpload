@@ -128,7 +128,6 @@ public class NetworkOperation extends BroadcastReceiver {
         if (networkIniting) {
             operationListener.networkInitEnd(false, "网络断开");
         }
-
         networkIniting = false;
 
         if (networkThreadExecutor != null) {
