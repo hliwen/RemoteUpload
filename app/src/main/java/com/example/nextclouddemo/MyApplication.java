@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 
 import com.blankj.utilcode.util.Utils;
+import com.example.nextclouddemo.operation.LogcatHelper;
 
 
 public class MyApplication extends Application {

@@ -1,0 +1,352 @@
+package com.example.nextclouddemo.operation;
+
+
+import static android.content.Context.MODE_PRIVATE;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
+import android.os.Build;
+import android.os.Environment;
+
+
+import com.example.nextclouddemo.MyApplication;
+import com.example.nextclouddemo.model.ProfileModel;
+
+import com.example.nextclouddemo.utils.Log;
+import com.example.nextclouddemo.utils.DeviceUtils;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+
+
+import me.jahnen.libaums.core.fs.UsbFile;
+
+public class LocalProfileHelp {
+
+    private static final String TAG = "remotelog_LocalProfileHelp";
+
+    public static final String remoteFilePath = Environment.getExternalStorageDirectory() + File.separator + "remotePictureList.txt";
+    public static final String usbFilePath = Environment.getExternalStorageDirectory() + File.separator + "usbPictureList.txt";
+
+    public boolean backupListInit;//已初始化备份列表
+    public boolean remoteListInit;//已初始化远程列表
+    public List<String> remotePictureList = Collections.synchronizedList(new ArrayList<>());
+    public List<String> usbPictureList = Collections.synchronizedList(new ArrayList<>());
+    private static LocalProfileHelp instance = null;
+
+    public static LocalProfileHelp getInstance() {
+        if (instance == null) {
+            synchronized (LocalProfileHelp.class) {
+                if (instance == null) {
+                    instance = new LocalProfileHelp();
+                }
+            }
+        }
+        return instance;
+    }
+
+
+    private LocalProfileHelp() {
+        remotePictureList = Collections.synchronizedList(new ArrayList<>());
+        usbPictureList = Collections.synchronizedList(new ArrayList<>());
+    }
+
+    public void resetBackup() {
+        File file = new File(remoteFilePath);
+        if (file.exists()) {
+            file.delete();
+        }
+
+        file = new File(usbFilePath);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
+
+    public boolean isExistLocalRemotePictureList() {
+        File file = new File(remoteFilePath);
+        if (file.exists()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isExistLocalBackupPictureList() {
+        File file = new File(usbFilePath);
+        if (file.exists()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean initLocalRemotePictureList() {
+        Log.d(TAG, "initLocalRemotePictureList: start ......................................");
+        try {
+            InputStream inputStream = new FileInputStream(remoteFilePath);
+            InputStreamReader inputreader = new InputStreamReader(inputStream, "GBK");
+            BufferedReader buffreader = new BufferedReader(inputreader);
+            String pictureName = "";
+            //分行读取
+            while ((pictureName = buffreader.readLine()) != null) {
+                if (pictureName.trim().length() > 0) {
+                    if (!remotePictureList.contains(pictureName)) {
+                        remotePictureList.add(pictureName);
+                    }
+                }
+            }
+            inputreader.close();
+        } catch (Exception e) {
+            Log.e(TAG, "initLocalRemotePictureList: IOException =" + e);
+            return false;
+        }
+        Log.e(TAG, "initLocalRemotePictureList: ............................ remotePictureList =" + remotePictureList.size());
+        remoteListInit = true;
+        return true;
+    }
+
+
+    public void addLocalRemotePictureList(String pictureName) {
+        if (DeviceUtils.fileIsPicture(pictureName)) {
+            if (!remotePictureList.contains(pictureName)) {
+                remotePictureList.add(pictureName);
+                File file = new File(remoteFilePath);
+                if (!file.exists()) {
+                    try {
+                        file.createNewFile();
+                    } catch (Exception e) {
+                        Log.e(TAG, "createLocalUSBPictureList: createNewFile Exception =" + e);
+                    }
+                }
+                FileWriter fileWriter = null;
+                try {
+                    fileWriter = new FileWriter(file, true);
+                    pictureName = pictureName + "\n";
+                    fileWriter.write(pictureName);
+                    fileWriter.flush();
+                } catch (Exception e) {
+                    Log.e(TAG, "initRemotePictureList: new FileWriter Exception =" + e);
+                } finally {
+                    if (fileWriter != null) {
+                        try {
+                            fileWriter.close();
+                        } catch (IOException e) {
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean initLocalUSBPictureList() {
+        Log.d(TAG, "initLocalUSBPictureList: start.................");
+        try {
+            InputStream inputStream = new FileInputStream(usbFilePath);
+            InputStreamReader inputreader = new InputStreamReader(inputStream, "GBK");
+            BufferedReader buffreader = new BufferedReader(inputreader);
+            String pictureName = "";
+            //分行读取
+            while ((pictureName = buffreader.readLine()) != null) {
+                if (pictureName.trim().length() > 0) {
+                    if (!usbPictureList.contains(pictureName)) {
+                        usbPictureList.add(pictureName);
+                    }
+                }
+            }
+            inputreader.close();
+        } catch (Exception e) {
+            Log.e(TAG, "initLocalUSBPictureList: IOException =" + e);
+            return false;
+        }
+        Log.e(TAG, "initLocalUSBPictureList:数据库中存储备份照片张数 =" + usbPictureList.size());
+        Collections.sort(usbPictureList, new UsbPictureComparator());
+
+        backupListInit = true;
+        return true;
+    }
+
+    public void createLocalUSBPictureList(UsbFile storeUSBPictureDirUsbFile) {
+        Log.d(TAG, "createLocalUSBPictureList: 创建已备份照片数据库开始............................");
+        if (storeUSBPictureDirUsbFile == null) return;
+        FileWriter fileWriter = null;
+        File file = new File(usbFilePath);
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (Exception e) {
+                Log.e(TAG, "createLocalUSBPictureList: createNewFile Exception =" + e);
+                return;
+            }
+        }
+
+        try {
+            fileWriter = new FileWriter(file, true);
+        } catch (Exception e) {
+            Log.e(TAG, "createLocalUSBPictureList: new FileWriter Exception =" + e);
+            return;
+        }
+        try {
+            UsbFile[] storeUSBPictureDirUsbFileList = storeUSBPictureDirUsbFile.listFiles();
+            for (UsbFile dateUsbFile : storeUSBPictureDirUsbFileList) {
+
+                if (dateUsbFile.isDirectory()) {
+                    UsbFile[] dateUsbFileDirList = dateUsbFile.listFiles();
+                    for (UsbFile usbFile : dateUsbFileDirList) {
+                        String pictureName = usbFile.getName();
+                        if (DeviceUtils.fileIsPicture(pictureName)) {
+                            if (!usbPictureList.contains(pictureName)) {
+                                usbPictureList.add(pictureName);
+                            }
+                            pictureName = pictureName + "\n";
+                            try {
+                                fileWriter.write(pictureName);
+                            } catch (IOException e) {
+                                Log.e(TAG, "createLocalUSBPictureList: IOException =" + e);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
+
+        if (fileWriter != null) {
+            try {
+                fileWriter.close();
+            } catch (Exception e) {
+
+            }
+        }
+        backupListInit = true;
+
+        Log.d(TAG, "createLocalUSBPictureList: 创建已备份照片数据库结束............................数据库中存储备份照片张数 =" + usbPictureList.size());
+    }
+
+    public void addLocalUSBPictureList(String pictureName) {
+        if (DeviceUtils.fileIsPicture(pictureName)) {
+            if (!usbPictureList.contains(pictureName)) {
+                usbPictureList.add(pictureName);
+                File file = new File(usbFilePath);
+                if (!file.exists()) {
+                    try {
+                        file.createNewFile();
+                    } catch (Exception e) {
+                        Log.e(TAG, "addLocalUSBPictureList: createNewFile Exception =" + e);
+                    }
+                }
+                FileWriter fileWriter = null;
+                try {
+                    fileWriter = new FileWriter(file, true);
+                    pictureName = pictureName + "\n";
+                    fileWriter.write(pictureName);
+                    fileWriter.flush();
+                } catch (Exception e) {
+                    Log.e(TAG, "addLocalUSBPictureList: new FileWriter Exception =" + e);
+                } finally {
+                    if (fileWriter != null) {
+                        try {
+                            fileWriter.close();
+                        } catch (IOException e) {
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void saveProfileFile(Context context, ProfileModel profileModel) {
+        if (profileModel == null) {
+            return;
+        }
+        SharedPreferences.Editor editor = context.getSharedPreferences("Cloud", MODE_PRIVATE).edit();
+        if (profileModel.imei != null) {
+            editor.putString("imei", profileModel.imei);
+        }
+        if (profileModel.wifi != null) {
+            editor.putString("wifi", profileModel.wifi);
+        }
+        if (profileModel.pass != null) {
+            editor.putString("pass", profileModel.pass);
+        }
+        if (profileModel.SN != null) {
+            editor.putString("SN", profileModel.SN);
+        }
+        editor.apply();
+    }
+
+    public ProfileModel getProfileFile(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("Cloud", MODE_PRIVATE);
+        ProfileModel profileModel = new ProfileModel();
+        profileModel.imei = sharedPreferences.getString("imei", null);
+        profileModel.wifi = sharedPreferences.getString("wifi", null);
+        profileModel.pass = sharedPreferences.getString("pass", null);
+        profileModel.SN = sharedPreferences.getString("SN", null);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            profileModel.SN = "202302050000001";
+            return profileModel;
+        }
+
+        if (profileModel.imei == null && profileModel.SN == null) {
+            return null;
+        }
+        return profileModel;
+    }
+
+    public int checkDeviceStyle() {
+        int deviceStyle = 0;//0 是还不确定是蜂窝板还是WiFi版，1是蜂窝版，2是WiFi版
+
+        try {
+            UsbManager usbManager = (UsbManager) MyApplication.getContext().getSystemService(Context.USB_SERVICE);
+            HashMap<String, UsbDevice> connectedUSBDeviceList = usbManager.getDeviceList();
+            if (connectedUSBDeviceList == null || connectedUSBDeviceList.size() <= 0) {
+                return deviceStyle;
+            }
+            Collection<UsbDevice> usbDevices = connectedUSBDeviceList.values();
+            if (usbDevices == null) {
+                return deviceStyle;
+            }
+
+            for (UsbDevice usbDevice : usbDevices) {
+                String usbProductName = usbDevice.getProductName();
+                Log.e(TAG, "initDevice: usbProductName =" + usbProductName);
+                if (usbProductName == null) {
+                    continue;
+                }
+                usbProductName = usbProductName.trim();
+                if (usbProductName.startsWith("802.")) {
+                    deviceStyle = 2;
+                    break;
+                } else if (usbProductName.startsWith("EC25") || usbProductName.startsWith("EG25") || usbProductName.startsWith("EC20") || usbProductName.startsWith("EC200T")) {
+                    deviceStyle = 1;
+                    break;
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return deviceStyle;
+    }
+
+
+    public class UsbPictureComparator implements Comparator<String> {
+        @Override
+        public int compare(String o1, String o2) {
+            return o2.compareTo(o1);
+        }
+    }
+}

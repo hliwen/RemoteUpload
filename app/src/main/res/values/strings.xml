@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NextCloudDemo</string>
+    <string name="app_name">UploadPicture</string>
 
     <string name="refresh">Refresh</string>
     <string name="upload">Upload</string>
@@ -61,6 +61,7 @@
     <string name="phone_number">卡号：</string>
     <string name="imei">imei</string>
     <string name="updatebeta">升级beta</string>
+    <string name="u_state">U盘状态</string>
 
 
 </resources>

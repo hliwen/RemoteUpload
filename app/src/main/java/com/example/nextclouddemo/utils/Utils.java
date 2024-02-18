@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.text.format.Formatter;
 
+import com.example.nextclouddemo.MainActivity;
 import com.example.nextclouddemo.MyApplication;
 import com.example.nextclouddemo.VariableInstance;
 
@@ -165,6 +166,7 @@ public class Utils {
 
 
     public static void closeAndroid() {
+        Log.e(TAG, "closeAndroid: ");
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot -p"});  //关机
             proc.waitFor();
@@ -423,19 +425,19 @@ public class Utils {
             } else {
                 return 0;
             }
-//            File apkFile = new File(apkPath);
-//            if (apkFile.exists()) {
-//                 Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件存在");
-//                return getapkFileVersionCode(context, apkPath);
-//            } else {
-//                Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件不存在");
-//                boolean copyResult = copyAPKServer(apkPath, "app-release.apk", context);
-//                if (copyResult) {
-//                    return getapkFileVersionCode(context, apkPath);
-//                } else {
-//                    return 0;
-//                }
-//            }
+            //            File apkFile = new File(apkPath);
+            //            if (apkFile.exists()) {
+            //                 Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件存在");
+            //                return getapkFileVersionCode(context, apkPath);
+            //            } else {
+            //                Log.d(TAG, "getAssetsServerApkFileVersionCode: 文件不存在");
+            //                boolean copyResult = copyAPKServer(apkPath, "app-release.apk", context);
+            //                if (copyResult) {
+            //                    return getapkFileVersionCode(context, apkPath);
+            //                } else {
+            //                    return 0;
+            //                }
+            //            }
         } catch (Exception e) {
             return 0;
         }
@@ -467,7 +469,8 @@ public class Utils {
         } catch (Exception e) {
 
         }
-        if (apkPath == null) apkPath = "/storage/emulated/0/Download/apkServer.apk";
+        if (apkPath == null)
+            apkPath = "/storage/emulated/0/Download/apkServer.apk";
         return apkPath;
     }
 
@@ -599,7 +602,7 @@ public class Utils {
         }
     }
 
-    public static boolean isBigThreeDate(String pictureTime) {
+    public static boolean isMoreThanThreeDate(String pictureTime) {
 
         try {
             @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMdd");
@@ -618,7 +621,7 @@ public class Utils {
         return true;
     }
 
-    public static boolean isBigThreeDate(long pictureTime) {
+    public static boolean isMoreThanThreeDate(long pictureTime) {
 
         try {
             long timeDifference = System.currentTimeMillis() - pictureTime;
@@ -632,6 +635,64 @@ public class Utils {
         } catch (Exception e) {
         }
         return true;
+    }
+
+
+    public interface InstallAPKServerListener {
+        void copyAPK(boolean succeed);
+
+        void installStart(boolean isReInstall);
+
+        void installEnd(boolean succeed, boolean isReInstall);
+    }
+
+    public static void installAPKServer(Context context, InstallAPKServerListener installAPKServerListener) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String apkPath = getServerAndroidDataAPKPath(context);
+                Log.d(TAG, "installAPKServer: apkPath =" + apkPath);
+                File apkFile = new File(apkPath);
+                if (apkFile == null || !apkFile.exists()) {
+                    boolean copyResult = Utils.copyAPKServer(apkPath, "app-release.apk", context);
+                    if (installAPKServerListener != null)
+                        installAPKServerListener.copyAPK(copyResult);
+                    if (!copyResult) {
+                        Log.e(TAG, "installAPKServer: installAPKServer 拷贝文件出错， 服务安装异常");
+                        return;
+                    }
+                }
+                if (installAPKServerListener != null)
+                    installAPKServerListener.installStart(false);
+                boolean installSucceed = Utils.installApk(apkPath);
+                if (installAPKServerListener != null)
+                    installAPKServerListener.installEnd(installSucceed, false);
+                if (installSucceed) {
+                    apkFile.delete();
+                    Log.w(TAG, "run: 安装serverApk成功");
+                    Utils.startServerActivity();
+                } else {
+                    Log.w(TAG, "run: 安装失败，卸载serverApk");
+                    if (installAPKServerListener != null)
+                        installAPKServerListener.installStart(true);
+                    Utils.uninstallapk();
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                    }
+                    installSucceed = Utils.installApk(apkPath);
+                    if (installAPKServerListener != null)
+                        installAPKServerListener.installEnd(installSucceed, true);
+                    apkFile.delete();
+                    if (installSucceed) {
+                        Log.w(TAG, "run:安装serverApk成功");
+                        Utils.startServerActivity();
+                    } else {
+                        Log.w(TAG, "run:安装serverApk失败");
+                    }
+                }
+            }
+        }).start();
     }
 
 }
