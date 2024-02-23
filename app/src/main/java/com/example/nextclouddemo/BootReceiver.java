@@ -14,9 +14,11 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d("remotelog_BootReceiver", "onReceive: intent.getAction() =" + intent.getAction());
-        if (intent == null) return;
+        if (intent == null)
+            return;
         String action = intent.getAction();
-        if (action == null) return;
+        if (action == null)
+            return;
 
         if (action.equals("android.intent.action.BOOT_COMPLETED") || action.equals("android.intent.action.VOLUME_CHANGED_ACTION")) {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -37,6 +39,13 @@ public class BootReceiver extends BroadcastReceiver {
             LedControl.writeGpio('b', 2, 1);
         } else if (action.equals("CloseCameraDevice")) {
             LedControl.writeGpio('b', 2, 0);
+        } else if (action.equals(Intent.ACTION_PACKAGE_REPLACED)) {
+            String packageName = intent.getData().getSchemeSpecificPart();
+            if (packageName != null && packageName.equals(context.getPackageName())) {
+                Intent restartIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+                restartIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(restartIntent);
+            }
         }
     }
 }

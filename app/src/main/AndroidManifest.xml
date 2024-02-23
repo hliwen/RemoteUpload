@@ -82,6 +82,8 @@
                 <action android:name="openUploadApk" />
                 <action android:name="OpenCameraDevice" />
                 <action android:name="CloseCameraDevice" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
             </intent-filter>
         </receiver>
 

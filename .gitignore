@@ -20,3 +20,5 @@ app/release/
 .idea/misc.xml
 .idea/vcs.xml
 .idea/compiler.xml
+.idea/migrations.xml
+.idea/deploymentTargetDropDown.xml

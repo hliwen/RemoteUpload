@@ -19,7 +19,7 @@ android {
         applicationId "com.example.nextclouddemo"
         minSdkVersion 21
         targetSdkVersion 21
-        versionCode 20240218
+        versionCode 20240223
 
         versionName "v1.3.37"
         multiDexEnabled true
